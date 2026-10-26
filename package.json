@@ -6,8 +6,7 @@
   "scripts": {
     "build:tokens": "node task-01-design-system/tokens/convert-tokens.js",
     "test:tokens": "node task-01-design-system/tokens/convert-tokens.js --validate",
-    "start": "node server.js",
-    "serve": "node server.js"
+    "start": "node server.js"
   },
   "keywords": [
     "design-tokens",

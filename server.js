@@ -11,6 +11,7 @@ const MIME_TYPES = {
   '.json': 'application/json; charset=utf-8',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
   '.svg': 'image/svg+xml',
 };
 
@@ -43,5 +44,5 @@ const server = http.createServer((req, res) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`GoodPets web app running at http://localhost:${PORT}`);
+  console.log(`GoodPets Landing Page server running at http://localhost:${PORT}`);
 });

@@ -1,271 +1,408 @@
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GoodPets — Reliable Pet Care (Design System)</title>
-  <meta name="description" content="GoodPets grooming, daycare, and boarding services built with Material Design 3 tokens and semantic CSS variables." />
-  <!-- Google Fonts: Nunito as specified in the GoodPets design brief -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
-  <!-- Application Styling Entry Point (imports tokens.css) -->
+  <title>GoodPets Daycare Subscriptions — Save More on Monthly Dog Daycare</title>
+  <meta name="description" content="Save on reliable, loving dog daycare with a GoodPets monthly subscription. Guaranteed play spots, consistent routines, and exclusive subscription savings." />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
-  <!-- App Header & Navigation -->
-  <header class="app-header">
-    <div class="container header-inner">
+  <!-- Top Announcement Banner -->
+  <aside style="background-color: #042f2e; color: #ccfbf1; text-align: center; padding: 0.6rem 1rem; font-size: 0.875rem; font-weight: 600;">
+    🐾 <strong>Limited-Time Daycare Special:</strong> Save <span class="badge-placeholder">[X]% Off</span> monthly daycare subscriptions compared to daily drop-in rates!
+  </aside>
+
+  <!-- Navigation Header -->
+  <header class="site-header" id="site-header">
+    <div class="container nav-container">
       <a href="#" class="brand-logo" id="brand-logo">
         <span class="brand-icon">🐾</span>
         <span>GoodPets</span>
       </a>
 
       <nav aria-label="Main Navigation">
-        <ul class="nav-links">
-          <li><a href="#services" class="nav-link">Services</a></li>
-          <li><a href="#packages" class="nav-link">Packages</a></li>
-          <li><a href="#ai-assistant" class="nav-link">AI Assistant</a></li>
-          <li><a href="#token-system" class="nav-link">Design Tokens</a></li>
+        <ul class="nav-menu">
+          <li><a href="#daycare" class="nav-link">Daycare</a></li>
+          <li><a href="#benefits" class="nav-link">Benefits</a></li>
+          <li><a href="#how-it-works" class="nav-link">How It Works</a></li>
+          <li><a href="#plans" class="nav-link">Subscription Plans</a></li>
+          <li><a href="#faqs" class="nav-link">FAQs</a></li>
         </ul>
       </nav>
 
-      <div class="header-actions">
-        <!-- Theme Toggle Switch -->
-        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle light and dark theme">
-          <span id="theme-icon">🌙</span>
-          <span id="theme-label">Dark Mode</span>
-        </button>
-        <a href="#booking" class="btn btn-primary" id="book-now-header">Book Care</a>
+      <div class="nav-actions">
+        <a href="#plans" class="btn btn-primary" id="header-cta-btn">Explore Plans</a>
       </div>
     </div>
   </header>
 
   <!-- Hero Section -->
-  <section class="hero-section">
-    <div class="container hero-content">
-      <div class="hero-badge">
-        <span>✨</span> Caring, attentive pet care
+  <section class="hero-section" id="daycare">
+    <div class="container hero-grid">
+      <div class="hero-text">
+        <div class="promo-pill">
+          <span class="promo-pill-icon">🏷️</span>
+          <span>Special Offer: <span class="badge-placeholder">[X]% Off</span> Daycare Subscriptions</span>
+        </div>
+
+        <h1 class="hero-title">
+          Give Your Dog Daily Joy. <span class="highlight">Save More</span> with a Monthly Daycare Subscription.
+        </h1>
+
+        <p class="hero-description">
+          Why pay individual visit fees every week? A GoodPets recurring daycare subscription guarantees your dog’s favorite play routine, social fun with trained caregivers, and substantial monthly savings compared to single-day bookings.
+        </p>
+
+        <div class="hero-actions">
+          <a href="#plans" class="btn btn-accent" id="hero-primary-cta">Explore Daycare Plans</a>
+          <a href="#how-it-works" class="btn btn-secondary" id="hero-secondary-cta">How It Works</a>
+        </div>
+
+        <p class="hero-disclaimer">
+          * Promotional discount placeholder: <strong>[X]% Off</strong> and plan rates below are illustrative and pending business confirmation.
+        </p>
       </div>
-      <h1 class="hero-title">Reliable pet care made easier for loving pet owners.</h1>
-      <p class="hero-subtitle">
-        Whether you are working late or travelling away, GoodPets offers expert grooming, supervised daytime daycare, and safe, comfortable overnight boarding.
-      </p>
-      <div class="hero-actions">
-        <a href="#services" class="btn btn-primary" id="explore-services-btn">Explore Services</a>
-        <a href="#ai-assistant" class="btn btn-outlined" id="ask-assistant-btn">Ask AI Assistant</a>
+
+      <div class="hero-media">
+        <div class="hero-image-wrapper">
+          <img src="assets/goodpets-daycare-hero.jpg" alt="Happy dogs resting and playing together safely in the sunlit GoodPets daycare lounge" class="hero-image" width="800" height="450" />
+        </div>
+        <div class="hero-floating-badge">
+          <span class="hero-badge-icon">⭐</span>
+          <div class="hero-badge-text">
+            <strong>Guaranteed Recurring Spots</strong>
+            <span>Never miss out on busy workdays</span>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- Main Content -->
-  <main class="container">
-
-    <!-- Services Grid Section -->
-    <section class="services-section" id="services">
+  <!-- Subscription Benefits Section -->
+  <section class="section-padding benefits-section" id="benefits">
+    <div class="container">
       <div class="section-header">
-        <h2 class="section-title">Our Pet Care Services</h2>
-        <p class="section-subtitle">Attentive, trustworthy care designed around your pet's happiness and routine.</p>
-      </div>
-
-      <div class="cards-grid">
-        <!-- Grooming Card -->
-        <article class="card" id="card-grooming">
-          <div>
-            <div class="card-header">
-              <div class="card-icon">✂️</div>
-              <span class="badge badge-primary">Most Popular</span>
-            </div>
-            <h3 class="card-title">Full Grooming</h3>
-            <p class="card-description">
-              Gentle warm bath, coat brushing, precision haircut, blow-dry, ear cleansing, and nail trimming using hypoallergenic pet shampoos.
-            </p>
-            <div class="card-price">$45 <span>/ session</span></div>
-          </div>
-          <div class="card-footer">
-            <span class="badge badge-success">Available Today</span>
-            <button class="btn btn-primary" id="btn-book-grooming">Select</button>
-          </div>
-        </article>
-
-        <!-- Daycare Card -->
-        <article class="card card-highlight" id="card-daycare">
-          <div>
-            <div class="card-header">
-              <div class="card-icon card-icon-secondary">🎾</div>
-              <span class="badge badge-warning">Limited Spots</span>
-            </div>
-            <h3 class="card-title">Supervised Daycare</h3>
-            <p class="card-description">
-              Active indoor and outdoor play sessions, socialization with compatible pets, quiet rest periods, and loving care throughout your workday.
-            </p>
-            <div class="card-price">$32 <span>/ day</span></div>
-          </div>
-          <div class="card-footer">
-            <span class="badge badge-success">8 Spots Open</span>
-            <button class="btn btn-secondary" id="btn-book-daycare">Select</button>
-          </div>
-        </article>
-
-        <!-- Boarding Card -->
-        <article class="card" id="card-boarding">
-          <div>
-            <div class="card-header">
-              <div class="card-icon card-icon-tertiary">🏡</div>
-              <span class="badge badge-primary">Overnight</span>
-            </div>
-            <h3 class="card-title">Cozy Boarding</h3>
-            <p class="card-description">
-              Comfortable, private sleeping suites, personalized feeding schedules, evening walks, and daily photo & message updates sent to your phone.
-            </p>
-            <div class="card-price">$55 <span>/ night</span></div>
-          </div>
-          <div class="card-footer">
-            <span class="badge badge-success">Vaccinated Pets</span>
-            <button class="btn btn-tertiary" id="btn-book-boarding">Select</button>
-          </div>
-        </article>
-      </div>
-    </section>
-
-    <!-- AI Assistant Business Support (RAG Business Support) -->
-    <section class="ai-banner" id="ai-assistant">
-      <div class="ai-banner-header">
-        <span style="font-size: 2rem;">🤖</span>
-        <div>
-          <h2 class="ai-banner-title">GoodPets AI Assistant Knowledge Hub</h2>
-          <p class="section-subtitle">Direct, verified answers to the 3 key questions pet owners ask most.</p>
-        </div>
-      </div>
-      <div class="ai-questions">
-        <div class="ai-question-card">
-          <strong>1. Services & Costs</strong>
-          <p>Retrieve current verified rates, bath & trim options, and recurring package inclusions.</p>
-        </div>
-        <div class="ai-question-card">
-          <strong>2. Preparation & Vaccines</strong>
-          <p>Access preparation checklists and required vaccination records before daycare or boarding.</p>
-        </div>
-        <div class="ai-question-card">
-          <strong>3. Cancellation & Refunds</strong>
-          <p>Transparent cancellation policies, flexible rescheduling windows, and deposit credits.</p>
-        </div>
-      </div>
-    </section>
-
-    <!-- Design Token System Verification & Inspection Panel -->
-    <section class="token-showcase" id="token-system">
-      <div class="section-header">
-        <h2 class="section-title">Design Token System Live Status</h2>
+        <span class="section-tag">Why Subscribe?</span>
+        <h2 class="section-title">Better Care for Your Dog, Better Value for You</h2>
         <p class="section-subtitle">
-          Converted from <code>task-01-design-system/tokens/design-tokens.json</code> into <code>design-tokens.css</code> via <code>convert-tokens.js</code>.
+          Designed for working pet owners who want loving, attentive daytime care without the stress of daily booking fees.
         </p>
       </div>
 
-      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
-        <span class="badge badge-success">✓ 412 Total Tokens</span>
-        <span class="badge badge-primary">✓ 57 Light Semantic Roles</span>
-        <span class="badge badge-primary">✓ 57 Dark Semantic Roles</span>
-        <span class="badge badge-success">✓ 122 Palette Tones</span>
-        <span class="badge badge-success">✓ 15 Typography Styles</span>
-        <span class="badge badge-success">✓ 0 Broken References</span>
+      <div class="benefits-grid">
+        <!-- Benefit 1 -->
+        <article class="benefit-card">
+          <div class="benefit-icon">💰</div>
+          <h3 class="benefit-title">Save Over Single Visits</h3>
+          <p class="benefit-text">
+            Individual day passes add up fast. Subscribing locks in our lowest per-visit rate with an ongoing discount of <span class="badge-placeholder">[X]% Off</span> every month.
+          </p>
+        </article>
+
+        <!-- Benefit 2 -->
+        <article class="benefit-card">
+          <div class="benefit-icon">🐕</div>
+          <h3 class="benefit-title">Healthy Play Routine</h3>
+          <p class="benefit-text">
+            Dogs thrive on predictable schedules. Regular supervised socialization keeps your dog active, reduces separation anxiety, and ensures they come home calm and content.
+          </p>
+        </article>
+
+        <!-- Benefit 3 -->
+        <article class="benefit-card">
+          <div class="benefit-icon">📅</div>
+          <h3 class="benefit-title">Guaranteed Reserved Days</h3>
+          <p class="benefit-text">
+            Never face "Daycare Full" notices on your busiest workdays. Your selected recurring days are reserved exclusively for your dog each week.
+          </p>
+        </article>
+
+        <!-- Benefit 4 -->
+        <article class="benefit-card">
+          <div class="benefit-icon">⏱️</div>
+          <h3 class="benefit-title">Convenience & Peace of Mind</h3>
+          <p class="benefit-text">
+            No daily checkouts or last-minute arrangements. Simply drop off in the morning, receive photo updates during the day, and pick up your happy dog.
+          </p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- How It Works Section -->
+  <section class="section-padding how-it-works-section" id="how-it-works">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Simple Process</span>
+        <h2 class="section-title">How Daycare Subscriptions Work</h2>
+        <p class="section-subtitle">Three easy steps to dependable care and automatic monthly savings.</p>
       </div>
 
-      <h4 style="font-size: var(--typography-title-medium-font-size); color: var(--color-on-surface); margin-bottom: 0.5rem;">
-        Active Semantic Color Roles (Components consume these):
-      </h4>
-      <div class="token-swatches-grid">
-        <div class="swatch-item">
-          <div class="swatch-color" style="background-color: var(--color-primary);"></div>
-          <div class="swatch-label">--color-primary</div>
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-number">1</div>
+          <h3 class="step-title">Choose Your Monthly Plan</h3>
+          <p class="step-description">
+            Select a 2-day, 3-day, or unlimited weekly frequency that matches your work schedule and your dog's energy level.
+          </p>
         </div>
-        <div class="swatch-item">
-          <div class="swatch-color" style="background-color: var(--color-primary-container);"></div>
-          <div class="swatch-label">--color-primary-container</div>
+
+        <div class="step-card">
+          <div class="step-number">2</div>
+          <h3 class="step-title">Select Your Recurring Days</h3>
+          <p class="step-description">
+            Pick your dog's regular attendance days (for example, Tuesdays & Thursdays). We reserve those dates automatically every week.
+          </p>
         </div>
-        <div class="swatch-item">
-          <div class="swatch-color" style="background-color: var(--color-secondary);"></div>
-          <div class="swatch-label">--color-secondary</div>
-        </div>
-        <div class="swatch-item">
-          <div class="swatch-color" style="background-color: var(--color-secondary-container);"></div>
-          <div class="swatch-label">--color-secondary-container</div>
-        </div>
-        <div class="swatch-item">
-          <div class="swatch-color" style="background-color: var(--color-tertiary);"></div>
-          <div class="swatch-label">--color-tertiary</div>
-        </div>
-        <div class="swatch-item">
-          <div class="swatch-color" style="background-color: var(--color-tertiary-container);"></div>
-          <div class="swatch-label">--color-tertiary-container</div>
-        </div>
-        <div class="swatch-item">
-          <div class="swatch-color" style="background-color: var(--color-surface-container);"></div>
-          <div class="swatch-label">--color-surface-container</div>
-        </div>
-        <div class="swatch-item">
-          <div class="swatch-color" style="background-color: var(--color-outline);"></div>
-          <div class="swatch-label">--color-outline</div>
-        </div>
-        <div class="swatch-item">
-          <div class="swatch-color" style="background-color: var(--color-success);"></div>
-          <div class="swatch-label">--color-success</div>
-        </div>
-        <div class="swatch-item">
-          <div class="swatch-color" style="background-color: var(--color-warning);"></div>
-          <div class="swatch-label">--color-warning</div>
-        </div>
-        <div class="swatch-item">
-          <div class="swatch-color" style="background-color: var(--color-error);"></div>
-          <div class="swatch-label">--color-error</div>
-        </div>
-        <div class="swatch-item">
-          <div class="swatch-color" style="background-color: var(--color-background); border-bottom: 1px solid var(--color-outline-variant);"></div>
-          <div class="swatch-label">--color-background</div>
+
+        <div class="step-card">
+          <div class="step-number">3</div>
+          <h3 class="step-title">Enjoy Visits & Savings</h3>
+          <p class="step-description">
+            Drop off with ease. Your monthly subscription automatically applies the advertised <span class="badge-placeholder">[X]%</span> discount with zero daily hassle.
+          </p>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
 
-  </main>
+  <!-- Promotional Offer & Subscription Plans Section -->
+  <section class="section-padding offer-section" id="plans">
+    <div class="container">
+      <!-- Promotional Banner -->
+      <div class="offer-banner">
+        <div class="offer-banner-content">
+          <div style="display: inline-block; background-color: #ea580c; color: #ffffff; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.8125rem; font-weight: 700; margin-bottom: 0.75rem;">
+            Limited-Time Subscription Promotion
+          </div>
+          <h3>Unlock <span class="badge-placeholder">[X]% Off</span> Your Monthly Daycare Plan</h3>
+          <p>
+            Lock in discounted rates for your first <span class="badge-placeholder">[N] months</span> of continuous daycare. Flexible scheduling with hassle-free day swaps.
+          </p>
+        </div>
+        <div>
+          <a href="#plans" class="btn btn-accent" style="white-space: nowrap;">View Plan Tiers</a>
+        </div>
+      </div>
 
-  <!-- App Footer -->
-  <footer class="app-footer">
-    <div class="container footer-content">
-      <p>&copy; 2026 GoodPets Care Services. All rights reserved.</p>
-      <p>Material Design 3 Token Architecture — Single Source of Truth: <code>design-tokens.json</code></p>
+      <div class="section-header">
+        <span class="section-tag">Subscription Plans</span>
+        <h2 class="section-title">Flexible Plans for Every Schedule</h2>
+        <p class="section-subtitle">Choose the frequency that fits your dog's lifestyle. Cancel or pause anytime.</p>
+      </div>
+
+      <!-- Plan Cards Grid -->
+      <div class="plans-grid">
+        <!-- Plan 1 -->
+        <div class="plan-card" id="plan-part-time">
+          <div>
+            <h3 class="plan-name">Part-Time Play</h3>
+            <p class="plan-frequency">2 Days / Week (8 visits / month)</p>
+            <div class="plan-pricing-box">
+              <div class="plan-price">
+                <span class="badge-placeholder">[$XX]</span> <span class="period">/ month</span>
+              </div>
+              <div class="plan-savings">
+                Save <span class="badge-placeholder">[X]%</span> compared to daily rate
+              </div>
+            </div>
+            <ul class="plan-features">
+              <li><span class="plan-check">✓</span> 8 full-day daycare visits per month</li>
+              <li><span class="plan-check">✓</span> Guaranteed weekly reservation spots</li>
+              <li><span class="plan-check">✓</span> Supervised indoor & outdoor play</li>
+              <li><span class="plan-check">✓</span> Daily digital photo update</li>
+              <li><span class="plan-check">✓</span> 2 complimentary day-reschedules/month</li>
+            </ul>
+          </div>
+          <button class="btn btn-secondary btn-block" onclick="alert('Note: Plan selection is a demonstration placeholder. Pricing and live checkout will be configured in a future step.')">
+            Select Part-Time Plan
+          </button>
+        </div>
+
+        <!-- Plan 2 (Featured) -->
+        <div class="plan-card featured" id="plan-active">
+          <span class="featured-ribbon">Most Popular</span>
+          <div>
+            <h3 class="plan-name">Active Weekday</h3>
+            <p class="plan-frequency">3 Days / Week (12 visits / month)</p>
+            <div class="plan-pricing-box">
+              <div class="plan-price">
+                <span class="badge-placeholder">[$XX]</span> <span class="period">/ month</span>
+              </div>
+              <div class="plan-savings">
+                Save <span class="badge-placeholder">[X]%</span> compared to daily rate
+              </div>
+            </div>
+            <ul class="plan-features">
+              <li><span class="plan-check">✓</span> 12 full-day daycare visits per month</li>
+              <li><span class="plan-check">✓</span> Guaranteed weekly reservation spots</li>
+              <li><span class="plan-check">✓</span> Structured agility & sensory play</li>
+              <li><span class="plan-check">✓</span> Daily photo & activity report</li>
+              <li><span class="plan-check">✓</span> 1 complimentary bath & brush-out/month</li>
+              <li><span class="plan-check">✓</span> 3 complimentary day-reschedules/month</li>
+            </ul>
+          </div>
+          <button class="btn btn-primary btn-block" onclick="alert('Note: Plan selection is a demonstration placeholder. Pricing and live checkout will be configured in a future step.')">
+            Select Active Plan
+          </button>
+        </div>
+
+        <!-- Plan 3 -->
+        <div class="plan-card" id="plan-unlimited">
+          <div>
+            <h3 class="plan-name">Full Week All-Access</h3>
+            <p class="plan-frequency">5 Days / Week (Full weekday care)</p>
+            <div class="plan-pricing-box">
+              <div class="plan-price">
+                <span class="badge-placeholder">[$XX]</span> <span class="period">/ month</span>
+              </div>
+              <div class="plan-savings">
+                Save <span class="badge-placeholder">[X]%</span> (Maximum Savings)
+              </div>
+            </div>
+            <ul class="plan-features">
+              <li><span class="plan-check">✓</span> Unlimited Monday–Friday daycare</li>
+              <li><span class="plan-check">✓</span> Permanent reserved spot every weekday</li>
+              <li><span class="plan-check">✓</span> Priority holiday boarding booking</li>
+              <li><span class="plan-check">✓</span> VIP photo & live web-check-in feed</li>
+              <li><span class="plan-check">✓</span> 2 complimentary full grooming treatments/month</li>
+              <li><span class="plan-check">✓</span> Unlimited flexible day swaps</li>
+            </ul>
+          </div>
+          <button class="btn btn-secondary btn-block" onclick="alert('Note: Plan selection is a demonstration placeholder. Pricing and live checkout will be configured in a future step.')">
+            Select All-Access Plan
+          </button>
+        </div>
+      </div>
+
+      <div class="plan-note">
+        ℹ️ <strong>Demonstration Note:</strong> All pricing amounts (<span class="badge-placeholder">[$XX]</span>), discount percentages (<span class="badge-placeholder">[X]%</span>), and plan inclusions are placeholders awaiting final business confirmation. Booking and payments are disabled in this initial preview.
+      </div>
+    </div>
+  </section>
+
+  <!-- Trust, Safety & FAQs Section -->
+  <section class="section-padding trust-faq-section" id="faqs">
+    <div class="container">
+      <div class="section-header">
+        <span class="section-tag">Questions & Answers</span>
+        <h2 class="section-title">Frequently Asked Questions</h2>
+        <p class="section-subtitle">Everything you need to know about GoodPets daycare subscriptions.</p>
+      </div>
+
+      <div class="faq-grid">
+        <div class="faq-card">
+          <h4 class="faq-question">How does the monthly subscription discount work?</h4>
+          <p class="faq-answer">
+            By committing to a monthly routine of 2, 3, or 5 days per week, we pass on substantial operational savings to you, offering an estimated <span class="badge-placeholder">[X]%</span> reduction compared to booking individual single-day passes.
+          </p>
+        </div>
+
+        <div class="faq-card">
+          <h4 class="faq-question">Can I switch my scheduled daycare days?</h4>
+          <p class="faq-answer">
+            Yes! We understand schedules shift. Each subscription tier includes complimentary day-swap allowances if requested at least <span class="badge-placeholder">[24 hours]</span> in advance, subject to availability.
+          </p>
+        </div>
+
+        <div class="faq-card">
+          <h4 class="faq-question">What vaccinations does my dog need before attending?</h4>
+          <p class="faq-answer">
+            To ensure the safety of all pets, all dogs must have up-to-date documentation for Rabies, DHPP, and Bordetella, plus a negative fecal screening within the last <span class="badge-placeholder">[6 months]</span>.
+          </p>
+        </div>
+
+        <div class="faq-card">
+          <h4 class="faq-question">What is your cancellation and pause policy?</h4>
+          <p class="faq-answer">
+            Subscriptions renew monthly. You can pause or cancel your subscription before the next billing cycle by giving notice <span class="badge-placeholder">[N days]</span> before renewal. Full policy terms: <span class="badge-placeholder">[Pending Confirmation]</span>.
+          </p>
+        </div>
+      </div>
+
+      <!-- Sample Testimonial Placeholder -->
+      <div class="testimonial-box">
+        <p class="testimonial-quote">
+          "The monthly daycare subscription has transformed our work routine. Our golden retriever gets the exercise and social time he craves, and we save significantly each month compared to paying day-by-day."
+        </p>
+        <p class="testimonial-author">
+          — Sample Customer Feedback <span class="badge-placeholder">[Placeholder Review]</span>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Bottom CTA Banner -->
+  <section class="cta-banner-section">
+    <div class="container cta-content">
+      <h2 class="cta-title">Ready to Give Your Dog the Ultimate Weekday Routine?</h2>
+      <p class="cta-text">
+        Lock in your dog's favorite play days and save <span class="badge-placeholder">[X]%</span> with a GoodPets monthly subscription.
+      </p>
+      <div class="cta-buttons">
+        <a href="#plans" class="btn btn-white">View Subscription Plans</a>
+        <a href="mailto:contact@goodpets.com" class="btn btn-transparent-white">Contact Our Team</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a href="#" class="brand-logo">
+            <span class="brand-icon">🐾</span>
+            <span>GoodPets</span>
+          </a>
+          <p>
+            Reliable, warm, and attentive pet care services including grooming, daycare, and overnight boarding.
+          </p>
+          <div class="footer-contact">
+            📧 Email: <a href="mailto:contact@goodpets.com" style="color: #cbd5e1;">contact@goodpets.com</a>
+          </div>
+        </div>
+
+        <div class="footer-col">
+          <h4>Services</h4>
+          <ul class="footer-links">
+            <li><a href="#daycare">Dog Daycare</a></li>
+            <li><a href="#plans">Daycare Subscriptions</a></li>
+            <li><a href="#benefits">Care Packages</a></li>
+            <li><a href="#">Grooming Services <span class="badge-placeholder">[Link]</span></a></li>
+            <li><a href="#">Overnight Boarding <span class="badge-placeholder">[Link]</span></a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>About & Care</h4>
+          <ul class="footer-links">
+            <li><a href="#how-it-works">How It Works</a></li>
+            <li><a href="#faqs">Vaccine Requirements</a></li>
+            <li><a href="#faqs">Safety & Facility Tour</a></li>
+            <li><a href="#faqs">FAQs</a></li>
+          </ul>
+        </div>
+
+        <div class="footer-col">
+          <h4>Policies</h4>
+          <ul class="footer-links">
+            <li><a href="#">Subscription Terms <span class="badge-placeholder">[Pending]</span></a></li>
+            <li><a href="#">Cancellation Policy <span class="badge-placeholder">[Pending]</span></a></li>
+            <li><a href="#">Privacy Policy <span class="badge-placeholder">[Pending]</span></a></li>
+            <li><a href="#">Contact Us</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <p>&copy; 2026 GoodPets Care Services. All rights reserved.</p>
+        <p>Demonstration Version 1.0 (Baseline styling — Design tokens not yet integrated).</p>
+      </div>
     </div>
   </footer>
 
-  <!-- Theme Toggle Controller -->
-  <script>
-    (function () {
-      const toggleBtn = document.getElementById('theme-toggle');
-      const themeIcon = document.getElementById('theme-icon');
-      const themeLabel = document.getElementById('theme-label');
-      const root = document.documentElement;
-
-      function updateTheme(theme) {
-        root.setAttribute('data-theme', theme);
-        if (theme === 'dark') {
-          themeIcon.textContent = '☀️';
-          themeLabel.textContent = 'Light Mode';
-        } else {
-          themeIcon.textContent = '🌙';
-          themeLabel.textContent = 'Dark Mode';
-        }
-        localStorage.setItem('goodpets-theme', theme);
-      }
-
-      const savedTheme = localStorage.getItem('goodpets-theme') || 'light';
-      updateTheme(savedTheme);
-
-      toggleBtn.addEventListener('click', function () {
-        const currentTheme = root.getAttribute('data-theme');
-        const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
-        updateTheme(nextTheme);
-      });
-    })();
-  </script>
 </body>
 </html>
