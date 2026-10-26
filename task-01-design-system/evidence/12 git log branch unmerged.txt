@@ -1,0 +1,22 @@
+PS C:\Users\hp\Desktop\GoodPets> git add .
+warning: in the working copy of 'task-01-design-system/tokens/design-tokens.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'task-01-design-system/tokens/design-tokens.json', LF will be replaced by CRLF the next time Git touches it
+PS C:\Users\hp\Desktop\GoodPets> git commit -m "test: demonstrate broken design token reference"
+[test/design-system-regression bf41310] test: demonstrate broken design token reference
+ 4 files changed, 50 insertions(+), 47 deletions(-)
+ create mode 100644 task-01-design-system/docs/defects.md
+ create mode 100644 task-01-design-system/evidence/11 broken referencing.png
+
+PS C:\Users\hp\Desktop\GoodPets> git switch main
+Switched to branch 'main'
+Your branch is up to date with 'origin/main'.
+
+PS C:\Users\hp\Desktop\GoodPets> git log --oneline --graph --decorate --all
+* bf41310 (test/design-system-regression) test: demonstrate broken design token reference
+* fc1864e (HEAD -> main, origin/main, origin/HEAD) comparing before and after using design system/not
+* 0eb38de build demo without design system
+* 1635b31 moved and renamed converted js and cs file
+* 690cddb converted token.json to js and cs
+* 631a6be First commit
+
+PS C:\Users\hp\Desktop\GoodPets> 
