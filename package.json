@@ -1,0 +1,20 @@
+{
+  "name": "goodpets-design-system",
+  "version": "1.0.0",
+  "description": "GoodPets Design System - Token Converter and UI Components",
+  "main": "task-01-design-system/tokens/convert-tokens.js",
+  "scripts": {
+    "build:tokens": "node task-01-design-system/tokens/convert-tokens.js",
+    "test:tokens": "node task-01-design-system/tokens/convert-tokens.js --validate",
+    "start": "node server.js",
+    "serve": "node server.js"
+  },
+  "keywords": [
+    "design-tokens",
+    "css-variables",
+    "material-design-3",
+    "goodpets"
+  ],
+  "author": "GoodPets Team",
+  "license": "ISC"
+}

@@ -1,0 +1,537 @@
+/**
+ * GOODPETS APPLICATION STYLING ENTRY POINT
+ *
+ * Imports the generated design tokens and styles application UI components.
+ * Components strictly consume SEMANTIC variables (--color-*, --effect-*, --typography-*)
+ * and never reference primitive tokens directly.
+ */
+
+@import './task-01-design-system/tokens/design-tokens.css';
+
+/* -------------------------------------------------------------------------- */
+/* Reset & Base Setup                                                         */
+/* -------------------------------------------------------------------------- */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-on-background);
+  font-family: var(--typography-body-large-font-family, 'Nunito', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  font-size: var(--typography-body-large-font-size, 16px);
+  line-height: var(--typography-body-large-line-height, 1.5);
+  letter-spacing: var(--typography-body-large-letter-spacing, -0.5px);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  transition: background-color 0.25s ease, color 0.25s ease;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Layout Containers                                                          */
+/* -------------------------------------------------------------------------- */
+.container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Header & Navigation                                                        */
+/* -------------------------------------------------------------------------- */
+.app-header {
+  background-color: var(--color-surface);
+  color: var(--color-on-surface);
+  border-bottom: 1px solid var(--color-outline-variant);
+  box-shadow: var(--effect-soft-shadow);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  transition: background-color 0.25s ease, border-color 0.25s ease;
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 4.5rem;
+}
+
+.brand-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-family: var(--typography-title-large-font-family);
+  font-size: var(--typography-title-large-font-size);
+  font-weight: 700;
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.brand-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  background-color: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  list-style: none;
+  gap: 1.75rem;
+}
+
+.nav-link {
+  font-size: var(--typography-label-large-font-size);
+  font-weight: var(--typography-label-large-font-weight);
+  color: var(--color-on-surface-variant);
+  transition: color 0.2s ease;
+}
+
+.nav-link:hover {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Theme Toggle Button */
+.theme-toggle-btn {
+  background-color: var(--color-surface-container);
+  color: var(--color-on-surface);
+  border: 1px solid var(--color-outline-variant);
+  padding: 0.5rem 1rem;
+  border-radius: 9999px;
+  font-size: var(--typography-label-medium-font-size);
+  font-weight: var(--typography-label-medium-font-weight);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.1s ease;
+}
+
+.theme-toggle-btn:hover {
+  background-color: var(--color-surface-container-high);
+  border-color: var(--color-outline);
+}
+
+.theme-toggle-btn:active {
+  transform: scale(0.98);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Buttons                                                                    */
+/* -------------------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 9999px;
+  font-size: var(--typography-label-large-font-size);
+  font-weight: var(--typography-label-large-font-weight);
+  letter-spacing: var(--typography-label-large-letter-spacing);
+  border: none;
+  cursor: pointer;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.btn-primary {
+  background-color: var(--color-primary);
+  color: var(--color-on-primary);
+  box-shadow: var(--effect-soft-shadow);
+}
+
+.btn-primary:hover {
+  filter: brightness(1.08);
+  box-shadow: var(--effect-medium-shadow);
+  text-decoration: none;
+}
+
+.btn-secondary {
+  background-color: var(--color-secondary-container);
+  color: var(--color-on-secondary-container);
+}
+
+.btn-secondary:hover {
+  filter: brightness(1.05);
+  text-decoration: none;
+}
+
+.btn-tertiary {
+  background-color: var(--color-tertiary-container);
+  color: var(--color-on-tertiary-container);
+}
+
+.btn-tertiary:hover {
+  filter: brightness(1.05);
+  text-decoration: none;
+}
+
+.btn-outlined {
+  background-color: transparent;
+  color: var(--color-primary);
+  border: 1px solid var(--color-outline);
+}
+
+.btn-outlined:hover {
+  background-color: var(--color-surface-container-low);
+  border-color: var(--color-primary);
+  text-decoration: none;
+}
+
+.btn-danger {
+  background-color: var(--color-error);
+  color: var(--color-on-error);
+}
+
+.btn-danger:hover {
+  filter: brightness(1.08);
+  text-decoration: none;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Hero Section                                                               */
+/* -------------------------------------------------------------------------- */
+.hero-section {
+  padding: 4rem 0 3rem;
+  background-color: var(--color-surface-container-low);
+  border-bottom: 1px solid var(--color-outline-variant);
+  transition: background-color 0.25s ease;
+}
+
+.hero-content {
+  max-width: 780px;
+}
+
+.hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.85rem;
+  background-color: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+  border-radius: 9999px;
+  font-size: var(--typography-label-medium-font-size);
+  font-weight: 600;
+  margin-bottom: 1.25rem;
+}
+
+.hero-title {
+  font-size: clamp(2rem, 4vw, var(--typography-display-medium-font-size));
+  line-height: 1.2;
+  font-weight: 700;
+  color: var(--color-on-surface);
+  margin-bottom: 1rem;
+}
+
+.hero-subtitle {
+  font-size: var(--typography-body-large-font-size);
+  color: var(--color-on-surface-variant);
+  margin-bottom: 2rem;
+  max-width: 650px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Service Cards Section                                                      */
+/* -------------------------------------------------------------------------- */
+.services-section {
+  padding: 4rem 0;
+}
+
+.section-header {
+  margin-bottom: 2.5rem;
+}
+
+.section-title {
+  font-size: var(--typography-headline-large-font-size);
+  font-weight: var(--typography-headline-large-font-weight);
+  line-height: var(--typography-headline-large-line-height);
+  color: var(--color-on-surface);
+  margin-bottom: 0.5rem;
+}
+
+.section-subtitle {
+  font-size: var(--typography-body-large-font-size);
+  color: var(--color-on-surface-variant);
+}
+
+.cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.card {
+  background-color: var(--color-surface-container);
+  color: var(--color-on-surface);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: 20px;
+  padding: 1.75rem;
+  box-shadow: var(--effect-soft-shadow);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--effect-medium-shadow);
+  border-color: var(--color-outline);
+}
+
+.card-highlight {
+  background-color: var(--color-surface-container-high);
+  border-color: var(--color-primary);
+}
+
+.card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.card-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 14px;
+  background-color: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+}
+
+.card-icon-secondary {
+  background-color: var(--color-secondary-container);
+  color: var(--color-on-secondary-container);
+}
+
+.card-icon-tertiary {
+  background-color: var(--color-tertiary-container);
+  color: var(--color-on-tertiary-container);
+}
+
+.card-title {
+  font-size: var(--typography-title-large-font-size);
+  font-weight: 600;
+  color: var(--color-on-surface);
+  margin-bottom: 0.5rem;
+}
+
+.card-description {
+  font-size: var(--typography-body-medium-font-size);
+  color: var(--color-on-surface-variant);
+  margin-bottom: 1.5rem;
+  flex-grow: 1;
+}
+
+.card-price {
+  font-size: var(--typography-headline-small-font-size);
+  font-weight: 700;
+  color: var(--color-primary);
+  margin-bottom: 1rem;
+}
+
+.card-price span {
+  font-size: var(--typography-body-small-font-size);
+  font-weight: 400;
+  color: var(--color-on-surface-variant);
+}
+
+.card-footer {
+  margin-top: 1rem;
+  border-top: 1px solid var(--color-outline-variant);
+  padding-top: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Badges & Status Indicators                                                 */
+/* -------------------------------------------------------------------------- */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: var(--typography-label-small-font-size);
+  font-weight: 600;
+  letter-spacing: var(--typography-label-small-letter-spacing);
+}
+
+.badge-success {
+  background-color: var(--color-success-container);
+  color: var(--color-on-success-container);
+}
+
+.badge-warning {
+  background-color: var(--color-warning-container);
+  color: var(--color-on-warning-container);
+}
+
+.badge-error {
+  background-color: var(--color-error-container);
+  color: var(--color-on-error-container);
+}
+
+.badge-primary {
+  background-color: var(--color-primary-container);
+  color: var(--color-on-primary-container);
+}
+
+/* -------------------------------------------------------------------------- */
+/* AI Assistant Banner (GoodPets Business RAG Assistant)                      */
+/* -------------------------------------------------------------------------- */
+.ai-banner {
+  background-color: var(--color-surface-container-high);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: 20px;
+  padding: 2rem;
+  margin: 2rem 0 4rem;
+  box-shadow: var(--effect-soft-shadow);
+}
+
+.ai-banner-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.ai-banner-title {
+  font-size: var(--typography-title-large-font-size);
+  color: var(--color-on-surface);
+}
+
+.ai-questions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.ai-question-card {
+  background-color: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: 12px;
+  padding: 1rem;
+}
+
+.ai-question-card p {
+  font-size: var(--typography-body-medium-font-size);
+  color: var(--color-on-surface);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Token Showcase / Verification Panel                                        */
+/* -------------------------------------------------------------------------- */
+.token-showcase {
+  background-color: var(--color-surface-container-lowest);
+  border: 1px solid var(--color-outline-variant);
+  border-radius: 20px;
+  padding: 2rem;
+  margin: 3rem 0;
+}
+
+.token-swatches-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.swatch-item {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--color-outline-variant);
+  text-align: center;
+}
+
+.swatch-color {
+  height: 55px;
+  width: 100%;
+}
+
+.swatch-label {
+  padding: 0.5rem;
+  font-size: 11px;
+  color: var(--color-on-surface);
+  background-color: var(--color-surface);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* -------------------------------------------------------------------------- */
+/* Footer                                                                     */
+/* -------------------------------------------------------------------------- */
+.app-footer {
+  margin-top: auto;
+  background-color: var(--color-surface-container-low);
+  border-top: 1px solid var(--color-outline-variant);
+  padding: 2.5rem 0;
+  color: var(--color-on-surface-variant);
+  font-size: var(--typography-body-small-font-size);
+}
+
+.footer-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+@media (max-width: 768px) {
+  .nav-links {
+    display: none;
+  }
+  .cards-grid {
+    grid-template-columns: 1fr;
+  }
+}

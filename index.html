@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GoodPets — Reliable Pet Care (Design System)</title>
+  <meta name="description" content="GoodPets grooming, daycare, and boarding services built with Material Design 3 tokens and semantic CSS variables." />
+  <!-- Google Fonts: Nunito as specified in the GoodPets design brief -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
+  <!-- Application Styling Entry Point (imports tokens.css) -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- App Header & Navigation -->
+  <header class="app-header">
+    <div class="container header-inner">
+      <a href="#" class="brand-logo" id="brand-logo">
+        <span class="brand-icon">🐾</span>
+        <span>GoodPets</span>
+      </a>
+
+      <nav aria-label="Main Navigation">
+        <ul class="nav-links">
+          <li><a href="#services" class="nav-link">Services</a></li>
+          <li><a href="#packages" class="nav-link">Packages</a></li>
+          <li><a href="#ai-assistant" class="nav-link">AI Assistant</a></li>
+          <li><a href="#token-system" class="nav-link">Design Tokens</a></li>
+        </ul>
+      </nav>
+
+      <div class="header-actions">
+        <!-- Theme Toggle Switch -->
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle light and dark theme">
+          <span id="theme-icon">🌙</span>
+          <span id="theme-label">Dark Mode</span>
+        </button>
+        <a href="#booking" class="btn btn-primary" id="book-now-header">Book Care</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero-section">
+    <div class="container hero-content">
+      <div class="hero-badge">
+        <span>✨</span> Caring, attentive pet care
+      </div>
+      <h1 class="hero-title">Reliable pet care made easier for loving pet owners.</h1>
+      <p class="hero-subtitle">
+        Whether you are working late or travelling away, GoodPets offers expert grooming, supervised daytime daycare, and safe, comfortable overnight boarding.
+      </p>
+      <div class="hero-actions">
+        <a href="#services" class="btn btn-primary" id="explore-services-btn">Explore Services</a>
+        <a href="#ai-assistant" class="btn btn-outlined" id="ask-assistant-btn">Ask AI Assistant</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Content -->
+  <main class="container">
+
+    <!-- Services Grid Section -->
+    <section class="services-section" id="services">
+      <div class="section-header">
+        <h2 class="section-title">Our Pet Care Services</h2>
+        <p class="section-subtitle">Attentive, trustworthy care designed around your pet's happiness and routine.</p>
+      </div>
+
+      <div class="cards-grid">
+        <!-- Grooming Card -->
+        <article class="card" id="card-grooming">
+          <div>
+            <div class="card-header">
+              <div class="card-icon">✂️</div>
+              <span class="badge badge-primary">Most Popular</span>
+            </div>
+            <h3 class="card-title">Full Grooming</h3>
+            <p class="card-description">
+              Gentle warm bath, coat brushing, precision haircut, blow-dry, ear cleansing, and nail trimming using hypoallergenic pet shampoos.
+            </p>
+            <div class="card-price">$45 <span>/ session</span></div>
+          </div>
+          <div class="card-footer">
+            <span class="badge badge-success">Available Today</span>
+            <button class="btn btn-primary" id="btn-book-grooming">Select</button>
+          </div>
+        </article>
+
+        <!-- Daycare Card -->
+        <article class="card card-highlight" id="card-daycare">
+          <div>
+            <div class="card-header">
+              <div class="card-icon card-icon-secondary">🎾</div>
+              <span class="badge badge-warning">Limited Spots</span>
+            </div>
+            <h3 class="card-title">Supervised Daycare</h3>
+            <p class="card-description">
+              Active indoor and outdoor play sessions, socialization with compatible pets, quiet rest periods, and loving care throughout your workday.
+            </p>
+            <div class="card-price">$32 <span>/ day</span></div>
+          </div>
+          <div class="card-footer">
+            <span class="badge badge-success">8 Spots Open</span>
+            <button class="btn btn-secondary" id="btn-book-daycare">Select</button>
+          </div>
+        </article>
+
+        <!-- Boarding Card -->
+        <article class="card" id="card-boarding">
+          <div>
+            <div class="card-header">
+              <div class="card-icon card-icon-tertiary">🏡</div>
+              <span class="badge badge-primary">Overnight</span>
+            </div>
+            <h3 class="card-title">Cozy Boarding</h3>
+            <p class="card-description">
+              Comfortable, private sleeping suites, personalized feeding schedules, evening walks, and daily photo & message updates sent to your phone.
+            </p>
+            <div class="card-price">$55 <span>/ night</span></div>
+          </div>
+          <div class="card-footer">
+            <span class="badge badge-success">Vaccinated Pets</span>
+            <button class="btn btn-tertiary" id="btn-book-boarding">Select</button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- AI Assistant Business Support (RAG Business Support) -->
+    <section class="ai-banner" id="ai-assistant">
+      <div class="ai-banner-header">
+        <span style="font-size: 2rem;">🤖</span>
+        <div>
+          <h2 class="ai-banner-title">GoodPets AI Assistant Knowledge Hub</h2>
+          <p class="section-subtitle">Direct, verified answers to the 3 key questions pet owners ask most.</p>
+        </div>
+      </div>
+      <div class="ai-questions">
+        <div class="ai-question-card">
+          <strong>1. Services & Costs</strong>
+          <p>Retrieve current verified rates, bath & trim options, and recurring package inclusions.</p>
+        </div>
+        <div class="ai-question-card">
+          <strong>2. Preparation & Vaccines</strong>
+          <p>Access preparation checklists and required vaccination records before daycare or boarding.</p>
+        </div>
+        <div class="ai-question-card">
+          <strong>3. Cancellation & Refunds</strong>
+          <p>Transparent cancellation policies, flexible rescheduling windows, and deposit credits.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Design Token System Verification & Inspection Panel -->
+    <section class="token-showcase" id="token-system">
+      <div class="section-header">
+        <h2 class="section-title">Design Token System Live Status</h2>
+        <p class="section-subtitle">
+          Converted from <code>task-01-design-system/tokens/design-tokens.json</code> into <code>design-tokens.css</code> via <code>convert-tokens.js</code>.
+        </p>
+      </div>
+
+      <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-bottom: 1.5rem;">
+        <span class="badge badge-success">✓ 412 Total Tokens</span>
+        <span class="badge badge-primary">✓ 57 Light Semantic Roles</span>
+        <span class="badge badge-primary">✓ 57 Dark Semantic Roles</span>
+        <span class="badge badge-success">✓ 122 Palette Tones</span>
+        <span class="badge badge-success">✓ 15 Typography Styles</span>
+        <span class="badge badge-success">✓ 0 Broken References</span>
+      </div>
+
+      <h4 style="font-size: var(--typography-title-medium-font-size); color: var(--color-on-surface); margin-bottom: 0.5rem;">
+        Active Semantic Color Roles (Components consume these):
+      </h4>
+      <div class="token-swatches-grid">
+        <div class="swatch-item">
+          <div class="swatch-color" style="background-color: var(--color-primary);"></div>
+          <div class="swatch-label">--color-primary</div>
+        </div>
+        <div class="swatch-item">
+          <div class="swatch-color" style="background-color: var(--color-primary-container);"></div>
+          <div class="swatch-label">--color-primary-container</div>
+        </div>
+        <div class="swatch-item">
+          <div class="swatch-color" style="background-color: var(--color-secondary);"></div>
+          <div class="swatch-label">--color-secondary</div>
+        </div>
+        <div class="swatch-item">
+          <div class="swatch-color" style="background-color: var(--color-secondary-container);"></div>
+          <div class="swatch-label">--color-secondary-container</div>
+        </div>
+        <div class="swatch-item">
+          <div class="swatch-color" style="background-color: var(--color-tertiary);"></div>
+          <div class="swatch-label">--color-tertiary</div>
+        </div>
+        <div class="swatch-item">
+          <div class="swatch-color" style="background-color: var(--color-tertiary-container);"></div>
+          <div class="swatch-label">--color-tertiary-container</div>
+        </div>
+        <div class="swatch-item">
+          <div class="swatch-color" style="background-color: var(--color-surface-container);"></div>
+          <div class="swatch-label">--color-surface-container</div>
+        </div>
+        <div class="swatch-item">
+          <div class="swatch-color" style="background-color: var(--color-outline);"></div>
+          <div class="swatch-label">--color-outline</div>
+        </div>
+        <div class="swatch-item">
+          <div class="swatch-color" style="background-color: var(--color-success);"></div>
+          <div class="swatch-label">--color-success</div>
+        </div>
+        <div class="swatch-item">
+          <div class="swatch-color" style="background-color: var(--color-warning);"></div>
+          <div class="swatch-label">--color-warning</div>
+        </div>
+        <div class="swatch-item">
+          <div class="swatch-color" style="background-color: var(--color-error);"></div>
+          <div class="swatch-label">--color-error</div>
+        </div>
+        <div class="swatch-item">
+          <div class="swatch-color" style="background-color: var(--color-background); border-bottom: 1px solid var(--color-outline-variant);"></div>
+          <div class="swatch-label">--color-background</div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- App Footer -->
+  <footer class="app-footer">
+    <div class="container footer-content">
+      <p>&copy; 2026 GoodPets Care Services. All rights reserved.</p>
+      <p>Material Design 3 Token Architecture — Single Source of Truth: <code>design-tokens.json</code></p>
+    </div>
+  </footer>
+
+  <!-- Theme Toggle Controller -->
+  <script>
+    (function () {
+      const toggleBtn = document.getElementById('theme-toggle');
+      const themeIcon = document.getElementById('theme-icon');
+      const themeLabel = document.getElementById('theme-label');
+      const root = document.documentElement;
+
+      function updateTheme(theme) {
+        root.setAttribute('data-theme', theme);
+        if (theme === 'dark') {
+          themeIcon.textContent = '☀️';
+          themeLabel.textContent = 'Light Mode';
+        } else {
+          themeIcon.textContent = '🌙';
+          themeLabel.textContent = 'Dark Mode';
+        }
+        localStorage.setItem('goodpets-theme', theme);
+      }
+
+      const savedTheme = localStorage.getItem('goodpets-theme') || 'light';
+      updateTheme(savedTheme);
+
+      toggleBtn.addEventListener('click', function () {
+        const currentTheme = root.getAttribute('data-theme');
+        const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        updateTheme(nextTheme);
+      });
+    })();
+  </script>
+</body>
+</html>
