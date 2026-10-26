@@ -454,7 +454,7 @@
         },
         "secondary40": {
           "type": "color",
-          "value": "#8b5000ff",
+          "value": "#f18f01ff",
           "blendMode": "normal",
           "extensions": {
             "org.lukasoppermann.figmaDesignTokens": {
@@ -2107,7 +2107,7 @@
       "on-secondary": {
         "description": "",
         "type": "color",
-        "value": "{primitives.color palettes.secondary.secondary100}",
+        "value": "{primitives.color palettes.secondary.secondary20}",
         "extensions": {
           "org.lukasoppermann.figmaDesignTokens": {
             "collection": "color roles",

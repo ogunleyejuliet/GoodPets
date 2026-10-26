@@ -4,7 +4,7 @@
 
 This document records the exported semantic colour roles for the light and dark themes, the palette tokens each role references, and the contrast ratios for the intended foreground/background role pairs. Components should consume semantic roles (for example, `primary` and `on-primary`) rather than hard-coded primitive palette colours.
 
-**Primary brand key colour:** `#037171` (exported as `primary40` and used by the light-theme `primary` role).
+**Brand key colours in this export:** primary `#037171`, secondary `#F18F01`, and tertiary `#8BD7D2`. These are primitive key-colour values; semantic roles resolve through the tonal palettes. In this export, light-theme `secondary` references `secondary.secondary40` (`#F18F01`), and light-theme `on-secondary` references `secondary.secondary20` (`#4A2800`).
 
 ## Semantic role mapping
 
@@ -15,8 +15,8 @@ This document records the exported semantic colour roles for the light and dark 
 | `on-primary` | Text/icons placed on primary | `primary.primary100` (`#FFFFFF`) | `primary.primary20` (`#003737`) |
 | `primary-container` | Low-emphasis primary-tinted container | `primary.primary90` (`#9DF1F0`) | `primary.primary30` (`#004F50`) |
 | `on-primary-container` | Text/icons on primary-container | `primary.primary30` (`#004F50`) | `primary.primary90` (`#9DF1F0`) |
-| `secondary` | Secondary actions and emphasis | `secondary.secondary40` (`#8B5000`) | `secondary.secondary80` (`#FFB871`) |
-| `on-secondary` | Text/icons placed on secondary | `secondary.secondary100` (`#FFFFFF`) | `secondary.secondary20` (`#4A2800`) |
+| `secondary` | Secondary actions and emphasis | `secondary.secondary40` (`#F18F01`) | `secondary.secondary80` (`#FFB871`) |
+| `on-secondary` | Text/icons placed on secondary | `secondary.secondary20` (`#4A2800`) | `secondary.secondary20` (`#4A2800`) |
 | `secondary-container` | Low-emphasis secondary-tinted container | `secondary.secondary90` (`#FFDCBE`) | `secondary.secondary30` (`#6A3C00`) |
 | `on-secondary-container` | Text/icons on secondary-container | `secondary.secondary30` (`#6A3C00`) | `secondary.secondary90` (`#FFDCBE`) |
 | `tertiary` | Tertiary accents and supporting actions | `tertiary.tertiary40` (`#106966`) | `tertiary.tertiary80` (`#88D4CF`) |
@@ -81,7 +81,7 @@ Hex values are listed as **background / foreground**.
 |---|---|---:|---|---:|---|
 | `on-primary` on `primary` | #037171 / #FFFFFF | 5.83:1 | #80D4D4 / #003737 | 7.67:1 | Pass |
 | `on-primary-container` on `primary-container` | #9DF1F0 / #004F50 | 7.28:1 | #004F50 / #9DF1F0 | 7.28:1 | Pass |
-| `on-secondary` on `secondary` | #8B5000 / #FFFFFF | 6.47:1 | #FFB871 / #4A2800 | 7.74:1 | Pass |
+| `on-secondary` on `secondary` | #F18F01 / #4A2800 | 5.44:1 | #FFB871 / #4A2800 | 7.74:1 | Pass |
 | `on-secondary-container` on `secondary-container` | #FFDCBE / #6A3C00 | 7.19:1 | #6A3C00 / #FFDCBE | 7.19:1 | Pass |
 | `on-tertiary` on `tertiary` | #106966 / #FFFFFF | 6.49:1 | #88D4CF / #003735 | 7.74:1 | Pass |
 | `on-tertiary-container` on `tertiary-container` | #A4F0EB / #00504D | 7.20:1 | #00504D / #A4F0EB | 7.20:1 | Pass |
