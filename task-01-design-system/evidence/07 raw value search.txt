@@ -1,0 +1,286 @@
+PS C:\Users\hp\Desktop\GoodPets> Get-ChildItem -Recurse -File -Include *.html,*.css,*.js,*.json,*.md,*.ts,*.tsx,*.jsx | Select-String -Pattern '#[0-9A-Fa-f]{6}\b'
+
+task-01-design-system\docs\colour roles.md:7:**Primary brand key colour:** `#037171` (exported as `primary40` and used by the light-theme 
+`primary` role).
+task-01-design-system\docs\colour roles.md:14:| `primary` | Primary brand actions and emphasis | `primary.primary40` (`#037171`) |
+`primary.primary80` (`#80D4D4`) |
+task-01-design-system\docs\colour roles.md:15:| `on-primary` | Text/icons placed on primary | `primary.primary100` (`#FFFFFF`) |
+`primary.primary20` (`#003737`) |
+task-01-design-system\docs\colour roles.md:16:| `primary-container` | Low-emphasis primary-tinted container | `primary.primary90`
+(`#9DF1F0`) | `primary.primary30` (`#004F50`) |
+task-01-design-system\docs\colour roles.md:17:| `on-primary-container` | Text/icons on primary-container | `primary.primary30` (`#004F50`)   
+| `primary.primary90` (`#9DF1F0`) |
+task-01-design-system\docs\colour roles.md:18:| `secondary` | Secondary actions and emphasis | `secondary.secondary40` (`#8B5000`) |
+`secondary.secondary80` (`#FFB871`) |
+task-01-design-system\docs\colour roles.md:19:| `on-secondary` | Text/icons placed on secondary | `secondary.secondary100` (`#FFFFFF`) |     
+`secondary.secondary20` (`#4A2800`) |
+task-01-design-system\docs\colour roles.md:20:| `secondary-container` | Low-emphasis secondary-tinted container | `secondary.secondary90`    
+(`#FFDCBE`) | `secondary.secondary30` (`#6A3C00`) |
+task-01-design-system\docs\colour roles.md:21:| `on-secondary-container` | Text/icons on secondary-container | `secondary.secondary30`       
+(`#6A3C00`) | `secondary.secondary90` (`#FFDCBE`) |
+task-01-design-system\docs\colour roles.md:22:| `tertiary` | Tertiary accents and supporting actions | `tertiary.tertiary40` (`#106966`) |   
+`tertiary.tertiary80` (`#88D4CF`) |
+task-01-design-system\docs\colour roles.md:23:| `on-tertiary` | Text/icons placed on tertiary | `tertiary.tertiary100` (`#FFFFFF`) |
+`tertiary.tertiary20` (`#003735`) |
+task-01-design-system\docs\colour roles.md:24:| `tertiary-container` | Low-emphasis tertiary-tinted container | `tertiary.tertiary90`        
+(`#A4F0EB`) | `tertiary.tertiary30` (`#00504D`) |
+task-01-design-system\docs\colour roles.md:25:| `on-tertiary-container` | Text/icons on tertiary-container | `tertiary.tertiary30`
+(`#00504D`) | `tertiary.tertiary90` (`#A4F0EB`) |
+task-01-design-system\docs\colour roles.md:26:| `error` | Error and destructive state emphasis | `error.error40` (`#BA1A1A`) | 
+`error.error80` (`#FFB4AB`) |
+task-01-design-system\docs\colour roles.md:27:| `on-error` | Text/icons placed on error | `error.error100` (`#FFFFFF`) | `error.error20`     
+(`#690005`) |
+task-01-design-system\docs\colour roles.md:28:| `error-container` | Error message or state container | `error.error90` (`#FFDAD6`) |
+`error.error30` (`#93000A`) |
+task-01-design-system\docs\colour roles.md:29:| `on-error-container` | Text/icons on error-container | `error.error30` (`#93000A`) |
+`error.error90` (`#FFDAD6`) |
+task-01-design-system\docs\colour roles.md:30:| `warning` | Warning state emphasis | `warning.warning40` (`#855400`) | `warning.warning80`   
+(`#FFB95C`) |
+task-01-design-system\docs\colour roles.md:31:| `on-warning` | Text/icons placed on warning | `warning.warning100` (`#FFFFFF`) |
+`warning.warning20` (`#462A00`) |
+task-01-design-system\docs\colour roles.md:32:| `warning-container` | Warning message or state container | `warning.warning90` (`#FFDDB7`)   
+| `warning.warning30` (`#653E00`) |
+task-01-design-system\docs\colour roles.md:33:| `on-warning-container` | Text/icons on warning-container | `warning.warning30` (`#653E00`)   
+| `warning.warning90` (`#FFDDB7`) |
+task-01-design-system\docs\colour roles.md:34:| `success` | Successful state emphasis | `success.success40` (`#006E2E`) | 
+`success.success80` (`#70DD85`) |
+task-01-design-system\docs\colour roles.md:35:| `on-success` | Text/icons placed on success | `success.success100` (`#FFFFFF`) |
+`success.success20` (`#003915`) |
+task-01-design-system\docs\colour roles.md:36:| `success-container` | Success message or state container | `success.success90` (`#8CFA9F`)   
+| `success.success30` (`#005321`) |
+task-01-design-system\docs\colour roles.md:37:| `on-success-container` | Text/icons on success-container | `success.success30` (`#005321`)   
+| `success.success90` (`#8CFA9F`) |
+task-01-design-system\docs\colour roles.md:38:| `background` | Default page/app background | `neutral.neutral98` (`#F3FBFB`) |
+`neutral.neutral6` (`#0D1515`) |
+task-01-design-system\docs\colour roles.md:39:| `on-background` | Default text/icons on background | `neutral.neutral10` (`#151D1D`) |       
+`neutral.neutral90` (`#DCE4E4`) |
+task-01-design-system\docs\colour roles.md:40:| `surface` | Cards, sheets, panels and other surfaces | `neutral.neutral98` (`#F3FBFB`) |     
+`neutral.neutral6` (`#0D1515`) |
+task-01-design-system\docs\colour roles.md:41:| `on-surface` | Primary text/icons on surface | `neutral.neutral10` (`#151D1D`) |
+`neutral.neutral90` (`#DCE4E4`) |
+task-01-design-system\docs\colour roles.md:42:| `surface-variant` | Alternate surface for grouped or differentiated content | `neutral 
+variant.neutral-variant90` (`#D6E6E5`) | `neutral variant.neutral-variant30` (`#3B494A`) |
+task-01-design-system\docs\colour roles.md:43:| `on-surface-variant` | Secondary text/icons on surface-variant | `neutral
+variant.neutral-variant30` (`#3B494A`) | `neutral variant.neutral-variant80` (`#BACAC9`) |
+task-01-design-system\docs\colour roles.md:44:| `outline` | Borders and controls needing clear separation | `neutral
+variant.neutral-variant50` (`#6B7A7A`) | `neutral variant.neutral-variant60` (`#849494`) |
+task-01-design-system\docs\colour roles.md:45:| `outline-variant` | Subtle borders/dividers | `neutral variant.neutral-variant80`
+(`#BACAC9`) | `neutral variant.neutral-variant30` (`#3B494A`) |
+task-01-design-system\docs\colour roles.md:46:| `inverse-surface` | Inverse/emphasized surface | `neutral.neutral20` (`#2A3232`) |
+`neutral.neutral90` (`#DCE4E4`) |
+task-01-design-system\docs\colour roles.md:47:| `inverse-on-surface` | Text/icons on inverse-surface | `neutral.neutral95` (`#EAF2F2`) |     
+`neutral.neutral20` (`#2A3232`) |
+task-01-design-system\docs\colour roles.md:48:| `inverse-primary` | Primary accent on inverse surfaces | `primary.primary80` (`#80D4D4`) | 
+`primary.primary40` (`#037171`) |
+task-01-design-system\docs\colour roles.md:49:| `surface-dim` | Dimmed surface treatment | `neutral.neutral87` (`#D4DCDB`) |
+`neutral.neutral6` (`#0D1515`) |
+task-01-design-system\docs\colour roles.md:50:| `surface-bright` | Bright surface treatment | `neutral.neutral98` (`#F3FBFB`) |
+`neutral.neutral24` (`#333B3B`) |
+task-01-design-system\docs\colour roles.md:51:| `surface-container-lowest` | Lowest-emphasis surface container | `neutral.neutral100`        
+(`#FFFFFF`) | `neutral.neutral4` (`#080F10`) |
+task-01-design-system\docs\colour roles.md:52:| `surface-container-low` | Low-emphasis surface container | `neutral.neutral96` (`#EDF5F5`)   
+| `neutral.neutral10` (`#151D1D`) |
+task-01-design-system\docs\colour roles.md:53:| `surface-container` | Standard surface container | `neutral.neutral94` (`#E8EFEF`) |
+`neutral.neutral12` (`#192121`) |
+task-01-design-system\docs\colour roles.md:54:| `surface-container-high` | Higher-emphasis surface container | `neutral.neutral92`
+(`#E2EAE9`) | `neutral.neutral17` (`#242B2C`) |
+task-01-design-system\docs\colour roles.md:55:| `surface-container-highest` | Highest-emphasis surface container | `neutral.neutral90`       
+(`#DCE4E4`) | `neutral.neutral22` (`#2E3636`) |
+task-01-design-system\docs\colour roles.md:56:| `shadow` | Semantic color for shadow effects | `neutral.neutral0` (`#000000`) |
+`neutral.neutral0` (`#000000`) |
+task-01-design-system\docs\colour roles.md:57:| `scrim` | Overlay behind modal/dialog content | `neutral.neutral0` (`#000000`) |
+`neutral.neutral0` (`#000000`) |
+task-01-design-system\docs\colour roles.md:58:| `surface-tint` | Brand tint applied to surfaces | `primary.primary40` (`#037171`) | 
+`primary.primary80` (`#80D4D4`) |
+task-01-design-system\docs\colour roles.md:59:| `primary-fixed` | Stable primary container across themes | `primary.primary90` (`#9DF1F0`)   
+| `primary.primary90` (`#9DF1F0`) |
+task-01-design-system\docs\colour roles.md:60:| `primary-fixed-dim` | Dimmed stable primary container | `primary.primary80` (`#80D4D4`) |    
+`primary.primary80` (`#80D4D4`) |
+task-01-design-system\docs\colour roles.md:61:| `on-primary-fixed` | Text/icons on primary-fixed | `primary.primary10` (`#002020`) |
+`primary.primary10` (`#002020`) |
+task-01-design-system\docs\colour roles.md:62:| `on-primary-fixed-variant` | Variant text/icons on primary-fixed | `primary.primary30`       
+(`#004F50`) | `primary.primary30` (`#004F50`) |
+task-01-design-system\docs\colour roles.md:63:| `secondary-fixed` | Stable secondary container across themes | `secondary.secondary90`       
+(`#FFDCBE`) | `secondary.secondary90` (`#FFDCBE`) |
+task-01-design-system\docs\colour roles.md:64:| `secondary-fixed-dim` | Dimmed stable secondary container | `secondary.secondary80`
+(`#FFB871`) | `secondary.secondary80` (`#FFB871`) |
+task-01-design-system\docs\colour roles.md:65:| `on-secondary-fixed` | Text/icons on secondary-fixed | `secondary.secondary10` (`#2D1600`)   
+| `secondary.secondary10` (`#2D1600`) |
+task-01-design-system\docs\colour roles.md:66:| `on-secondary-fixed-variant` | Variant text/icons on secondary-fixed |
+`secondary.secondary30` (`#6A3C00`) | `secondary.secondary30` (`#6A3C00`) |
+task-01-design-system\docs\colour roles.md:67:| `tertiary-fixed` | Stable tertiary container across themes | `tertiary.tertiary90` 
+(`#A4F0EB`) | `tertiary.tertiary90` (`#A4F0EB`) |
+task-01-design-system\docs\colour roles.md:68:| `tertiary-fixed-dim` | Dimmed stable tertiary container | `tertiary.tertiary80` (`#88D4CF`)  
+| `tertiary.tertiary80` (`#88D4CF`) |
+task-01-design-system\docs\colour roles.md:69:| `on-tertiary-fixed` | Text/icons on tertiary-fixed | `tertiary.tertiary10` (`#00201F`) |     
+`tertiary.tertiary10` (`#00201F`) |
+task-01-design-system\docs\colour roles.md:70:| `on-tertiary-fixed-variant` | Variant text/icons on tertiary-fixed | `tertiary.tertiary30`   
+(`#00504D`) | `tertiary.tertiary30` (`#00504D`) |
+task-01-design-system\docs\colour roles.md:82:| `on-primary` on `primary` | #037171 / #FFFFFF | 5.83:1 | #80D4D4 / #003737 | 7.67:1 | Pass | 
+task-01-design-system\docs\colour roles.md:83:| `on-primary-container` on `primary-container` | #9DF1F0 / #004F50 | 7.28:1 | #004F50 /       
+#9DF1F0 | 7.28:1 | Pass |
+task-01-design-system\docs\colour roles.md:84:| `on-secondary` on `secondary` | #8B5000 / #FFFFFF | 6.47:1 | #FFB871 / #4A2800 | 7.74:1 |    
+Pass |
+task-01-design-system\docs\colour roles.md:85:| `on-secondary-container` on `secondary-container` | #FFDCBE / #6A3C00 | 7.19:1 | #6A3C00 /   
+#FFDCBE | 7.19:1 | Pass |
+task-01-design-system\docs\colour roles.md:86:| `on-tertiary` on `tertiary` | #106966 / #FFFFFF | 6.49:1 | #88D4CF / #003735 | 7.74:1 |      
+Pass |
+task-01-design-system\docs\colour roles.md:87:| `on-tertiary-container` on `tertiary-container` | #A4F0EB / #00504D | 7.20:1 | #00504D / 
+#A4F0EB | 7.20:1 | Pass |
+task-01-design-system\docs\colour roles.md:88:| `on-error` on `error` | #BA1A1A / #FFFFFF | 6.46:1 | #FFB4AB / #690005 | 7.72:1 | Pass |     
+task-01-design-system\docs\colour roles.md:89:| `on-error-container` on `error-container` | #FFDAD6 / #93000A | 7.24:1 | #93000A / #FFDAD6   
+| 7.24:1 | Pass |
+task-01-design-system\docs\colour roles.md:90:| `on-warning` on `warning` | #855400 / #FFFFFF | 6.43:1 | #FFB95C / #462A00 | 7.76:1 | Pass | 
+task-01-design-system\docs\colour roles.md:91:| `on-warning-container` on `warning-container` | #FFDDB7 / #653E00 | 7.26:1 | #653E00 /       
+#FFDDB7 | 7.26:1 | Pass |
+task-01-design-system\docs\colour roles.md:92:| `on-success` on `success` | #006E2E / #FFFFFF | 6.42:1 | #70DD85 / #003915 | 7.75:1 | Pass | 
+task-01-design-system\docs\colour roles.md:93:| `on-success-container` on `success-container` | #8CFA9F / #005321 | 7.21:1 | #005321 /       
+#8CFA9F | 7.21:1 | Pass |
+task-01-design-system\docs\colour roles.md:94:| `on-background` on `background` | #F3FBFB / #151D1D | 16.32:1 | #0D1515 / #DCE4E4 | 14.32:1  
+| Pass |
+task-01-design-system\docs\colour roles.md:95:| `on-surface` on `surface` | #F3FBFB / #151D1D | 16.32:1 | #0D1515 / #DCE4E4 | 14.32:1 |      
+Pass |
+task-01-design-system\docs\colour roles.md:96:| `on-surface-variant` on `surface-variant` | #D6E6E5 / #3B494A | 7.29:1 | #3B494A / #BACAC9 
+| 5.53:1 | Pass |
+task-01-design-system\docs\colour roles.md:97:| `inverse-on-surface` on `inverse-surface` | #2A3232 / #EAF2F2 | 11.55:1 | #DCE4E4 / #2A3232  
+| 10.16:1 | Pass |
+task-01-design-system\docs\colour roles.md:98:| `on-primary-fixed` on `primary-fixed` | #9DF1F0 / #002020 | 13.26:1 | #9DF1F0 / #002020 |    
+13.26:1 | Pass |
+task-01-design-system\docs\colour roles.md:99:| `on-primary-fixed-variant` on `primary-fixed` | #9DF1F0 / #004F50 | 7.28:1 | #9DF1F0 /       
+#004F50 | 7.28:1 | Pass |
+task-01-design-system\docs\colour roles.md:100:| `on-secondary-fixed` on `secondary-fixed` | #FFDCBE / #2D1600 | 13.24:1 | #FFDCBE /
+#2D1600 | 13.24:1 | Pass |
+task-01-design-system\docs\colour roles.md:101:| `on-secondary-fixed-variant` on `secondary-fixed` | #FFDCBE / #6A3C00 | 7.19:1 | #FFDCBE /  
+#6A3C00 | 7.19:1 | Pass |
+task-01-design-system\docs\colour roles.md:102:| `on-tertiary-fixed` on `tertiary-fixed` | #A4F0EB / #00201F | 13.24:1 | #A4F0EB / #00201F   
+| 13.24:1 | Pass |
+task-01-design-system\docs\colour roles.md:103:| `on-tertiary-fixed-variant` on `tertiary-fixed` | #A4F0EB / #00504D | 7.20:1 | #A4F0EB /    
+#00504D | 7.20:1 | Pass |
+task-01-design-system\docs\shadows.md:3:All three shadows are exported as `dropShadow` effects and use the brand primary teal (`#037171`)    
+with alpha transparency, rather than pure black.
+index.html:13:  <aside style="background-color: #042f2e; color: #ccfbf1; text-align: center; padding: 0.6rem 1rem; font-size: 0.875rem; 
+font-weight: 600;">
+index.html:177:          <div style="display: inline-block; background-color: #ea580c; color: #ffffff; padding: 0.25rem 0.75rem;
+border-radius: 9999px; font-size: 0.8125rem; font-weight: 700; margin-bottom: 0.75rem;">
+index.html:364:            📧 Email: <a href="mailto:contact@goodpets.com" style="color: #cbd5e1;">contact@goodpets.com</a>
+styles.css:22:  color: #1f2937;
+styles.css:23:  background-color: #fbfdfc;
+styles.css:35:  color: #0d9488;
+styles.css:41:  color: #0f766e;
+styles.css:71:  color: #0f766e;
+styles.css:72:  background-color: #ccfbf1;
+styles.css:81:  color: #0f172a;
+styles.css:88:  color: #64748b;
+styles.css:96:  background-color: #ffffff;
+styles.css:97:  border-bottom: 1px solid #e2e8f0;
+styles.css:117:  color: #0f766e;
+styles.css:128:  background: linear-gradient(135deg, #0d9488, #0f766e);
+styles.css:129:  color: #ffffff;
+styles.css:147:  color: #475569;
+styles.css:152:  color: #0f766e;
+styles.css:185:  background-color: #0f766e;
+styles.css:186:  color: #ffffff;
+styles.css:191:  background-color: #115e59;
+styles.css:192:  color: #ffffff;
+styles.css:197:  background-color: #ffffff;
+styles.css:198:  color: #0f766e;
+styles.css:199:  border: 1.5px solid #cbd5e1;
+styles.css:203:  background-color: #f1f5f9;
+styles.css:204:  border-color: #94a3b8;
+styles.css:205:  color: #0f766e;
+styles.css:209:  background-color: #ea580c;
+styles.css:210:  color: #ffffff;
+styles.css:215:  background-color: #c2410c;
+styles.css:216:  color: #ffffff;
+styles.css:225:  background-color: #fef3c7;
+styles.css:226:  color: #92400e;
+styles.css:227:  border: 1px dashed #f59e0b;
+styles.css:240:  background: linear-gradient(180deg, #f0fdfa 0%, #fbfdfc 100%);
+styles.css:241:  border-bottom: 1px solid #e2e8f0;
+styles.css:255:  background-color: #fed7aa;
+styles.css:256:  color: #9a3412;
+styles.css:257:  border: 1px solid #f97316;
+styles.css:273:  color: #0f172a;
+styles.css:278:  color: #0f766e;
+styles.css:285:  color: #475569;
+styles.css:299:  color: #64748b;
+styles.css:312:  border: 4px solid #ffffff;
+styles.css:330:  background-color: #ffffff;
+styles.css:337:  border: 1px solid #e2e8f0;
+styles.css:347:  color: #0f172a;
+styles.css:352:  color: #64748b;
+styles.css:359:  background-color: #ffffff;
+styles.css:369:  background-color: #f8fafc;
+styles.css:370:  border: 1px solid #e2e8f0;
+styles.css:379:  border-color: #99f6e4;
+styles.css:380:  background-color: #ffffff;
+styles.css:387:  background-color: #ccfbf1;
+styles.css:388:  color: #0f766e;
+styles.css:399:  color: #0f172a;
+styles.css:405:  color: #475569;
+styles.css:413:  background-color: #f8fafc;
+styles.css:414:  border-top: 1px solid #e2e8f0;
+styles.css:415:  border-bottom: 1px solid #e2e8f0;
+styles.css:426:  background-color: #ffffff;
+styles.css:427:  border: 1px solid #e2e8f0;
+styles.css:438:  background-color: #0f766e;
+styles.css:439:  color: #ffffff;
+styles.css:453:  color: #0f172a;
+styles.css:459:  color: #475569;
+styles.css:467:  background-color: #ffffff;
+styles.css:471:  background: linear-gradient(135deg, #042f2e 0%, #0f766e 100%);
+styles.css:472:  color: #ffffff;
+styles.css:491:  color: #ccfbf1;
+styles.css:503:  background-color: #ffffff;
+styles.css:504:  border: 2px solid #e2e8f0;
+styles.css:517:  border-color: #0d9488;
+styles.css:521:  border-color: #0f766e;
+styles.css:523:  background-color: #fcfefe;
+styles.css:530:  background-color: #ea580c;
+styles.css:531:  color: #ffffff;
+styles.css:544:  color: #0f172a;
+styles.css:550:  color: #64748b;
+styles.css:555:  background-color: #f8fafc;
+styles.css:559:  border: 1px solid #f1f5f9;
+styles.css:565:  color: #0f766e;
+styles.css:572:  color: #64748b;
+styles.css:579:  color: #c2410c;
+styles.css:590:  color: #334155;
+styles.css:595:  border-bottom: 1px solid #f1f5f9;
+styles.css:603:  color: #0f766e;
+styles.css:611:  color: #64748b;
+styles.css:612:  background-color: #f8fafc;
+styles.css:615:  border: 1px solid #e2e8f0;
+styles.css:622:  background-color: #f8fafc;
+styles.css:623:  border-top: 1px solid #e2e8f0;
+styles.css:635:  background-color: #ffffff;
+styles.css:636:  border: 1px solid #e2e8f0;
+styles.css:645:  color: #0f172a;
+styles.css:654:  color: #0f766e;
+styles.css:660:  color: #475569;
+styles.css:665:  background-color: #f0fdfa;
+styles.css:666:  border: 1.5px dashed #0d9488;
+styles.css:677:  color: #134e4a;
+styles.css:685:  color: #0f766e;
+styles.css:692:  background: linear-gradient(135deg, #0f766e 0%, #115e59 100%);
+styles.css:693:  color: #ffffff;
+styles.css:711:  color: #ccfbf1;
+styles.css:723:  background-color: #ffffff;
+styles.css:724:  color: #0f766e;
+styles.css:729:  background-color: #f8fafc;
+styles.css:730:  color: #115e59;
+styles.css:735:  color: #ffffff;
+styles.css:736:  border: 1.5px solid #ccfbf1;
+styles.css:741:  color: #ffffff;
+styles.css:748:  background-color: #0f172a;
+styles.css:749:  color: #94a3b8;
+styles.css:759:  border-bottom: 1px solid #334155;
+styles.css:764:  color: #2dd4bf;
+styles.css:769:  color: #94a3b8;
+styles.css:777:  color: #cbd5e1;
+styles.css:781:  color: #ffffff;
+styles.css:796:  color: #94a3b8;
+styles.css:801:  color: #ffffff;
+
+
+PS C:\Users\hp\Desktop\GoodPets> 

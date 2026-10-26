@@ -1,0 +1,72 @@
+For my Ship & Found Task 1 evidence, tell me which typography style you used for the main heading (H1) on the GoodPets daycare subscription landing page.
+
+If the page uses my design system, identify the exact typography token or style name used, including its font family, font size, font weight, and line height. If the page does not use my design system yet, tell me the actual typography values currently applied to the H1 in the code.
+
+Inspect the actual implementation before answering. Do not guess or invent values. Give me your answer in writing so I can save it as evidence.
+
+
+Based on the actual code in 
+
+index.html
+ and 
+
+styles.css
+, here are the exact typography values applied to the main heading (<h1>) for your Task 1 evidence records:
+
+1. Current State: Baseline (Pre-Design-Token Integration)
+Because this initial version was built without the design system integrated yet (to capture "before" evidence), the heading uses standard CSS rules rather than token variables.
+
+HTML Element:
+html
+<h1 class="hero-title">
+  Give Your Dog Daily Joy. <span class="highlight">Save More</span> with a Monthly Daycare Subscription.
+</h1>
+(See 
+
+index.html, lines 50–52
+)
+2. Actual Applied Typography Values
+From 
+
+styles.css, lines 269–275
+ and inherited rules:
+
+Property	Value in Code	Source Line / Details
+Font Family	-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif	Inherited from body (
+
+styles.css:21
+)
+Font Size (Desktop)	3rem (48px based on 16px root font size)	Defined in .hero-title (
+
+styles.css:270
+)
+Font Size (Mobile $\le$ 640px)	2.25rem (36px)	Defined in @media (max-width: 640px) (
+
+styles.css:846
+)
+Font Weight	800 (Extra Bold)	Defined in .hero-title (
+
+styles.css:271
+)
+Line Height	1.15 (equivalent to 55.2px on desktop)	Defined in .hero-title (
+
+styles.css:272
+)
+Text Color	#0f172a (highlighted span is #0f766e)	Defined in .hero-title (
+
+styles.css:273
+)
+3. Corresponding Target Design Token (For "After Integration" Evidence)
+When we integrate the design tokens in the next step, this heading will map to your Material Design 3 typography scale from 
+
+task-01-design-system/tokens/design-tokens.json
+:
+
+Target Token Style: display medium (or display small on mobile viewports)
+Token CSS Variables:
+font-family: var(--typography-display-medium-font-family) $\rightarrow$ 'Nunito', sans-serif
+font-size: var(--typography-display-medium-font-size) $\rightarrow$ 45px
+font-weight: var(--typography-display-medium-font-weight) $\rightarrow$ 400
+line-height: var(--typography-display-medium-line-height) $\rightarrow$ 63px
+letter-spacing: var(--typography-display-medium-letter-spacing) $\rightarrow$ 0px
+color: var(--color-on-surface) $\rightarrow$ #151d1dff

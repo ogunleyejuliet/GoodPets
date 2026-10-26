@@ -1,16 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GoodPets Daycare Subscriptions — Save More on Monthly Dog Daycare</title>
   <meta name="description" content="Save on reliable, loving dog daycare with a GoodPets monthly subscription. Guaranteed play spots, consistent routines, and exclusive subscription savings." />
+  <!-- Google Fonts: Nunito (Design System Typeface) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet" />
+  <!-- Stylesheet importing task-01-design-system tokens -->
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
 
   <!-- Top Announcement Banner -->
-  <aside style="background-color: #042f2e; color: #ccfbf1; text-align: center; padding: 0.6rem 1rem; font-size: 0.875rem; font-weight: 600;">
+  <aside class="announcement-bar">
     🐾 <strong>Limited-Time Daycare Special:</strong> Save <span class="badge-placeholder">[X]% Off</span> monthly daycare subscriptions compared to daily drop-in rates!
   </aside>
 
@@ -33,6 +38,10 @@
       </nav>
 
       <div class="nav-actions">
+        <button id="theme-toggle" class="theme-toggle-btn" aria-label="Toggle light and dark theme">
+          <span id="theme-icon">🌙</span>
+          <span id="theme-label">Dark</span>
+        </button>
         <a href="#plans" class="btn btn-primary" id="header-cta-btn">Explore Plans</a>
       </div>
     </div>
@@ -174,7 +183,7 @@
       <!-- Promotional Banner -->
       <div class="offer-banner">
         <div class="offer-banner-content">
-          <div style="display: inline-block; background-color: #ea580c; color: #ffffff; padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.8125rem; font-weight: 700; margin-bottom: 0.75rem;">
+          <div class="banner-pill">
             Limited-Time Subscription Promotion
           </div>
           <h3>Unlock <span class="badge-placeholder">[X]% Off</span> Your Monthly Daycare Plan</h3>
@@ -361,7 +370,7 @@
             Reliable, warm, and attentive pet care services including grooming, daycare, and overnight boarding.
           </p>
           <div class="footer-contact">
-            📧 Email: <a href="mailto:contact@goodpets.com" style="color: #cbd5e1;">contact@goodpets.com</a>
+            📧 Email: <a href="mailto:contact@goodpets.com">contact@goodpets.com</a>
           </div>
         </div>
 
@@ -399,10 +408,43 @@
 
       <div class="footer-bottom">
         <p>&copy; 2026 GoodPets Care Services. All rights reserved.</p>
-        <p>Demonstration Version 1.0 (Baseline styling — Design tokens not yet integrated).</p>
+        <p>Demonstration Version 2.0 (Design tokens integrated — Single Source of Truth: <code>design-tokens.json</code>).</p>
       </div>
     </div>
   </footer>
+
+  <!-- Theme Toggle Controller -->
+  <script>
+    (function () {
+      const toggleBtn = document.getElementById('theme-toggle');
+      const themeIcon = document.getElementById('theme-icon');
+      const themeLabel = document.getElementById('theme-label');
+      const root = document.documentElement;
+
+      function updateTheme(theme) {
+        root.setAttribute('data-theme', theme);
+        if (theme === 'dark') {
+          themeIcon.textContent = '☀️';
+          themeLabel.textContent = 'Light';
+        } else {
+          themeIcon.textContent = '🌙';
+          themeLabel.textContent = 'Dark';
+        }
+        localStorage.setItem('goodpets-theme', theme);
+      }
+
+      const savedTheme = localStorage.getItem('goodpets-theme') || 'light';
+      updateTheme(savedTheme);
+
+      if (toggleBtn) {
+        toggleBtn.addEventListener('click', function () {
+          const currentTheme = root.getAttribute('data-theme');
+          const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+          updateTheme(nextTheme);
+        });
+      }
+    })();
+  </script>
 
 </body>
 </html>
