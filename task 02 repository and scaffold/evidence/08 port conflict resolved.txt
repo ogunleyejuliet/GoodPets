@@ -1,0 +1,9 @@
+# Port Conflict — Recovery
+
+**Problem:** Running `node server.js` failed with `EADDRINUSE` because port 3000 was already in use.
+
+**Investigation:** Ran `netstat -ano | findstr :3000` and identified PID `7140` as a listening process. Ran `tasklist /FI "PID eq 7140"` and confirmed it was `node.exe`.
+
+**Resolution:** Ran `taskkill /PID 7140 /F`. Windows confirmed that the process was terminated successfully.
+
+**Verification:** Ran `netstat -ano | findstr :3000` again. No output appeared, confirming that nothing was listening on port 3000 at that time.

@@ -1,0 +1,23 @@
+# Port Conflict Error
+
+**Command executed:**
+```cmd
+node server.js
+```
+
+**Working directory:** `C:\Users\hp\Desktop\GoodPets`
+
+**Error encountered:**
+```text
+Error: listen EADDRINUSE: address already in use :::3000
+```
+
+**Additional details:**
+- Error code: `EADDRINUSE`
+- System call: `listen`
+- Address: `::`
+- Port: `3000`
+- File: `C:\Users\hp\Desktop\GoodPets\server.js:46:8`
+- Node.js version: `v24.19.0`
+
+**Explanation:** The server could not start because port 3000 was already in use by another process.

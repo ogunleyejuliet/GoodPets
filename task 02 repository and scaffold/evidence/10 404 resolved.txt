@@ -1,0 +1,7 @@
+# 404 Error — Recovery
+
+**Problem:** Visiting `http://localhost:3000/this-page-does-not-exist` displayed the Next.js 404 page: “This page could not be found.”
+
+**Resolution:** Navigated back to the valid home route at `http://localhost:3000/`.
+
+**Verification:** The Good Pets website loaded successfully on the home page, confirming that the application was running and the 404 was caused by requesting a nonexistent route.
