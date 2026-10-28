@@ -1,0 +1,81 @@
+Implementation plan and assumptions — save before approval
+1. Proposed Implementation Steps in Order
+Update Manifest: Edit package.json additively: update script paths for build:tokens and test:tokens to handle spaces safely, preserve start:task1, set start to next start, add dev, build, and lint, and declare the approved dependencies.
+Install Dependencies: Run npm install in non-interactive mode.
+Configure Build Tools: Create tsconfig.json, next.config.mjs, postcss.config.mjs, and tailwind.config.ts (configured to replace default colors with CSS variable semantic tokens).
+Configure Version Control Ignore: Create .gitignore with standard Next.js, TypeScript, and Node build artifact patterns (node_modules/, .next/, *.log, .env*.local).
+Create Environment Template: Create .env.example containing strictly the 16 variable names from PRD Section 10 with empty values.
+Set Up Global Styles: Create src/app/globals.css importing task 01 design system/tokens/design-tokens.css and setting base semantic theme properties.
+Create Root Layout: Create src/app/layout.tsx loading the Nunito font via next/font/google, applying data-theme="light", and setting metadata.
+Create Minimal Home Screen: Create src/app/page.tsx rendering only Good Pets and the exact PRD Section 1 description, centered with min-h-screen min-h-[100dvh].
+Create Style Checker: Create scripts/check-styles.js to statically detect unauthorized hard-coded colors in src/.
+Execute Verification:
+Validate tokens: npm run test:tokens
+Run static style audit: node scripts/check-styles.js
+Run linter: npm run lint
+Run build: npm run build
+Start server and perform headless browser inspection at 360px, 768px, and 1280px widths to verify zero horizontal or vertical layout overflow.
+2. Proposed Files to Create or Modify
+Files to Modify:
+package.json (additive updates only)
+Files to Create:
+src/app/layout.tsx
+src/app/page.tsx
+src/app/globals.css
+tailwind.config.ts
+postcss.config.mjs
+tsconfig.json
+next.config.mjs
+.gitignore
+.env.example
+scripts/check-styles.js
+Files Preserved Unchanged: All existing files in task 01 design system/, task 02 repository and scaffold/ (except the owner populating 01 agent plan.txt), .agent/, good-pets-prd-v2.md, AGENTS.md, and Task 1 demo files (server.js, index.html, styles.css, assets/).
+3. Packages and Versions Proposed
+Production (dependencies):
+next: 14.2.35 (or 14.2.16 if owner prefers)
+react: ^18.3.1
+react-dom: ^18.3.1
+Development (devDependencies):
+typescript: ^5.6.3
+@types/node: ^20.17.0
+@types/react: ^18.3.12
+@types/react-dom: ^18.3.1
+tailwindcss: ^3.4.14
+postcss: ^8.4.47
+autoprefixer: ^10.4.20
+eslint: ^8.57.1
+eslint-config-next: 14.2.35 (or 14.2.16 matching Next.js)
+4. Confirmed Requirements vs Assumptions
+Confirmed Requirements:
+Stack is Next.js with React, TypeScript, Tailwind CSS, App Router (AGENTS.md line 66, 74; PRD Section 10).
+Minimal screen content: Product name (Good Pets) + exact PRD Section 1 one-sentence description (good-pets-prd-v2.md line 26, 28):
+"Good Pets is a web app where pet owners in Victoria Island, Lagos book and pay for dog and cat grooming, daycare and boarding, ask an AI assistant questions, and where front desk and manager staff run arrivals, pickups and settings."
+
+Environment variables: Exactly the 16 names from PRD Section 10 line 1206 with empty values.
+Source directory: src/app/ (Owner Decision).
+Viewport height: min-h-[100dvh] with fallback min-h-screen (Owner Decision).
+Task 1 script mapping: start maps to next start, start:task1 maps to node server.js, build:tokens and test:tokens preserved (Owner Decision).
+Zero domain features (database, auth, payments, Sentry, Inngest) in this scaffold.
+Assumptions:
+None. All implementation parameters, copy strings, script mappings, and paths are explicitly confirmed.
+5. Unresolved Conflicts and Questions
+None: All blocking questions, script mappings, and decisions have been resolved.
+6. Planned Verification Steps and Known Limitations
+Verification Commands:
+npm run test:tokens (PASS expected: zero unresolved token references).
+node scripts/check-styles.js (PASS expected: zero raw hex/rgb colors in src/).
+npm run lint (PASS expected: zero ESLint errors).
+npm run build (PASS expected: successful Next.js static build and TypeScript type-check).
+Headless browser automated overflow check at 360px, 768px, and 1280px widths (PASS expected: scrollWidth <= clientWidth and scrollHeight <= clientHeight).
+Known Limitations:
+Headless Chromium does not simulate dynamic mobile address-bar collapse that occurs on physical mobile hardware.
+The static style checker scans static code patterns and does not evaluate dynamically evaluated runtime strings.
+Next Step
+Please copy the section titled Implementation plan and assumptions — save before approval into: task 02 repository and scaffold/evidence/01 agent plan.txt
+
+Once you have saved the plan and confirm whether to proceed with next@14.2.35 (recommended) or next@14.2.16, please provide your explicit approval to begin Phase 2 implementation.
+
+Assumptions
+None. (All implementation parameters have been explicitly confirmed by project documentation and the owner's decisions).
+
+

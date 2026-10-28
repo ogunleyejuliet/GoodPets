@@ -1,0 +1,12 @@
+.env.example
+.eslintrc.json
+.gitignore
+next.config.mjs
+package-lock.json
+postcss.config.mjs
+scripts/check-styles.js
+src/app/globals.css
+src/app/layout.tsx
+src/app/page.tsx
+tailwind.config.ts
+tsconfig.json

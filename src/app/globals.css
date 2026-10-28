@@ -1,0 +1,14 @@
+@import '../../task 01 design system/tokens/design-tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  background-color: var(--color-background);
+  color: var(--color-on-background);
+  font-family: var(--font-nunito), var(--typography-body-large-font-family, 'Nunito', sans-serif);
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+}
