@@ -1,0 +1,10 @@
+C:\Users\hp\Desktop\GoodPets>npm run dev
+
+> goodpets-design-system@1.0.0 dev
+> next dev
+
+  ▲ Next.js 14.2.35
+  - Local:        http://localhost:3000
+
+ ✓ Starting...
+ ✓ Ready in 2.6s

@@ -1,0 +1,83 @@
+# First Page Load Evidence
+
+## Test Environment
+
+- Date: 28 October 2026
+- Browser: Google Chrome 156
+- URL: http://localhost:3000/
+- Server mode: Next.js development server
+- Start command: `npm run dev`
+- Viewport: 223 × 546 pixels (mobile-sized viewport shown in Chrome DevTools)
+
+## Server Startup
+
+Command executed:
+
+`npm run dev`
+
+Terminal output:
+
+```text
+> goodpets-design-system@1.0.0 dev
+> next dev
+
+▲ Next.js 14.2.35
+- Local: http://localhost:3000
+
+✓ Starting...
+✓ Ready in 2.6s
+```
+
+The Next.js development server reported that it was ready in 2.6 seconds.
+
+## Document Request
+
+- Request URL: http://localhost:3000/
+- Request method: GET
+- Request type: Document
+- Status code: 200 OK
+- Remote address: [::1]:3000
+- Content type: text/html; charset=utf-8
+- Server: Next.js
+- Cache control: no-store, must-revalidate
+
+## Request Timing
+
+- Queued: 0 µs
+- Started at: 2.95 ms
+- Stalled: 5.54 ms
+- DNS lookup: 31 µs
+- Initial connection: 1.79 ms
+- Request sent: 0.12 ms
+- Waiting for server response: 93.80 ms
+- Content download: 120.20 ms
+- Total document request duration: 224.65 ms
+
+Note: These timings are from the Chrome DevTools Timing tab for the document request. The 224.65 ms figure is the document request duration, not necessarily the complete page-load time.
+
+## Visual Verification
+
+The page displayed:
+- The heading "Good Pets".
+- The Good Pets description from the product requirements document, describing the web app for pet owners in Victoria Island, Lagos, including grooming, daycare, boarding, an AI assistant, and front desk and manager operations.
+
+The heading and description were visible in the browser screenshot.
+
+## Observed Issues
+
+- The Network panel displayed a failed `favicon.ico` request. This should be investigated and recorded as an outstanding issue.
+- The browser was using a mobile-sized viewport. This measurement should not be treated as a desktop viewport test.
+
+## Measurement Method
+
+1. Started the Next.js development server with `npm run dev`.
+2. Opened `http://localhost:3000/` in Chrome.
+3. Opened Chrome DevTools and selected the Network tab.
+4. Enabled Disable cache.
+5. Cleared the Network log and reloaded the page.
+6. Inspected the document request's Headers and Timing tabs.
+7. Verified the page's visible heading and description.
+
+## Result
+
+The document request succeeded with HTTP 200 OK, and the Good Pets heading and description rendered visibly. The document request took 224.65 ms in this test. The server startup time was 2.6 seconds. These are local development measurements and are not a production performance benchmark.
