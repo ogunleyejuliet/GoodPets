@@ -1,0 +1,37 @@
+# Nested-Folder Recovery Evidence
+
+**Date:** 28 October 2026
+
+## Recovery action
+
+Returned from `temp-nested-test` to the GoodPets project root.
+
+**Project root:**
+`C:\Users\hp\Desktop\GoodPets`
+
+## Verification
+
+Executed:
+
+```bat
+dir server.js
+```
+
+The `server.js` file was found in the project root.
+
+##terminal output word for word
+C:\Users\hp\Desktop\GoodPets>dir server.js
+ Volume in drive C has no label.
+ Volume Serial Number is 245A-8F62
+
+ Directory of C:\Users\hp\Desktop\GoodPets
+
+10/26/2026  10:13 AM             1,355 server.js
+               1 File(s)          1,355 bytes
+               0 Dir(s)  64,981,401,600 bytes free
+
+## Result
+
+The nested-folder error was resolved by returning to the correct working directory. The original failure occurred because Node.js could not find `server.js` in the nested folder.
+
+**Note:** This verifies the directory correction. It does not claim that the Task 1 server was restarted successfully, because port 3000 was previously occupied.
