@@ -1,0 +1,7 @@
+
+
+POST /api/auth/signup - Status: 201 - User created successfully - ID: cmvswdtoq0000tpjow5md0yif - Email: amaka.okafor@example.com - Role: CUSTOMER
+ POST /api/auth/signup 201 in 5385ms
+
+POST /api/auth/signup - Status: 201 - User created successfully - ID: cmvswgeay0001tpjor5w0ehbp - Email: tunde.balogun@example.com - Role: CUSTOMER
+ POST /api/auth/signup 201 in 1764ms

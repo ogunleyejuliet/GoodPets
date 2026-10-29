@@ -1,0 +1,15 @@
+prisma:error 
+Invalid `prisma.user.findUnique()` invocation:
+
+
+Can't reach database server at `ainvalid-host.supabase.com:6543`
+
+Please make sure your database server is running at `ainvalid-host.supabase.com:6543`.
+[2026-10-29T02:19:40.933Z] POST /api/auth/signup - Status: 500 - Database write failed:
+Invalid `prisma.user.findUnique()` invocation:
+
+
+Can't reach database server at `ainvalid-host.supabase.com:6543`
+
+Please make sure your database server is running at `ainvalid-host.supabase.com:6543`.
+ POST /api/auth/signup 500 in 1879ms

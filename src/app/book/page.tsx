@@ -221,7 +221,7 @@ export default function BookingPage() {
   };
 
   // Sign Up handler
-  const handleSignUp = (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
     setAuthSuccessMsg(null);
@@ -263,22 +263,46 @@ export default function BookingPage() {
     setSignUpErrors({});
     setAuthLoading(true);
 
-    // Simulate creating account and establishing session
-    setTimeout(() => {
+    // Real database persistence via POST /api/auth/signup
+    try {
+      const res = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: signUpName.trim(),
+          email: signUpEmail.trim().toLowerCase(),
+          password: signUpPassword,
+          confirmPassword: signUpConfirmPassword,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok || !data.success) {
+        setAuthLoading(false);
+        setAuthError(data.error || 'Failed to create account. Please check your details.');
+        return;
+      }
+
       setAuthLoading(false);
       const newUser: UserProfile = {
-        name: signUpName.trim(),
-        email: signUpEmail.trim().toLowerCase(),
+        name: data.user.name || signUpName.trim(),
+        email: data.user.email,
       };
       setUser(newUser);
       if (typeof window !== 'undefined') {
         sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(newUser));
       }
-      setAuthSuccessMsg('Account created successfully! Resuming your booking...');
+      setAuthSuccessMsg('Account created and saved to database! Resuming your booking...');
       setTimeout(() => {
         setStep(4); // Advance to resumed booking step
       }, 700);
-    }, 600);
+    } catch {
+      setAuthLoading(false);
+      setAuthError('Unable to connect to the server. Please check your connection and try again.');
+    }
   };
 
   const handleSignOut = () => {
