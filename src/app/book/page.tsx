@@ -441,149 +441,99 @@ export default function BookingPage() {
 
         {/* STEP 1: CHOOSE A SERVICE */}
         {step === 1 && (
-          <div className="space-y-8 animate-fadeIn">
-            <div className="text-center max-w-xl mx-auto space-y-2">
-              <h1 className="text-3xl sm:text-4xl font-extrabold text-on-surface tracking-tight">
-                Choose a Service
+          <div className="space-y-6 animate-fadeIn max-w-2xl mx-auto">
+            <div className="space-y-1">
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">
+                What would you like to book?
               </h1>
-              <p className="text-base sm:text-lg text-on-surface-variant">
-                Find the right care for your pet.
+              <p className="text-sm text-on-surface-variant">
+                Select a service to see packages, availability and pricing.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 pt-4">
-              {/* Card 1: Grooming */}
-              <div className="bg-surface rounded-3xl border border-outline-variant overflow-hidden shadow-soft hover:shadow-medium transition-all flex flex-col justify-between group">
-                <div>
-                  <div className="relative h-48 w-full overflow-hidden">
-                    <Image
-                      src="/images/service-grooming.jpg"
-                      alt="Dog and Cat Professional Grooming at Good Pets"
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute top-4 left-4 bg-surface/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-primary">
-                      90 Min Sessions
-                    </div>
-                  </div>
-                  <div className="p-6 space-y-3">
-                    <h2 className="text-2xl font-bold text-on-surface">Grooming</h2>
-                    <p className="text-sm text-on-surface-variant leading-relaxed">
-                      Professional grooming to keep pets clean, comfortable, and looking their best.
-                    </p>
-                    <div className="pt-2">
-                      <span className="text-xs uppercase tracking-wider font-bold text-on-surface-variant">
-                        Starting Price
-                      </span>
-                      <div className="text-2xl font-extrabold text-primary">
-                        ₦12,000
-                      </div>
+            <div className="space-y-3">
+              {/* Row 1: Grooming */}
+              <button
+                type="button"
+                onClick={() => handleSelectService('grooming')}
+                className="w-full group flex items-center justify-between gap-4 bg-surface border border-outline-variant hover:border-primary hover:shadow-soft active:scale-[0.99] rounded-2xl px-5 py-4 transition-all text-left cursor-pointer"
+              >
+                <div className="flex items-center gap-4 min-w-0">
+                  <span className="text-2xl shrink-0" aria-hidden="true">✂️</span>
+                  <div className="min-w-0">
+                    <div className="font-bold text-on-surface text-base leading-tight">Grooming</div>
+                    <div className="text-xs text-on-surface-variant mt-0.5">
+                      Dogs &amp; cats · 90-min session · packages from{' '}
+                      <span className="font-semibold text-on-surface">₦12,000</span>
                     </div>
                   </div>
                 </div>
-                <div className="p-6 pt-0">
-                  <button
-                    onClick={() => handleSelectService('grooming')}
-                    className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-[1.5rem] py-[0.75rem] rounded-full shadow-soft hover:shadow-medium transition-all cursor-pointer"
-                  >
-                    <span>Choose Grooming</span>
-                    <svg className="w-4 h-4 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
+                <svg
+                  className="w-5 h-5 stroke-current stroke-2 fill-none text-primary shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
 
-              {/* Card 2: Daycare */}
-              <div className="bg-surface rounded-3xl border border-outline-variant overflow-hidden shadow-soft hover:shadow-medium transition-all flex flex-col justify-between group">
-                <div>
-                  <div className="relative h-48 w-full overflow-hidden">
-                    <Image
-                      src="/images/service-daycare.jpg"
-                      alt="Active Daytime Dog Daycare Play Sessions"
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute top-4 left-4 bg-surface/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-primary">
-                      8 AM – 8 PM
-                    </div>
-                  </div>
-                  <div className="p-6 space-y-3">
-                    <h2 className="text-2xl font-bold text-on-surface">Daycare</h2>
-                    <p className="text-sm text-on-surface-variant leading-relaxed">
-                      A day of care, attention, and activities for your pet in Victoria Island.
-                    </p>
-                    <div className="pt-2">
-                      <span className="text-xs uppercase tracking-wider font-bold text-on-surface-variant">
-                        Standard Rate
-                      </span>
-                      <div className="text-2xl font-extrabold text-primary">
-                        ₦12,000{' '}
-                        <span className="text-xs font-normal text-on-surface-variant">
-                          per pet / calendar day
-                        </span>
-                      </div>
+              {/* Row 2: Daycare */}
+              <button
+                type="button"
+                onClick={() => handleSelectService('daycare')}
+                className="w-full group flex items-center justify-between gap-4 bg-surface border border-outline-variant hover:border-primary hover:shadow-soft active:scale-[0.99] rounded-2xl px-5 py-4 transition-all text-left cursor-pointer"
+              >
+                <div className="flex items-center gap-4 min-w-0">
+                  <span className="text-2xl shrink-0" aria-hidden="true">🐾</span>
+                  <div className="min-w-0">
+                    <div className="font-bold text-on-surface text-base leading-tight">Daycare</div>
+                    <div className="text-xs text-on-surface-variant mt-0.5">
+                      8 AM – 8 PM ·{' '}
+                      <span className="font-semibold text-on-surface">₦12,000</span>
+                      {' '}per pet / calendar day
                     </div>
                   </div>
                 </div>
-                <div className="p-6 pt-0">
-                  <button
-                    onClick={() => handleSelectService('daycare')}
-                    className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-[1.5rem] py-[0.75rem] rounded-full shadow-soft hover:shadow-medium transition-all cursor-pointer"
-                  >
-                    <span>Choose Daycare</span>
-                    <svg className="w-4 h-4 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
+                <svg
+                  className="w-5 h-5 stroke-current stroke-2 fill-none text-primary shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
 
-              {/* Card 3: Boarding */}
-              <div className="bg-surface rounded-3xl border border-outline-variant overflow-hidden shadow-soft hover:shadow-medium transition-all flex flex-col justify-between group">
-                <div>
-                  <div className="relative h-48 w-full overflow-hidden">
-                    <Image
-                      src="/images/service-boarding.jpg"
-                      alt="Comfortable Overnight Pet Boarding with Staff Supervision"
-                      fill
-                      className="object-cover group-hover:scale-105 transition-transform duration-500"
-                    />
-                    <div className="absolute top-4 left-4 bg-surface/90 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-bold text-primary">
-                      8 PM – 8 AM Window
-                    </div>
-                  </div>
-                  <div className="p-6 space-y-3">
-                    <h2 className="text-2xl font-bold text-on-surface">Boarding</h2>
-                    <p className="text-sm text-on-surface-variant leading-relaxed">
-                      Overnight care for pets when you are away with loving 24/7 attentive supervision.
-                    </p>
-                    <div className="pt-2">
-                      <span className="text-xs uppercase tracking-wider font-bold text-on-surface-variant">
-                        Standard Rate
-                      </span>
-                      <div className="text-2xl font-extrabold text-primary">
-                        ₦25,000{' '}
-                        <span className="text-xs font-normal text-on-surface-variant">
-                          per pet / night
-                        </span>
-                      </div>
+              {/* Row 3: Boarding */}
+              <button
+                type="button"
+                onClick={() => handleSelectService('boarding')}
+                className="w-full group flex items-center justify-between gap-4 bg-surface border border-outline-variant hover:border-primary hover:shadow-soft active:scale-[0.99] rounded-2xl px-5 py-4 transition-all text-left cursor-pointer"
+              >
+                <div className="flex items-center gap-4 min-w-0">
+                  <span className="text-2xl shrink-0" aria-hidden="true">🌙</span>
+                  <div className="min-w-0">
+                    <div className="font-bold text-on-surface text-base leading-tight">Boarding</div>
+                    <div className="text-xs text-on-surface-variant mt-0.5">
+                      Overnight · 24/7 supervision ·{' '}
+                      <span className="font-semibold text-on-surface">₦25,000</span>
+                      {' '}per pet / night
                     </div>
                   </div>
                 </div>
-                <div className="p-6 pt-0">
-                  <button
-                    onClick={() => handleSelectService('boarding')}
-                    className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-[1.5rem] py-[0.75rem] rounded-full shadow-soft hover:shadow-medium transition-all cursor-pointer"
-                  >
-                    <span>Choose Boarding</span>
-                    <svg className="w-4 h-4 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                    </svg>
-                  </button>
-                </div>
-              </div>
+                <svg
+                  className="w-5 h-5 stroke-current stroke-2 fill-none text-primary shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
             </div>
+
+            <p className="text-xs text-on-surface-variant text-center">
+              Not sure?{' '}
+              <a href="/#services" className="font-semibold text-primary underline underline-offset-2">
+                Browse Services &amp; Pricing
+              </a>
+              {' '}on the home page first.
+            </p>
           </div>
         )}
 
@@ -602,7 +552,11 @@ export default function BookingPage() {
                 Change Service
               </button>
               <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant bg-surface-container px-3 py-1 rounded-full">
-                {service} Entry
+                {service === 'grooming'
+                  ? 'Grooming Details'
+                  : service === 'daycare'
+                  ? 'Daycare Details'
+                  : 'Boarding Details'}
               </span>
             </div>
 
@@ -1002,7 +956,7 @@ export default function BookingPage() {
               <button
                 type="button"
                 onClick={handleContinueFromServiceOptions}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-95 text-base font-bold px-8 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all"
+                className="type-label-large w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-[1.5rem] py-[0.75rem] rounded-full shadow-soft hover:shadow-medium transition-all"
               >
                 <span>Continue to Booking</span>
                 <svg className="w-5 h-5 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
@@ -1486,7 +1440,7 @@ export default function BookingPage() {
                       `Ready for Date & Capacity Reservation: Next stage will query live availability for ${service} and proceed to Paystack capacity hold.`
                     )
                   }
-                  className="inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-95 text-sm font-bold px-8 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-40"
+                  className="type-label-large inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-[1.5rem] py-[0.75rem] rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-40"
                 >
                   <span>Proceed to Available Dates</span>
                   <svg className="w-4 h-4 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
