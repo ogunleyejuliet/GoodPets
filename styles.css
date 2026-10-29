@@ -150,6 +150,18 @@ a:hover {
   text-decoration: none;
 }
 
+.brand-logo-img {
+  height: 2.25rem;
+  width: auto;
+  display: block;
+  object-fit: contain;
+  transition: transform 0.2s ease;
+}
+
+.brand-logo:hover .brand-logo-img {
+  transform: scale(1.03);
+}
+
 .brand-icon {
   width: 2.25rem;
   height: 2.25rem;
@@ -963,6 +975,10 @@ a:hover {
 }
 
 @media (max-width: 640px) {
+  .brand-logo-img {
+    height: 1.85rem;
+  }
+
   .hero-title {
     font-size: var(--typography-display-small-font-size, 36px);
     line-height: var(--typography-display-small-line-height, 50.4px);

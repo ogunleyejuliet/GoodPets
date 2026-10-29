@@ -23,25 +23,17 @@ export default function HomePage() {
             {/* Brand Logo */}
             <a
               href="#"
-              className="flex items-center gap-3 group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-xl p-1"
+              className="flex items-center group focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 rounded-xl p-1"
+              aria-label="Good Pets Home"
             >
-              <div className="w-11 h-11 rounded-2xl bg-surface-container flex items-center justify-center p-1.5 border border-outline-variant shadow-soft group-hover:scale-105 transition-transform">
-                <Image
-                  src="/images/logo-mark.svg"
-                  alt="Good Pets Logo"
-                  width={36}
-                  height={30}
-                  className="w-auto h-7"
-                />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-xl font-bold tracking-tight text-on-surface leading-tight">
-                  Good Pets
-                </span>
-                <span className="text-xs font-semibold text-on-surface-variant tracking-wider uppercase">
-                  Victoria Island, Lagos
-                </span>
-              </div>
+              <Image
+                src="/images/logo.svg"
+                alt="Good Pets"
+                width={160}
+                height={37}
+                priority
+                className="h-9 sm:h-10 w-auto object-contain group-hover:scale-105 transition-transform"
+              />
             </a>
 
             {/* Desktop Navigation Links */}
@@ -86,10 +78,10 @@ export default function HomePage() {
               >
                 Sign In
               </a>
-              {/* Primary CTA: MUST use the secondary semantic colour role */}
+              {/* Primary CTA using primary semantic colour role */}
               <a
                 href="#book"
-                className="inline-flex items-center justify-center gap-2 bg-secondary text-on-secondary hover:brightness-105 active:scale-95 text-sm font-bold px-6 py-2.5 rounded-full shadow-soft hover:shadow-medium transition-all"
+                className="inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-95 text-sm font-bold px-6 py-2.5 rounded-full shadow-soft hover:shadow-medium transition-all"
               >
                 <span>Book a Service</span>
                 <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -172,7 +164,7 @@ export default function HomePage() {
               <a
                 href="#book"
                 onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-center py-3 text-sm font-bold bg-secondary text-on-secondary rounded-full shadow-soft hover:shadow-medium transition-all"
+                className="w-full text-center py-3 text-sm font-bold bg-primary text-on-primary rounded-full shadow-soft hover:shadow-medium transition-all"
               >
                 Book a Service
               </a>
@@ -208,10 +200,10 @@ export default function HomePage() {
 
                 {/* Actions */}
                 <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
-                  {/* Primary CTA using secondary semantic colour role */}
+                  {/* Primary CTA using primary semantic colour role */}
                   <a
                     href="#book"
-                    className="inline-flex items-center justify-center gap-3 bg-secondary text-on-secondary hover:brightness-105 active:scale-[0.98] text-base font-bold px-8 py-4 rounded-full shadow-soft hover:shadow-medium transition-all text-center"
+                    className="inline-flex items-center justify-center gap-3 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] text-base font-bold px-8 py-4 rounded-full shadow-soft hover:shadow-medium transition-all text-center"
                   >
                     <span>Book a Service</span>
                     <svg className="w-5 h-5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -619,7 +611,7 @@ export default function HomePage() {
 
                 <a
                   href="#book"
-                  className="inline-flex items-center gap-2 text-sm font-bold bg-secondary text-on-secondary px-6 py-2.5 rounded-full hover:brightness-105 transition-all shadow-soft shrink-0"
+                  className="inline-flex items-center gap-2 text-sm font-bold bg-primary text-on-primary px-6 py-2.5 rounded-full hover:brightness-105 transition-all shadow-soft shrink-0"
                 >
                   <span>Book at These Rates</span>
                 </a>
@@ -803,10 +795,10 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Primary CTA with Secondary Semantic Colour Role */}
+              {/* Primary CTA with Primary Semantic Colour Role */}
               <a
                 href="#book"
-                className="inline-flex items-center justify-center gap-2 bg-secondary text-on-secondary hover:brightness-105 active:scale-95 text-sm font-bold px-8 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all shrink-0"
+                className="inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-95 text-sm font-bold px-8 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all shrink-0"
               >
                 <span>Book a Service</span>
                 <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -996,10 +988,10 @@ export default function HomePage() {
               </p>
 
               <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
-                {/* Primary CTA using secondary semantic role */}
+                {/* Primary CTA using primary semantic role */}
                 <a
                   href="#book"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-secondary text-on-secondary hover:brightness-105 active:scale-95 text-base font-bold px-8 py-4 rounded-full shadow-soft hover:shadow-medium transition-all text-center"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-95 text-base font-bold px-8 py-4 rounded-full shadow-soft hover:shadow-medium transition-all text-center"
                 >
                   <span>Book a Service</span>
                   <svg className="w-5 h-5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -1219,7 +1211,7 @@ export default function HomePage() {
               <button
                 type="button"
                 onClick={() => setAssistantModalOpen(false)}
-                className="bg-secondary text-on-secondary px-6 py-2.5 rounded-full text-sm font-bold shadow-soft hover:shadow-medium transition-all"
+                className="bg-primary text-on-primary px-6 py-2.5 rounded-full text-sm font-bold shadow-soft hover:shadow-medium transition-all"
               >
                 Close Preview
               </button>
