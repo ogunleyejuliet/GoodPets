@@ -127,3 +127,28 @@ The technical facts, toolchains, commit records, and evidence files above are fu
 2. **Local Machine Hardware Environment:**
    - *Verified Fact:* Commands ran on Windows (OS version `10.0.26100`) using PowerShell and Node.js `v24.19.0`.
    - *Confirmation Needed:* Whether local CPU/GPU specifications need to be appended to `docs/perfomance note.md` if hardware-specific benchmarking is required by the course assessor.
+
+### Additional Model Comparison: Claude Sonnet and Gemini
+
+**Context**
+
+During a separate booking-flow UI experiment, I used Claude Sonnet to inspect the existing booking flow and recommend improvements. After reaching my Claude usage limit, I switched back to Gemini to implement the approved changes on the `experiment/booking-flow-ui` branch.
+
+**Observed differences**
+
+- **Thoroughness:** Claude Sonnet's inspection and recommendations felt more thorough. Its responses explained the identified issues, proposed changes, and relevant considerations in detail.
+- **Perceived speed:** Claude Sonnet felt noticeably faster during my interactions. This is a personal observation, not a measured comparison of response times.
+- **Implementation:** Gemini implemented the approved changes after I switched models. The changes included redesigning the service-selection step, improving service-specific labels, and standardizing two action buttons against the existing design system.
+- **Verification:** I tested the resulting booking flow and confirmed that it worked.
+
+**Limitations**
+
+This was a cross-model workflow experiment, not a controlled head-to-head test. Claude and Gemini performed different stages of the task, and the switch was prompted by a usage limit. The same starting code, prompt, and implementation scope were not independently tested with both models.
+
+**Practical takeaway**
+
+For this experiment, Claude Sonnet was particularly useful for detailed inspection and recommendations, while Gemini enabled me to continue implementation after Claude became unavailable. Further testing under equivalent conditions would be needed to compare their implementation quality or response speed objectively.
+
+**Evidence**
+
+The implementation can be traced through the `experiment/booking-flow-ui` branch, its Git diff and commit, and any screenshots or test records actually retained for this experiment.
