@@ -78,10 +78,10 @@ export default function HomePage() {
               >
                 Sign In
               </a>
-              {/* Primary CTA using secondary semantic colour role */}
+              {/* Primary CTA using primary semantic colour role */}
               <a
                 href="/book"
-                className="inline-flex items-center justify-center gap-2 bg-secondary text-on-secondary hover:brightness-105 active:scale-95 text-sm font-bold px-6 py-2.5 rounded-full shadow-soft hover:shadow-medium transition-all"
+                className="inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-95 text-sm font-bold px-6 py-2.5 rounded-full shadow-soft hover:shadow-medium transition-all"
               >
                 <span>Book a Service</span>
                 <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -164,7 +164,7 @@ export default function HomePage() {
               <a
                 href="/book"
                 onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-center py-3 text-sm font-bold bg-secondary text-on-secondary rounded-full shadow-soft hover:shadow-medium transition-all"
+                className="w-full text-center py-3 text-sm font-bold bg-primary text-on-primary rounded-full shadow-soft hover:shadow-medium transition-all"
               >
                 Book a Service
               </a>
@@ -200,10 +200,10 @@ export default function HomePage() {
 
                 {/* Actions */}
                 <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
-                  {/* Primary CTA using secondary semantic colour role */}
+                  {/* Primary CTA using primary semantic colour role */}
                   <a
                     href="/book"
-                    className="inline-flex items-center justify-center gap-3 bg-secondary text-on-secondary hover:brightness-105 active:scale-[0.98] text-base font-bold px-8 py-4 rounded-full shadow-soft hover:shadow-medium transition-all text-center"
+                    className="inline-flex items-center justify-center gap-3 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] text-base font-bold px-8 py-4 rounded-full shadow-soft hover:shadow-medium transition-all text-center"
                   >
                     <span>Book a Service</span>
                     <svg className="w-5 h-5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -611,7 +611,7 @@ export default function HomePage() {
 
                 <a
                   href="/book"
-                  className="inline-flex items-center gap-2 text-sm font-bold bg-secondary text-on-secondary px-6 py-2.5 rounded-full hover:brightness-105 transition-all shadow-soft shrink-0"
+                  className="inline-flex items-center gap-2 text-sm font-bold bg-primary text-on-primary px-6 py-2.5 rounded-full hover:brightness-105 transition-all shadow-soft shrink-0"
                 >
                   <span>Book at These Rates</span>
                 </a>
@@ -795,10 +795,10 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Primary CTA with Secondary Semantic Colour Role */}
+              {/* Primary CTA with Primary Semantic Colour Role */}
               <a
                 href="/book"
-                className="inline-flex items-center justify-center gap-2 bg-secondary text-on-secondary hover:brightness-105 active:scale-95 text-sm font-bold px-8 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all shrink-0"
+                className="inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-95 text-sm font-bold px-8 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all shrink-0"
               >
                 <span>Book a Service</span>
                 <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -815,8 +815,8 @@ export default function HomePage() {
         <section id="testimonials" className="py-20 bg-background border-t border-outline-variant/50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-14">
-              {/* Clearly marked placeholder badge */}
-              <span className="inline-block px-3.5 py-1 rounded-full bg-warning-container text-on-warning-container text-xs font-bold tracking-wider uppercase mb-3">
+              {/* Subheading badge matching other sections */}
+              <span className="inline-block px-3.5 py-1 rounded-full bg-primary-container text-on-primary-container text-xs font-bold tracking-wider uppercase mb-3">
                 Sample Customer Notes · For Visualisation Only
               </span>
               <h2 className="text-3xl sm:text-4xl font-extrabold text-on-surface tracking-tight">
@@ -988,10 +988,10 @@ export default function HomePage() {
               </p>
 
               <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
-                {/* Primary CTA using secondary semantic role */}
+                {/* Primary CTA using primary semantic role */}
                 <a
                   href="/book"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-secondary text-on-secondary hover:brightness-105 active:scale-95 text-base font-bold px-8 py-4 rounded-full shadow-soft hover:shadow-medium transition-all text-center"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-95 text-base font-bold px-8 py-4 rounded-full shadow-soft hover:shadow-medium transition-all text-center"
                 >
                   <span>Book a Service</span>
                   <svg className="w-5 h-5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">

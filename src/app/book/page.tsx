@@ -361,7 +361,7 @@ export default function BookingPage() {
                   step > 1
                     ? 'bg-primary text-on-primary'
                     : step === 1
-                    ? 'bg-secondary text-on-secondary'
+                    ? 'bg-primary text-on-primary'
                     : 'bg-surface-container-high text-on-surface-variant'
                 }`}
               >
@@ -376,7 +376,7 @@ export default function BookingPage() {
                   step > 2
                     ? 'bg-primary text-on-primary'
                     : step === 2
-                    ? 'bg-secondary text-on-secondary'
+                    ? 'bg-primary text-on-primary'
                     : 'bg-surface-container-high text-on-surface-variant'
                 }`}
               >
@@ -391,7 +391,7 @@ export default function BookingPage() {
                   step > 3
                     ? 'bg-primary text-on-primary'
                     : step === 3
-                    ? 'bg-secondary text-on-secondary'
+                    ? 'bg-primary text-on-primary'
                     : 'bg-surface-container-high text-on-surface-variant'
                 }`}
               >
@@ -404,7 +404,7 @@ export default function BookingPage() {
               <span
                 className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
                   step === 4
-                    ? 'bg-secondary text-on-secondary'
+                    ? 'bg-primary text-on-primary'
                     : 'bg-surface-container-high text-on-surface-variant'
                 }`}
               >
@@ -460,7 +460,7 @@ export default function BookingPage() {
                 <div className="p-6 pt-0">
                   <button
                     onClick={() => handleSelectService('grooming')}
-                    className="w-full inline-flex items-center justify-center gap-2 bg-secondary text-on-secondary hover:brightness-105 active:scale-98 text-sm font-bold px-6 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all"
+                    className="w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-98 text-sm font-bold px-6 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all"
                   >
                     <span>Choose Grooming</span>
                     <svg className="w-4 h-4 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
@@ -505,7 +505,7 @@ export default function BookingPage() {
                 <div className="p-6 pt-0">
                   <button
                     onClick={() => handleSelectService('daycare')}
-                    className="w-full inline-flex items-center justify-center gap-2 bg-secondary text-on-secondary hover:brightness-105 active:scale-98 text-sm font-bold px-6 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all"
+                    className="w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-98 text-sm font-bold px-6 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all"
                   >
                     <span>Choose Daycare</span>
                     <svg className="w-4 h-4 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
@@ -550,7 +550,7 @@ export default function BookingPage() {
                 <div className="p-6 pt-0">
                   <button
                     onClick={() => handleSelectService('boarding')}
-                    className="w-full inline-flex items-center justify-center gap-2 bg-secondary text-on-secondary hover:brightness-105 active:scale-98 text-sm font-bold px-6 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all"
+                    className="w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-98 text-sm font-bold px-6 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all"
                   >
                     <span>Choose Boarding</span>
                     <svg className="w-4 h-4 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
@@ -978,7 +978,7 @@ export default function BookingPage() {
               <button
                 type="button"
                 onClick={handleContinueFromServiceOptions}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-secondary text-on-secondary hover:brightness-105 active:scale-95 text-base font-bold px-8 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all"
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-95 text-base font-bold px-8 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all"
               >
                 <span>Continue to Booking</span>
                 <svg className="w-5 h-5 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
@@ -1126,7 +1126,7 @@ export default function BookingPage() {
                 <button
                   type="submit"
                   disabled={authLoading}
-                  className="w-full inline-flex items-center justify-center gap-2 bg-secondary text-on-secondary hover:brightness-105 active:scale-98 text-sm font-bold py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-50"
+                  className="w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-98 text-sm font-bold py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-50"
                 >
                   {authLoading ? (
                     <span className="flex items-center gap-2">
@@ -1234,7 +1234,7 @@ export default function BookingPage() {
                 <button
                   type="submit"
                   disabled={authLoading}
-                  className="w-full inline-flex items-center justify-center gap-2 bg-secondary text-on-secondary hover:brightness-105 active:scale-98 text-sm font-bold py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-50"
+                  className="w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-98 text-sm font-bold py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-50"
                 >
                   {authLoading ? (
                     <span className="flex items-center gap-2">
@@ -1462,7 +1462,7 @@ export default function BookingPage() {
                       `Ready for Date & Capacity Reservation: Next stage will query live availability for ${service} and proceed to Paystack capacity hold.`
                     )
                   }
-                  className="inline-flex items-center justify-center gap-2 bg-secondary text-on-secondary hover:brightness-105 active:scale-95 text-sm font-bold px-8 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-40"
+                  className="inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-95 text-sm font-bold px-8 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-40"
                 >
                   <span>Proceed to Available Dates</span>
                   <svg className="w-4 h-4 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
