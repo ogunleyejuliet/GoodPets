@@ -1,8 +1,6 @@
 ---
 trigger: glob
-globs: "**/*{booking,capacity,availability,reschedule,hold}*.{ts,tsx}" "**/api/availability/**" "**/api/bookings/**"
----
-
+globs: "**/*{booking,capacity,availability,reschedule,hold}*.{ts,tsx}, **/api/availability/**, **/api/bookings/**"
 description: Capacity holds, status changes, reschedule and move rules for Good Pets bookings.
 ---
 

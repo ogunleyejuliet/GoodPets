@@ -1,8 +1,6 @@
 ---
 trigger: glob
-globs: "**/*{auth,session,permission,role}*.{ts,tsx}" "**/api/auth/**" "**/staff/**" "**/manager/**" "**/middleware.ts"
----
-
+globs: "**/*{auth,session,permission,role}*.{ts,tsx}, **/api/auth/**, **/staff/**, **/manager/**, **/middleware.ts"
 description: Sign-in, sessions, roles, passwords and data isolation for Good Pets.
 ---
 

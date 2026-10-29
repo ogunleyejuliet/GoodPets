@@ -1,8 +1,6 @@
 ---
 trigger: glob
-globs:   "**/inngest/**"  "**/api/inngest/**"  "**/*{email,reminder,cleanup,nightly}*.{ts,tsx}"  "**/emails/**"
----
-
+globs: "**/inngest/**, **/api/inngest/**, **/*{email,reminder,cleanup,nightly}*.{ts,tsx}, **/emails/**"
 description: Inngest jobs, schedules, reminders, cleanup and email delivery rules for Good Pets.
 ---
 

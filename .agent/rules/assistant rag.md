@@ -1,8 +1,6 @@
 ---
 trigger: glob
-globs: "**/*{assistant,knowledge,embedding,retrieval,rag,chunk}*.{ts,tsx}" "**/api/assistant/**" "**/manager/knowledge/**" "**/evals/**"
----
-
+globs: "**/*{assistant,knowledge,embedding,retrieval,rag,chunk}*.{ts,tsx}, **/api/assistant/**, **/manager/knowledge/**, **/evals/**"
 description: Retrieval, tools, prompt, fallback, limits and evaluation for the Good Pets assistant.
 ---
 

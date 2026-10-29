@@ -1,8 +1,6 @@
 ---
 trigger: glob
-globs: "**/*{payment,paystack}*.{ts,tsx}" "**/api/webhooks/paystack/**" "**/api/bookings/**/status/**" "**/*reconcil*.{ts,tsx}"
----
-
+globs: "**/*{payment,paystack}*.{ts,tsx}, **/api/webhooks/paystack/**, **/api/bookings/**/status/**, **/*reconcil*.{ts,tsx}"
 description: Paystack initialize, return page, webhook, retry and reconciliation rules.
 ---
 

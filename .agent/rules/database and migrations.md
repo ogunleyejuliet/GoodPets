@@ -1,8 +1,6 @@
 ---
 trigger: glob
-globs: "**/prisma/**" "**/*.sql"  "**/db/**" "**/*{prisma,migration}*.{ts,tsx}"
----
-
+globs: "**/prisma/**, **/*.sql, **/db/**, **/*{prisma,migration}*.{ts,tsx}"
 description: Prisma, pgvector, SQL migration, transactions and connection rules for Good Pets.
 ---
 

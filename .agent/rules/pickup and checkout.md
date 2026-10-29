@@ -1,8 +1,6 @@
 ---
 trigger: glob
-globs: "**/*{pickup,checkout,check-out,check-in,handover,authorization,collector}*.{ts,tsx}" "**/staff/**"
----
-
+globs: "**/*{pickup,checkout,check-out,check-in,handover,authorization,collector}*.{ts,tsx}, **/staff/**"
 description: Who may collect a pet, how check-in and check-out are recorded, and late pickup.
 ---
 
