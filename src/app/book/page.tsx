@@ -364,7 +364,7 @@ export default function BookingPage() {
                     setAuthMode('signin');
                     setStep(3);
                   }}
-                  className="text-xs sm:text-sm font-bold text-primary hover:text-on-primary-container px-3 py-1.5 rounded-full border border-primary/20 hover:border-primary transition-all"
+                  className="type-label-large text-primary hover:text-on-primary-container px-[1.25rem] py-[0.625rem] rounded-full border border-primary/20 hover:border-primary transition-all cursor-pointer"
                 >
                   Sign In
                 </button>
@@ -484,7 +484,7 @@ export default function BookingPage() {
                 <div className="p-6 pt-0">
                   <button
                     onClick={() => handleSelectService('grooming')}
-                    className="w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-98 text-sm font-bold px-6 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all"
+                    className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-[1.5rem] py-[0.75rem] rounded-full shadow-soft hover:shadow-medium transition-all cursor-pointer"
                   >
                     <span>Choose Grooming</span>
                     <svg className="w-4 h-4 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
@@ -529,7 +529,7 @@ export default function BookingPage() {
                 <div className="p-6 pt-0">
                   <button
                     onClick={() => handleSelectService('daycare')}
-                    className="w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-98 text-sm font-bold px-6 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all"
+                    className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-[1.5rem] py-[0.75rem] rounded-full shadow-soft hover:shadow-medium transition-all cursor-pointer"
                   >
                     <span>Choose Daycare</span>
                     <svg className="w-4 h-4 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
@@ -574,7 +574,7 @@ export default function BookingPage() {
                 <div className="p-6 pt-0">
                   <button
                     onClick={() => handleSelectService('boarding')}
-                    className="w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-98 text-sm font-bold px-6 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all"
+                    className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-[1.5rem] py-[0.75rem] rounded-full shadow-soft hover:shadow-medium transition-all cursor-pointer"
                   >
                     <span>Choose Boarding</span>
                     <svg className="w-4 h-4 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
@@ -1150,7 +1150,7 @@ export default function BookingPage() {
                 <button
                   type="submit"
                   disabled={authLoading}
-                  className="w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-98 text-sm font-bold py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-50"
+                  className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-[1.5rem] py-[0.75rem] rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {authLoading ? (
                     <span className="flex items-center gap-2">
@@ -1258,7 +1258,7 @@ export default function BookingPage() {
                 <button
                   type="submit"
                   disabled={authLoading}
-                  className="w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-98 text-sm font-bold py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-50"
+                  className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-[1.5rem] py-[0.75rem] rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {authLoading ? (
                     <span className="flex items-center gap-2">
