@@ -78,10 +78,10 @@ export default function HomePage() {
               >
                 Sign In
               </a>
-              {/* Primary CTA using primary semantic colour role */}
+              {/* Primary CTA using secondary semantic colour role */}
               <a
-                href="#book"
-                className="inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-95 text-sm font-bold px-6 py-2.5 rounded-full shadow-soft hover:shadow-medium transition-all"
+                href="/book"
+                className="inline-flex items-center justify-center gap-2 bg-secondary text-on-secondary hover:brightness-105 active:scale-95 text-sm font-bold px-6 py-2.5 rounded-full shadow-soft hover:shadow-medium transition-all"
               >
                 <span>Book a Service</span>
                 <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -162,9 +162,9 @@ export default function HomePage() {
                 Sign In
               </a>
               <a
-                href="#book"
+                href="/book"
                 onClick={() => setMobileMenuOpen(false)}
-                className="w-full text-center py-3 text-sm font-bold bg-primary text-on-primary rounded-full shadow-soft hover:shadow-medium transition-all"
+                className="w-full text-center py-3 text-sm font-bold bg-secondary text-on-secondary rounded-full shadow-soft hover:shadow-medium transition-all"
               >
                 Book a Service
               </a>
@@ -200,10 +200,10 @@ export default function HomePage() {
 
                 {/* Actions */}
                 <div className="mt-8 flex flex-col sm:flex-row items-stretch sm:items-center gap-4 w-full sm:w-auto">
-                  {/* Primary CTA using primary semantic colour role */}
+                  {/* Primary CTA using secondary semantic colour role */}
                   <a
-                    href="#book"
-                    className="inline-flex items-center justify-center gap-3 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] text-base font-bold px-8 py-4 rounded-full shadow-soft hover:shadow-medium transition-all text-center"
+                    href="/book"
+                    className="inline-flex items-center justify-center gap-3 bg-secondary text-on-secondary hover:brightness-105 active:scale-[0.98] text-base font-bold px-8 py-4 rounded-full shadow-soft hover:shadow-medium transition-all text-center"
                   >
                     <span>Book a Service</span>
                     <svg className="w-5 h-5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -610,8 +610,8 @@ export default function HomePage() {
                 </div>
 
                 <a
-                  href="#book"
-                  className="inline-flex items-center gap-2 text-sm font-bold bg-primary text-on-primary px-6 py-2.5 rounded-full hover:brightness-105 transition-all shadow-soft shrink-0"
+                  href="/book"
+                  className="inline-flex items-center gap-2 text-sm font-bold bg-secondary text-on-secondary px-6 py-2.5 rounded-full hover:brightness-105 transition-all shadow-soft shrink-0"
                 >
                   <span>Book at These Rates</span>
                 </a>
@@ -795,10 +795,10 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* Primary CTA with Primary Semantic Colour Role */}
+              {/* Primary CTA with Secondary Semantic Colour Role */}
               <a
-                href="#book"
-                className="inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-95 text-sm font-bold px-8 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all shrink-0"
+                href="/book"
+                className="inline-flex items-center justify-center gap-2 bg-secondary text-on-secondary hover:brightness-105 active:scale-95 text-sm font-bold px-8 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all shrink-0"
               >
                 <span>Book a Service</span>
                 <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -988,10 +988,10 @@ export default function HomePage() {
               </p>
 
               <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 w-full sm:w-auto">
-                {/* Primary CTA using primary semantic role */}
+                {/* Primary CTA using secondary semantic role */}
                 <a
-                  href="#book"
-                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-95 text-base font-bold px-8 py-4 rounded-full shadow-soft hover:shadow-medium transition-all text-center"
+                  href="/book"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-secondary text-on-secondary hover:brightness-105 active:scale-95 text-base font-bold px-8 py-4 rounded-full shadow-soft hover:shadow-medium transition-all text-center"
                 >
                   <span>Book a Service</span>
                   <svg className="w-5 h-5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -1094,7 +1094,7 @@ export default function HomePage() {
                   </a>
                 </li>
                 <li>
-                  <a href="#book" className="text-on-surface-variant hover:text-primary transition-colors">
+                  <a href="/book" className="text-on-surface-variant hover:text-primary transition-colors">
                     Check Availability
                   </a>
                 </li>
