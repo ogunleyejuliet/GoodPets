@@ -1,0 +1,62 @@
+// Good Pets - Prisma Schema
+// Single Source of Truth: PRD section 10.1
+// Database: PostgreSQL with prisma-client-js
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+// ---------- Enums ----------
+
+enum Role {
+  CUSTOMER
+  FRONT_DESK
+  MANAGER
+}
+
+enum AuthTokenPurpose {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
+}
+
+// ---------- Users and Authentication ----------
+
+model User {
+  id             String    @id @default(cuid())
+  email          String    @unique
+  emailVerified  DateTime?
+  passwordHash   String?   // Argon2id hash; null for staff until initialized
+  sessionVersion Int       @default(1) // incremented on password reset or deactivation to invalidate active JWTs
+  name           String?
+  phone          String?
+  role           Role      @default(CUSTOMER)
+  isActive       Boolean   @default(true)
+  anonymizedAt   DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  authTokens     AuthToken[]
+
+  @@index([role])
+}
+
+model AuthToken {
+  id        String           @id @default(cuid())
+  userId    String
+  purpose   AuthTokenPurpose
+  tokenHash String           @unique // SHA-256 hex digest of the one-time token emailed to the user
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, purpose])
+  @@index([expiresAt])
+}
