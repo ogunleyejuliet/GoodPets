@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { hash } from '@node-rs/argon2';
+import { signSessionToken, getSessionCookieOptions } from '@/lib/auth';
 
 // POST /api/auth/signup
 // Handles customer registration with Argon2id password hashing and PostgreSQL persistence
@@ -84,16 +85,26 @@ export async function POST(request: NextRequest) {
         name: true,
         email: true,
         role: true,
+        sessionVersion: true,
         createdAt: true,
       },
     });
 
-    // 6. Structured server logging (strictly omitting passwords, hashes, salts, and secrets)
+    // 6. Issue secure server-side session cookie
+    const token = signSessionToken({
+      userId: user.id,
+      role: user.role,
+      sessionVersion: user.sessionVersion,
+      exp: Date.now() + 7 * 24 * 60 * 60 * 1000,
+    });
+
+    // 7. Structured server logging (strictly omitting passwords, hashes, salts, and secrets)
     console.log(
       `[${timestamp}] POST /api/auth/signup - Status: 201 - User created successfully - ID: ${user.id} - Email: ${user.email} - Role: ${user.role}`
     );
 
-    return NextResponse.json(
+    const cookieOpts = getSessionCookieOptions();
+    const response = NextResponse.json(
       {
         success: true,
         user: {
@@ -106,6 +117,10 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
+
+    response.cookies.set(cookieOpts.name, token, cookieOpts);
+
+    return response;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown database error';
     console.error(`[${timestamp}] POST /api/auth/signup - Status: 500 - Database write failed: ${errorMessage}`);

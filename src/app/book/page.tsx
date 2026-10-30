@@ -3,6 +3,18 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
+import {
+  calculatePrice,
+  formatNaira,
+  calculateDogSizeTier,
+} from '@/lib/pricing';
+import {
+  GROOMING_SLOTS,
+  getEarliestServiceDateLagos,
+  addDaysToDateString,
+  countDaycareDays,
+  countBoardingNights,
+} from '@/lib/dates';
 
 // Service types supported by Good Pets
 type ServiceType = 'grooming' | 'daycare' | 'boarding';
@@ -16,11 +28,33 @@ interface BookingContext {
   dogSize: DogSize;
   groomingPackage: GroomingPackage;
   calculatedPrice: number;
+  step?: number;
 }
 
 interface UserProfile {
+  id?: string;
   name: string;
   email: string;
+  role?: string;
+}
+
+interface SavedPet {
+  id: string;
+  ownerId: string;
+  name: string;
+  species: 'DOG' | 'CAT';
+  breed: string | null;
+  weightKg: number | null;
+  careNotes: string | null;
+  createdAt: string;
+}
+
+// Dog size tier helper per BR-003 (<10kg Small, 10-25kg Medium, >25kg Large)
+function getDogSizeTier(weightKg: number | null): string {
+  if (weightKg === null || weightKg === undefined) return '';
+  if (weightKg < 10) return 'Small';
+  if (weightKg <= 25) return 'Medium';
+  return 'Large';
 }
 
 const STORAGE_KEY = 'goodpets_booking_context';
@@ -64,23 +98,215 @@ export default function BookingPage() {
     confirmPassword?: string;
   }>({});
 
-  // Pet selection mock/starter state for Step 5
+  // Pet selection and persistence state
+  const [pets, setPets] = useState<SavedPet[]>([]);
+  const [loadingPets, setLoadingPets] = useState(false);
+  const [petsError, setPetsError] = useState<string | null>(null);
   const [selectedPet, setSelectedPet] = useState<string>('');
-  const [newPetName, setNewPetName] = useState('');
   const [showAddPetForm, setShowAddPetForm] = useState(false);
+  const [savingPet, setSavingPet] = useState(false);
+  const [savePetError, setSavePetError] = useState<string | null>(null);
+
+  // New pet form fields
+  const [newPetName, setNewPetName] = useState('');
+  const [newPetSpecies, setNewPetSpecies] = useState<'DOG' | 'CAT'>('DOG');
+  const [newPetBreed, setNewPetBreed] = useState('');
+  const [newPetWeight, setNewPetWeight] = useState('');
+  const [newPetCareNotes, setNewPetCareNotes] = useState('');
+
+  // Step 5: Date Selection & Availability state
+  const earliestDate = getEarliestServiceDateLagos();
+  const [groomingDate, setGroomingDate] = useState<string>(earliestDate);
+  const [groomingSlot, setGroomingSlot] = useState<string>('09:00');
+  const [groomingSlotsData, setGroomingSlotsData] = useState<
+    Array<{
+      slotCode: string;
+      startTime: string;
+      endTime: string;
+      label: string;
+      durationMinutes: number;
+      available: boolean;
+      reason?: string;
+    }>
+  >([]);
+  const [loadingGroomingSlots, setLoadingGroomingSlots] = useState<boolean>(false);
+  const [groomingError, setGroomingError] = useState<string | null>(null);
+
+  const [daycareMode, setDaycareMode] = useState<'single' | 'range'>('single');
+  const [daycareStartDate, setDaycareStartDate] = useState<string>(earliestDate);
+  const [daycareEndDate, setDaycareEndDate] = useState<string>(earliestDate);
+  const [daycareAvailData, setDaycareAvailData] = useState<{
+    available: boolean;
+    totalDays: number;
+    days: Array<{ date: string; available: boolean; reason?: string }>;
+    firstUnavailableDate?: string;
+  } | null>(null);
+  const [loadingDaycareAvail, setLoadingDaycareAvail] = useState<boolean>(false);
+  const [daycareError, setDaycareError] = useState<string | null>(null);
+
+  const [boardingCheckIn, setBoardingCheckIn] = useState<string>(earliestDate);
+  const [boardingCheckOut, setBoardingCheckOut] = useState<string>(
+    addDaysToDateString(earliestDate, 1)
+  );
+  const [boardingAvailData, setBoardingAvailData] = useState<{
+    available: boolean;
+    totalNights: number;
+    nights: Array<{ nightDate: string; available: boolean; reason?: string }>;
+    firstUnavailableNight?: string;
+  } | null>(null);
+  const [loadingBoardingAvail, setLoadingBoardingAvail] = useState<boolean>(false);
+  const [boardingError, setBoardingError] = useState<string | null>(null);
+
+  // Step 6: Booking Review State
+  const [reviewData, setReviewData] = useState<any | null>(null);
+  const [loadingReview, setLoadingReview] = useState<boolean>(false);
+  const [reviewError, setReviewError] = useState<string | null>(null);
+
+  // Step 7: Booking Creation & Capacity Hold (Stage 4) State
+  const [bookingIdempotencyKey, setBookingIdempotencyKey] = useState<string>('');
+  const [createdBooking, setCreatedBooking] = useState<any | null>(null);
+  const [creatingBooking, setCreatingBooking] = useState<boolean>(false);
+  const [createBookingError, setCreateBookingError] = useState<string | null>(null);
+
+  // Validate selections and advance to Stage 3 Review
+  const handleProceedToReview = async () => {
+    if (!service || !selectedPet) return;
+    setLoadingReview(true);
+    setReviewError(null);
+
+    const payload = {
+      petId: selectedPet,
+      serviceType: service.toUpperCase(),
+      groomingPackage: groomingPackage.toUpperCase(),
+      groomingDate,
+      groomingSlot,
+      daycareMode,
+      daycareStartDate,
+      daycareEndDate: daycareMode === 'single' ? daycareStartDate : daycareEndDate,
+      boardingCheckIn,
+      boardingCheckOut,
+    };
+
+    try {
+      const res = await fetch('/api/bookings/review', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.review) {
+        setReviewData(data.review);
+        // Generate or refresh idempotency key for this review session (FR-013)
+        const key =
+          typeof window !== 'undefined' && window.crypto?.randomUUID
+            ? window.crypto.randomUUID()
+            : `gp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        setBookingIdempotencyKey(key);
+        setStep(6);
+        if (typeof window !== 'undefined') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      } else {
+        setReviewError(data.error || 'Server validation failed. Please check your selections.');
+      }
+    } catch {
+      setReviewError('Unable to connect to the booking review service.');
+    } finally {
+      setLoadingReview(false);
+    }
+  };
+
+  // Submit validated review and create booking with atomic capacity hold (Stage 4)
+  const handleCreateBooking = async () => {
+    if (!service || !selectedPet || !reviewData) return;
+    setCreatingBooking(true);
+    setCreateBookingError(null);
+
+    const key =
+      bookingIdempotencyKey ||
+      (typeof window !== 'undefined' && window.crypto?.randomUUID
+        ? window.crypto.randomUUID()
+        : `gp_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
+
+    if (!bookingIdempotencyKey) {
+      setBookingIdempotencyKey(key);
+    }
+
+    const payload = {
+      idempotencyKey: key,
+      petId: selectedPet,
+      serviceType: service.toUpperCase(),
+      groomingPackage: groomingPackage.toUpperCase(),
+      groomingDate,
+      groomingSlot,
+      daycareMode,
+      daycareStartDate,
+      daycareEndDate: daycareMode === 'single' ? daycareStartDate : daycareEndDate,
+      boardingCheckIn,
+      boardingCheckOut,
+    };
+
+    try {
+      const res = await fetch('/api/bookings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.booking) {
+        setCreatedBooking(data.booking);
+        setStep(7);
+        if (typeof window !== 'undefined') {
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      } else {
+        setCreateBookingError(
+          data.error || 'Failed to create booking and reserve capacity. Please try again.'
+        );
+      }
+    } catch {
+      setCreateBookingError('Unable to connect to the booking server. Please try again.');
+    } finally {
+      setCreatingBooking(false);
+    }
+  };
 
   // Restore saved session & booking context from sessionStorage
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // Check auth session
+      // Synchronously restore local auth for immediate rehydration
       const savedAuth = sessionStorage.getItem(AUTH_STORAGE_KEY);
       if (savedAuth) {
         try {
           setUser(JSON.parse(savedAuth));
         } catch {
-          // ignore corrupted data
+          // ignore
         }
       }
+
+      // Verify real server session and update/revoke as appropriate
+      fetch('/api/auth/me')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.authenticated && data.user) {
+            const authUser: UserProfile = {
+              id: data.user.id,
+              name: data.user.name || data.user.email.split('@')[0],
+              email: data.user.email,
+              role: data.user.role,
+            };
+            setUser(authUser);
+            sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authUser));
+          } else {
+            setUser(null);
+            sessionStorage.removeItem(AUTH_STORAGE_KEY);
+          }
+        })
+        .catch(() => {
+          // keep local session if server check unreachable
+        });
 
       // Check URL search params for service preselection
       const params = new URLSearchParams(window.location.search);
@@ -96,7 +322,11 @@ export default function BookingPage() {
             setSpecies(parsed.species || 'dog');
             setDogSize(parsed.dogSize || 'small');
             setGroomingPackage(parsed.groomingPackage || 'basic');
-            setStep(2);
+            if (parsed.step && typeof parsed.step === 'number') {
+              setStep(parsed.step);
+            } else {
+              setStep(2);
+            }
           }
         } catch {
           // ignore
@@ -149,10 +379,11 @@ export default function BookingPage() {
         dogSize,
         groomingPackage,
         calculatedPrice: getPrice(),
+        step,
       };
       sessionStorage.setItem(STORAGE_KEY, JSON.stringify(context));
     }
-  }, [service, species, dogSize, groomingPackage, getPrice]);
+  }, [service, species, dogSize, groomingPackage, getPrice, step]);
 
   // Handle service selection (Step 2 -> Step 3)
   const handleSelectService = (selected: ServiceType) => {
@@ -177,8 +408,128 @@ export default function BookingPage() {
     }
   };
 
-  // Sign In handler
-  const handleSignIn = (e: React.FormEvent) => {
+  // Fetch customer's pets from database
+  const fetchPets = useCallback(async () => {
+    setLoadingPets(true);
+    setPetsError(null);
+    try {
+      const res = await fetch('/api/pets');
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setPets(data.pets);
+        if (data.pets.length > 0) {
+          setSelectedPet((prev) => {
+            const exists = data.pets.some((p: SavedPet) => p.id === prev);
+            return exists ? prev : data.pets[0].id;
+          });
+        } else {
+          setSelectedPet('');
+        }
+      } else {
+        setPetsError(data.error || 'Failed to load saved pets');
+      }
+    } catch {
+      setPetsError('Unable to connect to the server to load pets.');
+    } finally {
+      setLoadingPets(false);
+    }
+  }, []);
+
+  // Fetch pets whenever user is signed in and step 4 or 5 is active
+  useEffect(() => {
+    if (user && (step === 4 || step === 5)) {
+      fetchPets();
+    }
+  }, [user, step, fetchPets]);
+
+  // Fetch Grooming Slots
+  const fetchGroomingAvailability = useCallback(async (date: string) => {
+    setLoadingGroomingSlots(true);
+    setGroomingError(null);
+    try {
+      const res = await fetch(`/api/availability?service=GROOMING&startDate=${date}`);
+      const data = await res.json();
+      if (res.ok && data.slots) {
+        setGroomingSlotsData(data.slots);
+        const currentSlotObj = data.slots.find((s: { slotCode: string; available: boolean }) => s.slotCode === groomingSlot);
+        if (!currentSlotObj || !currentSlotObj.available) {
+          const firstAvail = data.slots.find((s: { available: boolean }) => s.available);
+          if (firstAvail) setGroomingSlot(firstAvail.slotCode);
+        }
+      } else {
+        setGroomingError(data.error || 'Failed to check grooming availability');
+      }
+    } catch {
+      setGroomingError('Unable to connect to availability service');
+    } finally {
+      setLoadingGroomingSlots(false);
+    }
+  }, [groomingSlot]);
+
+  // Fetch Daycare Availability
+  const fetchDaycareAvailability = useCallback(async (start: string, end: string) => {
+    setLoadingDaycareAvail(true);
+    setDaycareError(null);
+    try {
+      const res = await fetch(`/api/availability?service=DAYCARE&startDate=${start}&endDate=${end}`);
+      const data = await res.json();
+      if (res.ok) {
+        setDaycareAvailData(data);
+      } else {
+        setDaycareError(data.error || 'Failed to check daycare availability');
+      }
+    } catch {
+      setDaycareError('Unable to connect to availability service');
+    } finally {
+      setLoadingDaycareAvail(false);
+    }
+  }, []);
+
+  // Fetch Boarding Availability
+  const fetchBoardingAvailability = useCallback(async (checkIn: string, checkOut: string) => {
+    setLoadingBoardingAvail(true);
+    setBoardingError(null);
+    try {
+      const res = await fetch(`/api/availability?service=BOARDING&startDate=${checkIn}&endDate=${checkOut}`);
+      const data = await res.json();
+      if (res.ok) {
+        setBoardingAvailData(data);
+      } else {
+        setBoardingError(data.error || 'Failed to check boarding availability');
+      }
+    } catch {
+      setBoardingError('Unable to connect to availability service');
+    } finally {
+      setLoadingBoardingAvail(false);
+    }
+  }, []);
+
+  // Trigger availability checks when entering Step 5 or dates change
+  useEffect(() => {
+    if (step === 5 && service === 'grooming' && groomingDate) {
+      fetchGroomingAvailability(groomingDate);
+    }
+  }, [step, service, groomingDate, fetchGroomingAvailability]);
+
+  useEffect(() => {
+    if (step === 5 && service === 'daycare') {
+      const end = daycareMode === 'single' ? daycareStartDate : daycareEndDate;
+      if (daycareStartDate && end && end >= daycareStartDate) {
+        fetchDaycareAvailability(daycareStartDate, end);
+      }
+    }
+  }, [step, service, daycareMode, daycareStartDate, daycareEndDate, fetchDaycareAvailability]);
+
+  useEffect(() => {
+    if (step === 5 && service === 'boarding') {
+      if (boardingCheckIn && boardingCheckOut && boardingCheckOut > boardingCheckIn) {
+        fetchBoardingAvailability(boardingCheckIn, boardingCheckOut);
+      }
+    }
+  }, [step, service, boardingCheckIn, boardingCheckOut, fetchBoardingAvailability]);
+
+  // Sign In handler - Real server-side authentication
+  const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
     setAuthSuccessMsg(null);
@@ -202,12 +553,29 @@ export default function BookingPage() {
     setSignInErrors({});
     setAuthLoading(true);
 
-    // Simulate authenticating against existing credentials
-    setTimeout(() => {
+    try {
+      const res = await fetch('/api/auth/signin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: signInEmail.trim().toLowerCase(),
+          password: signInPassword,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setAuthLoading(false);
+        setAuthError(data.error || 'Email or password is incorrect.');
+        return;
+      }
+
       setAuthLoading(false);
       const loggedUser: UserProfile = {
-        name: signInEmail.split('@')[0],
-        email: signInEmail.trim().toLowerCase(),
+        id: data.user.id,
+        name: data.user.name || signInEmail.split('@')[0],
+        email: data.user.email,
+        role: data.user.role,
       };
       setUser(loggedUser);
       if (typeof window !== 'undefined') {
@@ -215,9 +583,12 @@ export default function BookingPage() {
       }
       setAuthSuccessMsg('Signed in successfully! Returning to your booking...');
       setTimeout(() => {
-        setStep(4); // Advance to resumed booking step
+        setStep(4);
       }, 700);
-    }, 600);
+    } catch {
+      setAuthLoading(false);
+      setAuthError('Unable to connect to the server. Please check your connection and try again.');
+    }
   };
 
   // Sign Up handler
@@ -288,8 +659,10 @@ export default function BookingPage() {
 
       setAuthLoading(false);
       const newUser: UserProfile = {
+        id: data.user.id,
         name: data.user.name || signUpName.trim(),
         email: data.user.email,
+        role: data.user.role,
       };
       setUser(newUser);
       if (typeof window !== 'undefined') {
@@ -297,7 +670,7 @@ export default function BookingPage() {
       }
       setAuthSuccessMsg('Account created and saved to database! Resuming your booking...');
       setTimeout(() => {
-        setStep(4); // Advance to resumed booking step
+        setStep(4);
       }, 700);
     } catch {
       setAuthLoading(false);
@@ -305,10 +678,77 @@ export default function BookingPage() {
     }
   };
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     setUser(null);
+    setSelectedPet('');
+    setPets([]);
+    setStep(3); // Return to auth gate upon signing out
     if (typeof window !== 'undefined') {
       sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    }
+    try {
+      await fetch('/api/auth/signout', { method: 'POST' });
+    } catch {
+      // ignore
+    }
+  };
+
+  // Add new pet handler - Real database persistence via POST /api/pets
+  const handleSavePet = async () => {
+    setSavePetError(null);
+    const trimmed = newPetName.trim();
+    if (!trimmed) {
+      setSavePetError('Pet name is required.');
+      return;
+    }
+    if (trimmed.length > 50) {
+      setSavePetError('Pet name cannot exceed 50 characters.');
+      return;
+    }
+
+    let parsedWeight: number | undefined = undefined;
+    if (newPetWeight.trim()) {
+      const w = Number(newPetWeight.trim());
+      if (isNaN(w) || w <= 0 || w > 150) {
+        setSavePetError('Weight must be a valid number between 0.1 and 150 kg.');
+        return;
+      }
+      parsedWeight = Math.round(w * 10) / 10;
+    }
+
+    setSavingPet(true);
+    try {
+      const res = await fetch('/api/pets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: trimmed,
+          species: newPetSpecies,
+          breed: newPetBreed.trim() || undefined,
+          weightKg: parsedWeight,
+          careNotes: newPetCareNotes.trim() || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        setSavingPet(false);
+        setSavePetError(data.error || 'Failed to save pet profile.');
+        return;
+      }
+
+      const createdPet: SavedPet = data.pet;
+      setPets((prev) => [createdPet, ...prev]);
+      setSelectedPet(createdPet.id);
+      setNewPetName('');
+      setNewPetBreed('');
+      setNewPetWeight('');
+      setNewPetCareNotes('');
+      setShowAddPetForm(false);
+      setSavingPet(false);
+    } catch {
+      setSavingPet(false);
+      setSavePetError('Network error while saving pet. Please try again.');
     }
   };
 
@@ -379,7 +819,7 @@ export default function BookingPage() {
         {/* Progress Stepper */}
         <nav aria-label="Booking progress" className="mb-8">
           <ol className="flex items-center justify-between max-w-2xl mx-auto type-label-medium font-semibold text-on-surface-variant">
-            <li className={`flex items-center gap-2 ${step >= 1 ? 'text-primary font-bold' : ''}`}>
+            <li className={`flex items-center gap-1.5 sm:gap-2 ${step >= 1 ? 'text-primary font-bold' : ''}`}>
               <span
                 className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
                   step > 1
@@ -391,10 +831,10 @@ export default function BookingPage() {
               >
                 {step > 1 ? '✓' : '1'}
               </span>
-              <span>Service</span>
+              <span className="hidden sm:inline">Service</span>
             </li>
-            <span className="h-0.5 w-8 sm:w-16 bg-outline-variant"></span>
-            <li className={`flex items-center gap-2 ${step >= 2 ? 'text-primary font-bold' : ''}`}>
+            <span className="h-0.5 w-4 sm:w-10 bg-outline-variant"></span>
+            <li className={`flex items-center gap-1.5 sm:gap-2 ${step >= 2 ? 'text-primary font-bold' : ''}`}>
               <span
                 className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
                   step > 2
@@ -406,10 +846,10 @@ export default function BookingPage() {
               >
                 {step > 2 ? '✓' : '2'}
               </span>
-              <span>Details</span>
+              <span className="hidden sm:inline">Details</span>
             </li>
-            <span className="h-0.5 w-8 sm:w-16 bg-outline-variant"></span>
-            <li className={`flex items-center gap-2 ${step >= 3 ? 'text-primary font-bold' : ''}`}>
+            <span className="h-0.5 w-4 sm:w-10 bg-outline-variant"></span>
+            <li className={`flex items-center gap-1.5 sm:gap-2 ${step >= 3 ? 'text-primary font-bold' : ''}`}>
               <span
                 className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
                   step > 3
@@ -421,20 +861,50 @@ export default function BookingPage() {
               >
                 {step > 3 ? '✓' : '3'}
               </span>
-              <span>Account</span>
+              <span className="hidden sm:inline">Account</span>
             </li>
-            <span className="h-0.5 w-8 sm:w-16 bg-outline-variant"></span>
-            <li className={`flex items-center gap-2 ${step >= 4 ? 'text-primary font-bold' : ''}`}>
+            <span className="h-0.5 w-4 sm:w-10 bg-outline-variant"></span>
+            <li className={`flex items-center gap-1.5 sm:gap-2 ${step >= 4 ? 'text-primary font-bold' : ''}`}>
               <span
                 className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
-                  step === 4
+                  step > 4
+                    ? 'bg-primary text-on-primary'
+                    : step === 4
                     ? 'bg-primary text-on-primary'
                     : 'bg-surface-container-high text-on-surface-variant'
                 }`}
               >
-                4
+                {step > 4 ? '✓' : '4'}
               </span>
-              <span>Pet & Dates</span>
+              <span className="hidden sm:inline">Pet</span>
+            </li>
+            <span className="h-0.5 w-3 sm:w-8 bg-outline-variant"></span>
+            <li className={`flex items-center gap-1 sm:gap-1.5 ${step >= 5 ? 'text-primary font-bold' : ''}`}>
+              <span
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                  step > 5
+                    ? 'bg-primary text-on-primary'
+                    : step === 5
+                    ? 'bg-primary text-on-primary'
+                    : 'bg-surface-container-high text-on-surface-variant'
+                }`}
+              >
+                {step > 5 ? '✓' : '5'}
+              </span>
+              <span className="hidden sm:inline">Dates</span>
+            </li>
+            <span className="h-0.5 w-3 sm:w-8 bg-outline-variant"></span>
+            <li className={`flex items-center gap-1 sm:gap-1.5 ${step >= 6 ? 'text-primary font-bold' : ''}`}>
+              <span
+                className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
+                  step === 6
+                    ? 'bg-primary text-on-primary'
+                    : 'bg-surface-container-high text-on-surface-variant'
+                }`}
+              >
+                6
+              </span>
+              <span className="hidden sm:inline">Review</span>
             </li>
           </ol>
         </nav>
@@ -1346,34 +1816,79 @@ export default function BookingPage() {
 
               {/* Pet selection options */}
               <div className="space-y-3">
-                <div
-                  onClick={() => setSelectedPet('milo')}
-                  className={`cursor-pointer p-4 rounded-xl border flex items-center justify-between transition-all ${
-                    selectedPet === 'milo'
-                      ? 'border-primary bg-primary-container/40 ring-1 ring-primary'
-                      : 'border-outline-variant hover:border-outline'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">🐕</span>
-                    <div>
-                      <div className="font-bold text-sm text-on-surface">Milo</div>
-                      <div className="text-xs text-on-surface-variant">Golden Retriever • 18 kg (Medium)</div>
-                    </div>
+                {loadingPets ? (
+                  <div className="p-8 text-center bg-surface-container-low rounded-xl border border-outline-variant">
+                    <div className="inline-block animate-spin w-6 h-6 border-2 border-primary border-t-transparent rounded-full mb-2" />
+                    <p className="text-xs text-on-surface-variant">Loading your saved pets...</p>
                   </div>
-                  <input
-                    type="radio"
-                    name="pet_select"
-                    checked={selectedPet === 'milo'}
-                    onChange={() => setSelectedPet('milo')}
-                    className="accent-primary"
-                  />
-                </div>
+                ) : petsError ? (
+                  <div className="p-4 bg-error-container/20 border border-error rounded-xl flex items-center justify-between text-xs">
+                    <span className="text-error font-medium">{petsError}</span>
+                    <button
+                      type="button"
+                      onClick={fetchPets}
+                      className="font-bold text-primary hover:underline ml-3"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                ) : pets.length === 0 ? (
+                  <div className="p-6 text-center bg-surface-container-low rounded-xl border border-outline-variant space-y-1">
+                    <p className="font-bold text-sm text-on-surface">No pet profiles yet</p>
+                    <p className="text-xs text-on-surface-variant">
+                      Add your pet below to associate them with this {service} booking.
+                    </p>
+                  </div>
+                ) : (
+                  pets.map((pet) => {
+                    const isSelected = selectedPet === pet.id;
+                    const tier = pet.species === 'DOG' && pet.weightKg !== null ? getDogSizeTier(pet.weightKg) : null;
+                    const details: string[] = [];
+                    if (pet.breed) details.push(pet.breed);
+                    if (pet.weightKg !== null) {
+                      details.push(tier ? `${pet.weightKg} kg (${tier})` : `${pet.weightKg} kg`);
+                    }
+                    if (pet.careNotes) details.push(`Note: ${pet.careNotes}`);
+                    const subtitle = details.length > 0 ? details.join(' • ') : (pet.species === 'DOG' ? 'Dog' : 'Cat');
+
+                    return (
+                      <div
+                        key={pet.id}
+                        onClick={() => setSelectedPet(pet.id)}
+                        className={`cursor-pointer p-4 rounded-xl border flex items-center justify-between transition-all ${
+                          isSelected
+                            ? 'border-primary bg-primary-container/40 ring-1 ring-primary'
+                            : 'border-outline-variant hover:border-outline'
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <span className="text-2xl" role="img" aria-label={pet.species}>
+                            {pet.species === 'CAT' ? '🐱' : '🐕'}
+                          </span>
+                          <div>
+                            <div className="font-bold text-sm text-on-surface">{pet.name}</div>
+                            <div className="text-xs text-on-surface-variant">{subtitle}</div>
+                          </div>
+                        </div>
+                        <input
+                          type="radio"
+                          name="pet_select"
+                          checked={isSelected}
+                          onChange={() => setSelectedPet(pet.id)}
+                          className="accent-primary"
+                        />
+                      </div>
+                    );
+                  })
+                )}
 
                 {!showAddPetForm ? (
                   <button
                     type="button"
-                    onClick={() => setShowAddPetForm(true)}
+                    onClick={() => {
+                      setNewPetSpecies(species === 'cat' ? 'CAT' : 'DOG');
+                      setShowAddPetForm(true);
+                    }}
                     className="w-full py-3 px-4 rounded-xl border border-dashed border-outline hover:border-primary text-xs font-bold text-primary transition-colors flex items-center justify-center gap-2"
                   >
                     <span>+</span>
@@ -1385,7 +1900,10 @@ export default function BookingPage() {
                       <span className="text-xs font-bold text-on-surface">Add New Pet</span>
                       <button
                         type="button"
-                        onClick={() => setShowAddPetForm(false)}
+                        onClick={() => {
+                          setShowAddPetForm(false);
+                          setSavePetError(null);
+                        }}
                         className="text-xs text-on-surface-variant hover:text-on-surface"
                       >
                         Cancel
@@ -1393,35 +1911,80 @@ export default function BookingPage() {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[11px] font-bold text-on-surface-variant block mb-1">Pet Name</label>
+                        <label className="text-[11px] font-bold text-on-surface-variant block mb-1">
+                          Pet Name *
+                        </label>
                         <input
                           type="text"
                           value={newPetName}
                           onChange={(e) => setNewPetName(e.target.value)}
                           placeholder="e.g. Luna"
-                          className="w-full px-3 py-2 rounded-lg border border-outline-variant text-xs bg-surface"
+                          className="w-full px-3 py-2 rounded-lg border border-outline-variant text-xs bg-surface text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
                         />
                       </div>
                       <div>
-                        <label className="text-[11px] font-bold text-on-surface-variant block mb-1">Breed & Weight</label>
+                        <label className="text-[11px] font-bold text-on-surface-variant block mb-1">
+                          Species *
+                        </label>
+                        <select
+                          value={newPetSpecies}
+                          onChange={(e) => setNewPetSpecies(e.target.value as 'DOG' | 'CAT')}
+                          className="w-full px-3 py-2 rounded-lg border border-outline-variant text-xs bg-surface text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
+                        >
+                          <option value="DOG">Dog</option>
+                          <option value="CAT">Cat</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-bold text-on-surface-variant block mb-1">
+                          Breed (optional)
+                        </label>
                         <input
                           type="text"
-                          placeholder="e.g. French Bulldog (12 kg)"
-                          className="w-full px-3 py-2 rounded-lg border border-outline-variant text-xs bg-surface"
+                          value={newPetBreed}
+                          onChange={(e) => setNewPetBreed(e.target.value)}
+                          placeholder="e.g. Golden Retriever"
+                          className="w-full px-3 py-2 rounded-lg border border-outline-variant text-xs bg-surface text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-bold text-on-surface-variant block mb-1">
+                          Weight in kg (optional)
+                        </label>
+                        <input
+                          type="number"
+                          step="0.1"
+                          min="0.1"
+                          max="150"
+                          value={newPetWeight}
+                          onChange={(e) => setNewPetWeight(e.target.value)}
+                          placeholder="e.g. 18.5"
+                          className="w-full px-3 py-2 rounded-lg border border-outline-variant text-xs bg-surface text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
                         />
                       </div>
                     </div>
+                    <div>
+                      <label className="text-[11px] font-bold text-on-surface-variant block mb-1">
+                        Care Notes (optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={newPetCareNotes}
+                        onChange={(e) => setNewPetCareNotes(e.target.value)}
+                        placeholder="e.g. Sensitive skin, timid around loud noises"
+                        className="w-full px-3 py-2 rounded-lg border border-outline-variant text-xs bg-surface text-on-surface focus:outline-none focus:ring-1 focus:ring-primary"
+                      />
+                    </div>
+                    {savePetError && (
+                      <p className="text-xs text-error font-semibold">{savePetError}</p>
+                    )}
                     <button
                       type="button"
-                      onClick={() => {
-                        if (newPetName.trim()) {
-                          setSelectedPet(newPetName.trim());
-                          setShowAddPetForm(false);
-                        }
-                      }}
-                      className="text-xs font-bold bg-primary text-on-primary px-4 py-2 rounded-full"
+                      disabled={savingPet}
+                      onClick={handleSavePet}
+                      className="text-xs font-bold bg-primary text-on-primary px-4 py-2 rounded-full disabled:opacity-50 hover:brightness-105 active:scale-[0.98] transition-all"
                     >
-                      Save Pet
+                      {savingPet ? 'Saving Pet...' : 'Save Pet'}
                     </button>
                   </div>
                 )}
@@ -1430,17 +1993,18 @@ export default function BookingPage() {
               {/* Progress Notice */}
               <div className="mt-6 pt-4 border-t border-outline-variant text-center space-y-2">
                 <p className="text-xs text-on-surface-variant">
-                  <strong>Steps 1–5 Complete:</strong> You have selected your service, customized your package, authenticated, and preserved your context into the pet selection stage.
+                  Pet selected: <strong>{pets.find((p) => p.id === selectedPet)?.name || 'None'}</strong>. Proceed to pick appointment or stay dates.
                 </p>
                 <button
                   type="button"
                   disabled={!selectedPet}
-                  onClick={() =>
-                    alert(
-                      `Ready for Date & Capacity Reservation: Next stage will query live availability for ${service} and proceed to Paystack capacity hold.`
-                    )
-                  }
-                  className="type-label-large inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-6 py-3 rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-40"
+                  onClick={() => {
+                    setStep(5);
+                    if (typeof window !== 'undefined') {
+                      window.scrollTo({ top: 0, behavior: 'smooth' });
+                    }
+                  }}
+                  className="type-label-large inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-6 py-3 rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-40 cursor-pointer"
                 >
                   <span>Proceed to Available Dates</span>
                   <svg className="w-4 h-4 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
@@ -1453,6 +2017,1188 @@ export default function BookingPage() {
                   </p>
                 )}
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 5: DATE SELECTION & AVAILABILITY */}
+        {step === 5 && service && (
+          <div className="max-w-3xl mx-auto space-y-6 animate-fadeIn">
+            {/* Context Summary Header */}
+            <div className="flex items-center justify-between border-b border-outline-variant pb-4">
+              <button
+                type="button"
+                onClick={() => setStep(4)}
+                className="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:underline"
+              >
+                <svg className="w-4 h-4 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+                Back to Pet Selection
+              </button>
+              <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant bg-surface-container px-3 py-1 rounded-full">
+                Step 5 of 5 · Schedule &amp; Availability
+              </span>
+            </div>
+
+            {/* Preserved Booking & Pet Details Banner */}
+            {(() => {
+              const activePet = pets.find((p) => p.id === selectedPet);
+              const petWeight = activePet?.weightKg !== null && activePet?.weightKg !== undefined ? Number(activePet.weightKg) : null;
+              const dogTier = activePet?.species === 'DOG' ? calculateDogSizeTier(petWeight) : null;
+
+              return (
+                <div className="bg-surface rounded-2xl border border-outline-variant p-5 shadow-soft space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs uppercase tracking-wider font-bold text-on-surface-variant">
+                      Selected Service &amp; Pet
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setStep(4)}
+                      className="text-xs font-bold text-primary hover:underline"
+                    >
+                      Change Pet
+                    </button>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                    <div>
+                      <span className="text-on-surface-variant block">Service</span>
+                      <span className="font-bold text-on-surface capitalize text-sm">{service}</span>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant block">Pet Name</span>
+                      <span className="font-bold text-on-surface text-sm">{activePet?.name || 'Selected Pet'}</span>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant block">Species</span>
+                      <span className="font-bold text-on-surface capitalize text-sm">{activePet?.species === 'CAT' ? 'Cat' : 'Dog'}</span>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant block">
+                        {service === 'grooming' ? 'Package / Tier' : 'Rate Basis'}
+                      </span>
+                      <span className="font-bold text-on-surface capitalize text-sm">
+                        {service === 'grooming'
+                          ? activePet?.species === 'DOG'
+                            ? `${groomingPackage} (${dogTier || 'No weight'})`
+                            : `${groomingPackage === 'premium' ? 'full' : groomingPackage}`
+                          : service === 'daycare'
+                          ? 'Per calendar day'
+                          : 'Per night'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* SERVICE-SPECIFIC DATE SELECTION */}
+            {/* 1. GROOMING DATE & SLOT SELECTOR */}
+            {service === 'grooming' && (() => {
+              const activePet = pets.find((p) => p.id === selectedPet);
+              const isDog = activePet?.species === 'DOG';
+              const petWeight = activePet?.weightKg !== null && activePet?.weightKg !== undefined ? Number(activePet.weightKg) : null;
+              const dogTier = isDog ? calculateDogSizeTier(petWeight) : null;
+              const missingDogWeight = isDog && dogTier === null;
+
+              // Price computation
+              let priceResult = null;
+              let priceError = null;
+              if (!missingDogWeight) {
+                try {
+                  const effectivePkg = (activePet?.species === 'CAT' && groomingPackage === 'premium' ? 'full' : groomingPackage).toUpperCase() as 'BASIC' | 'FULL' | 'PREMIUM';
+                  priceResult = calculatePrice({
+                    serviceType: 'GROOMING',
+                    species: activePet?.species === 'CAT' ? 'CAT' : 'DOG',
+                    weightKg: petWeight,
+                    groomingPackage: effectivePkg,
+                    quantity: 1,
+                  });
+                } catch (e: any) {
+                  priceError = e.message;
+                }
+              }
+
+              return (
+                <div className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-6 shadow-soft">
+                  <div>
+                    <h2 className="type-title-medium font-bold text-on-surface">
+                      Choose Appointment Date &amp; Time Slot
+                    </h2>
+                    <p className="type-body-small text-on-surface-variant mt-0.5">
+                      Grooming appointments are 90 minutes. 2 groomers are on duty across 3 daily slots (09:00, 12:00, 15:00 Africa/Lagos).
+                    </p>
+                  </div>
+
+                  {missingDogWeight && (
+                    <div className="p-4 bg-error-container/30 border border-error rounded-xl text-xs space-y-1">
+                      <p className="font-bold text-error">Dog Weight Required (BR-003, FR-005)</p>
+                      <p className="text-on-surface-variant">
+                        Dog grooming prices require an accurate weight to determine size tier (Small &lt;10kg, Medium 10–25kg, Large &gt;25kg).
+                        Please return to Pet Selection and edit or add your dog with weight.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Date Input */}
+                  <div className="space-y-2">
+                    <label htmlFor="grooming-date" className="type-label-medium font-bold text-on-surface block">
+                      Select Date (Earliest: Tomorrow per BR-043)
+                    </label>
+                    <input
+                      id="grooming-date"
+                      type="date"
+                      min={earliestDate}
+                      value={groomingDate}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        setGroomingDate(val);
+                      }}
+                      className="w-full sm:w-72 px-4 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary text-sm font-semibold"
+                    />
+                    <p className="text-[11px] text-on-surface-variant">
+                      Same-day bookings are not offered (BR-043). Earliest available date is {earliestDate}.
+                    </p>
+                  </div>
+
+                  {/* Slot Selector */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="type-label-medium font-bold text-on-surface">
+                        Available 90-Minute Slots for {groomingDate}
+                      </label>
+                      {loadingGroomingSlots && (
+                        <span className="text-xs text-primary flex items-center gap-1.5">
+                          <svg className="animate-spin h-3.5 w-3.5 text-primary" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                          </svg>
+                          Checking slot capacity...
+                        </span>
+                      )}
+                    </div>
+
+                    {groomingError && (
+                      <div className="p-3 bg-error-container/20 border border-error rounded-xl text-xs text-error font-medium">
+                        {groomingError}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {GROOMING_SLOTS.map((defaultSlot) => {
+                        const slotData = groomingSlotsData.find((s) => s.slotCode === defaultSlot.slotCode);
+                        const isAvailable = slotData ? slotData.available : true;
+                        const reason = slotData?.reason;
+                        const isSelected = groomingSlot === defaultSlot.slotCode && isAvailable;
+
+                        return (
+                          <div
+                            key={defaultSlot.slotCode}
+                            onClick={() => {
+                              if (isAvailable) setGroomingSlot(defaultSlot.slotCode);
+                            }}
+                            className={`p-4 rounded-xl border transition-all text-left flex flex-col justify-between ${
+                              !isAvailable
+                                ? 'bg-surface-container-high/40 border-outline-variant opacity-60 cursor-not-allowed'
+                                : isSelected
+                                ? 'bg-primary-container/40 border-primary ring-2 ring-primary cursor-pointer'
+                                : 'bg-surface border-outline-variant hover:border-primary cursor-pointer'
+                            }`}
+                          >
+                            <div>
+                              <div className="flex items-center justify-between">
+                                <span className="type-title-medium font-bold text-on-surface">
+                                  {defaultSlot.startTime}
+                                </span>
+                                <span
+                                  className={`text-[10px] uppercase font-extrabold px-2 py-0.5 rounded-full ${
+                                    isAvailable
+                                      ? 'bg-success-container text-on-success-container'
+                                      : 'bg-error-container text-on-error-container'
+                                  }`}
+                                >
+                                  {isAvailable ? 'Available' : reason || 'Full'}
+                                </span>
+                              </div>
+                              <p className="type-body-small text-on-surface-variant mt-1">
+                                {defaultSlot.label}
+                              </p>
+                              <p className="text-[11px] text-on-surface-variant/80 mt-0.5">
+                                90-minute grooming session
+                              </p>
+                            </div>
+
+                            <div className="mt-3 pt-2 border-t border-outline-variant/50 flex items-center justify-between">
+                              <span className="text-[11px] text-on-surface-variant font-medium">
+                                {isAvailable ? '2 places / slot' : 'No places left'}
+                              </span>
+                              <input
+                                type="radio"
+                                name="grooming_slot"
+                                checked={isSelected}
+                                disabled={!isAvailable}
+                                onChange={() => isAvailable && setGroomingSlot(defaultSlot.slotCode)}
+                                className="accent-primary"
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Pricing Card */}
+                  {priceResult && (
+                    <div className="bg-surface-container-low rounded-xl border border-outline-variant p-4 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-on-surface-variant">Grooming Fee ({priceResult.sizeTier ? `${priceResult.sizeTier} dog` : 'Cat'})</span>
+                        <span className="font-bold text-on-surface">{priceResult.formattedUnitPrice}</span>
+                      </div>
+                      <div className="pt-2 border-t border-outline-variant flex items-center justify-between">
+                        <span className="type-label-large font-bold text-on-surface">Estimated Total:</span>
+                        <span className="type-headline-large font-extrabold text-primary">
+                          {priceResult.formattedTotal}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Review Error Notification */}
+                  {reviewError && (
+                    <div className="p-4 bg-error-container/30 border border-error rounded-xl text-xs space-y-1 animate-fadeIn">
+                      <p className="font-bold text-error">Validation / Availability Notice</p>
+                      <p className="text-on-surface">{reviewError}</p>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="pt-4 border-t border-outline-variant flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setStep(4)}
+                      className="w-full sm:w-auto px-5 py-2.5 rounded-full border border-outline hover:border-primary text-xs font-bold text-on-surface hover:text-primary transition-colors cursor-pointer"
+                    >
+                      ← Back to Pet Selection
+                    </button>
+                    <button
+                      type="button"
+                      disabled={
+                        loadingReview ||
+                        missingDogWeight ||
+                        !groomingSlot ||
+                        loadingGroomingSlots ||
+                        (groomingSlotsData.length > 0 &&
+                          !groomingSlotsData.find((s) => s.slotCode === groomingSlot)?.available)
+                      }
+                      onClick={handleProceedToReview}
+                      className="w-full sm:w-auto type-label-large inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-6 py-3 rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+                    >
+                      {loadingReview ? (
+                        <span className="flex items-center gap-2">
+                          <svg className="animate-spin h-4 w-4 text-current" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                          </svg>
+                          Validating Quote...
+                        </span>
+                      ) : (
+                        <>
+                          <span>Proceed to Booking Review</span>
+                          <svg className="w-4 h-4 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                          </svg>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* 2. DAYCARE DATE SELECTOR */}
+            {service === 'daycare' && (() => {
+              const activePet = pets.find((p) => p.id === selectedPet);
+              const effectiveEnd = daycareMode === 'single' ? daycareStartDate : daycareEndDate;
+              const totalDays = daycareStartDate && effectiveEnd ? countDaycareDays(daycareStartDate, effectiveEnd) : 0;
+              const isDateRangeValid = daycareStartDate && effectiveEnd && effectiveEnd >= daycareStartDate && totalDays > 0;
+
+              const priceResult = isDateRangeValid
+                ? calculatePrice({
+                    serviceType: 'DAYCARE',
+                    species: activePet?.species === 'CAT' ? 'CAT' : 'DOG',
+                    quantity: totalDays,
+                  })
+                : null;
+
+              const isAvailable = daycareAvailData?.available ?? true;
+              const firstUnavailable = daycareAvailData?.firstUnavailableDate;
+
+              return (
+                <div className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-6 shadow-soft">
+                  <div>
+                    <h2 className="type-title-medium font-bold text-on-surface">
+                      Select Daycare Date or Date Range
+                    </h2>
+                    <p className="type-body-small text-on-surface-variant mt-0.5">
+                      Daycare hours: <strong>8:00 AM – 8:00 PM</strong> (Lagos Time). ₦12,000 per pet / calendar day. Maximum 20 daycare places per day.
+                    </p>
+                  </div>
+
+                  {/* Mode Selector */}
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDaycareMode('single');
+                        setDaycareEndDate(daycareStartDate);
+                      }}
+                      className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                        daycareMode === 'single'
+                          ? 'bg-primary text-on-primary shadow-soft'
+                          : 'bg-surface-container border border-outline-variant text-on-surface-variant hover:text-on-surface'
+                      }`}
+                    >
+                      Single Day
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDaycareMode('range');
+                        if (daycareEndDate <= daycareStartDate) {
+                          setDaycareEndDate(addDaysToDateString(daycareStartDate, 1));
+                        }
+                      }}
+                      className={`px-4 py-2 rounded-full text-xs font-bold transition-all ${
+                        daycareMode === 'range'
+                          ? 'bg-primary text-on-primary shadow-soft'
+                          : 'bg-surface-container border border-outline-variant text-on-surface-variant hover:text-on-surface'
+                      }`}
+                    >
+                      Consecutive Date Range
+                    </button>
+                  </div>
+
+                  {/* Date Inputs */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label htmlFor="daycare-start" className="type-label-medium font-bold text-on-surface block">
+                        {daycareMode === 'single' ? 'Service Date' : 'Start Date'}
+                      </label>
+                      <input
+                        id="daycare-start"
+                        type="date"
+                        min={earliestDate}
+                        value={daycareStartDate}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setDaycareStartDate(val);
+                          if (daycareMode === 'single' || val > daycareEndDate) {
+                            setDaycareEndDate(val);
+                          }
+                        }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary text-sm font-semibold"
+                      />
+                    </div>
+
+                    {daycareMode === 'range' && (
+                      <div className="space-y-1.5">
+                        <label htmlFor="daycare-end" className="type-label-medium font-bold text-on-surface block">
+                          End Date (Inclusive)
+                        </label>
+                        <input
+                          id="daycare-end"
+                          type="date"
+                          min={daycareStartDate || earliestDate}
+                          value={daycareEndDate}
+                          onChange={(e) => setDaycareEndDate(e.target.value)}
+                          className="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary text-sm font-semibold"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Availability Status Banner */}
+                  {loadingDaycareAvail ? (
+                    <div className="p-4 bg-surface-container-low border border-outline-variant rounded-xl flex items-center gap-2 text-xs text-primary">
+                      <svg className="animate-spin h-4 w-4 text-primary" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      Checking daycare capacity for {totalDays} calendar day(s)...
+                    </div>
+                  ) : daycareError ? (
+                    <div className="p-4 bg-error-container/20 border border-error rounded-xl text-xs text-error font-medium">
+                      {daycareError}
+                    </div>
+                  ) : isAvailable ? (
+                    <div className="p-4 bg-success-container/60 border border-success/30 rounded-xl flex items-center justify-between text-xs">
+                      <span className="font-bold text-on-success-container flex items-center gap-2">
+                        <span className="text-base">✓</span>
+                        Daycare Available: All {totalDays} day(s) have open capacity.
+                      </span>
+                      <span className="text-[11px] font-semibold text-on-success-container/80">
+                        {totalDays} day(s) · 8 AM – 8 PM
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-error-container/30 border border-error rounded-xl text-xs space-y-1">
+                      <p className="font-bold text-error">Selected Range Unavailable</p>
+                      <p className="text-on-surface-variant">
+                        One or more selected days are fully booked or closed (First unavailable: <strong>{firstUnavailable}</strong>). Please choose alternative dates.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Pricing Card */}
+                  {priceResult && (
+                    <div className="bg-surface-container-low rounded-xl border border-outline-variant p-4 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-on-surface-variant">
+                          Daycare Rate (₦12,000 × {priceResult.quantity} day{priceResult.quantity > 1 ? 's' : ''})
+                        </span>
+                        <span className="font-bold text-on-surface">{priceResult.formattedTotal}</span>
+                      </div>
+                      <div className="pt-2 border-t border-outline-variant flex items-center justify-between">
+                        <span className="type-label-large font-bold text-on-surface">Estimated Total:</span>
+                        <span className="type-headline-large font-extrabold text-primary">
+                          {priceResult.formattedTotal}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Review Error Notification */}
+                  {reviewError && (
+                    <div className="p-4 bg-error-container/30 border border-error rounded-xl text-xs space-y-1 animate-fadeIn">
+                      <p className="font-bold text-error">Validation / Availability Notice</p>
+                      <p className="text-on-surface">{reviewError}</p>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="pt-4 border-t border-outline-variant flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setStep(4)}
+                      className="w-full sm:w-auto px-5 py-2.5 rounded-full border border-outline hover:border-primary text-xs font-bold text-on-surface hover:text-primary transition-colors cursor-pointer"
+                    >
+                      ← Back to Pet Selection
+                    </button>
+                    <button
+                      type="button"
+                      disabled={loadingReview || !isDateRangeValid || loadingDaycareAvail || !isAvailable}
+                      onClick={handleProceedToReview}
+                      className="w-full sm:w-auto type-label-large inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-6 py-3 rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+                    >
+                      {loadingReview ? (
+                        <span className="flex items-center gap-2">
+                          <svg className="animate-spin h-4 w-4 text-current" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                          </svg>
+                          Validating Quote...
+                        </span>
+                      ) : (
+                        <>
+                          <span>Proceed to Booking Review</span>
+                          <svg className="w-4 h-4 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                          </svg>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+
+            {/* 3. BOARDING DATE SELECTOR */}
+            {service === 'boarding' && (() => {
+              const activePet = pets.find((p) => p.id === selectedPet);
+              const totalNights = boardingCheckIn && boardingCheckOut ? countBoardingNights(boardingCheckIn, boardingCheckOut) : 0;
+              const isStayValid = boardingCheckIn && boardingCheckOut && boardingCheckOut > boardingCheckIn && totalNights > 0;
+
+              const priceResult = isStayValid
+                ? calculatePrice({
+                    serviceType: 'BOARDING',
+                    species: activePet?.species === 'CAT' ? 'CAT' : 'DOG',
+                    quantity: totalNights,
+                  })
+                : null;
+
+              const isAvailable = boardingAvailData?.available ?? true;
+              const firstUnavailable = boardingAvailData?.firstUnavailableNight;
+
+              return (
+                <div className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-6 shadow-soft">
+                  <div>
+                    <h2 className="type-title-medium font-bold text-on-surface">
+                      Select Boarding Check-In &amp; Check-Out Dates
+                    </h2>
+                    <p className="type-body-small text-on-surface-variant mt-0.5">
+                      Stay Window: Check-in from <strong>8:00 PM</strong>, Check-out by <strong>8:00 AM</strong> (Lagos Time). ₦25,000 per pet / night.
+                      Maximum 16 kennel spaces per night. The check-out day does not use a kennel space (BR-010).
+                    </p>
+                  </div>
+
+                  {/* Dates Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label htmlFor="boarding-checkin" className="type-label-medium font-bold text-on-surface block">
+                        Check-In Date (from 8:00 PM)
+                      </label>
+                      <input
+                        id="boarding-checkin"
+                        type="date"
+                        min={earliestDate}
+                        value={boardingCheckIn}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setBoardingCheckIn(val);
+                          if (val >= boardingCheckOut) {
+                            setBoardingCheckOut(addDaysToDateString(val, 1));
+                          }
+                        }}
+                        className="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary text-sm font-semibold"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <label htmlFor="boarding-checkout" className="type-label-medium font-bold text-on-surface block">
+                        Check-Out Date (by 8:00 AM)
+                      </label>
+                      <input
+                        id="boarding-checkout"
+                        type="date"
+                        min={addDaysToDateString(boardingCheckIn || earliestDate, 1)}
+                        value={boardingCheckOut}
+                        onChange={(e) => setBoardingCheckOut(e.target.value)}
+                        className="w-full px-4 py-2.5 rounded-xl border border-outline-variant bg-surface text-on-surface focus:outline-none focus:ring-2 focus:ring-primary text-sm font-semibold"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Availability Status Banner */}
+                  {loadingBoardingAvail ? (
+                    <div className="p-4 bg-surface-container-low border border-outline-variant rounded-xl flex items-center gap-2 text-xs text-primary">
+                      <svg className="animate-spin h-4 w-4 text-primary" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                      </svg>
+                      Checking kennel availability across {totalNights} night(s)...
+                    </div>
+                  ) : boardingError ? (
+                    <div className="p-4 bg-error-container/20 border border-error rounded-xl text-xs text-error font-medium">
+                      {boardingError}
+                    </div>
+                  ) : isAvailable ? (
+                    <div className="p-4 bg-success-container/60 border border-success/30 rounded-xl flex items-center justify-between text-xs">
+                      <span className="font-bold text-on-success-container flex items-center gap-2">
+                        <span className="text-base">✓</span>
+                        Kennel Available: All {totalNights} night(s) have open kennel places.
+                      </span>
+                      <span className="text-[11px] font-semibold text-on-success-container/80">
+                        {totalNights} night(s) (8 PM – 8 AM)
+                      </span>
+                    </div>
+                  ) : (
+                    <div className="p-4 bg-error-container/30 border border-error rounded-xl text-xs space-y-1">
+                      <p className="font-bold text-error">Kennel Capacity Unavailable</p>
+                      <p className="text-on-surface-variant">
+                        One or more nights in your requested stay are fully booked or closed (First full night: <strong>{firstUnavailable}</strong>).
+                        Please adjust your check-in or check-out dates.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Pricing Card */}
+                  {priceResult && (
+                    <div className="bg-surface-container-low rounded-xl border border-outline-variant p-4 space-y-2">
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-on-surface-variant">
+                          Boarding Fee (₦25,000 × {priceResult.quantity} night{priceResult.quantity > 1 ? 's' : ''})
+                        </span>
+                        <span className="font-bold text-on-surface">{priceResult.formattedTotal}</span>
+                      </div>
+                      <div className="pt-2 border-t border-outline-variant flex items-center justify-between">
+                        <span className="type-label-large font-bold text-on-surface">Estimated Total:</span>
+                        <span className="type-headline-large font-extrabold text-primary">
+                          {priceResult.formattedTotal}
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Review Error Notification */}
+                  {reviewError && (
+                    <div className="p-4 bg-error-container/30 border border-error rounded-xl text-xs space-y-1 animate-fadeIn">
+                      <p className="font-bold text-error">Validation / Availability Notice</p>
+                      <p className="text-on-surface">{reviewError}</p>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="pt-4 border-t border-outline-variant flex flex-col sm:flex-row items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setStep(4)}
+                      className="w-full sm:w-auto px-5 py-2.5 rounded-full border border-outline hover:border-primary text-xs font-bold text-on-surface hover:text-primary transition-colors cursor-pointer"
+                    >
+                      ← Back to Pet Selection
+                    </button>
+                    <button
+                      type="button"
+                      disabled={loadingReview || !isStayValid || loadingBoardingAvail || !isAvailable}
+                      onClick={handleProceedToReview}
+                      className="w-full sm:w-auto type-label-large inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-6 py-3 rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-40 cursor-pointer disabled:cursor-not-allowed"
+                    >
+                      {loadingReview ? (
+                        <span className="flex items-center gap-2">
+                          <svg className="animate-spin h-4 w-4 text-current" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                          </svg>
+                          Validating Quote...
+                        </span>
+                      ) : (
+                        <>
+                          <span>Proceed to Booking Review</span>
+                          <svg className="w-4 h-4 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                          </svg>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* STEP 6: BOOKING REVIEW (STAGE 3) */}
+        {step === 6 && reviewData && (
+          <div className="max-w-3xl mx-auto space-y-6 animate-fadeIn">
+            {/* Context Navigation Header */}
+            <div className="flex items-center justify-between border-b border-outline-variant pb-4">
+              <button
+                type="button"
+                disabled={creatingBooking}
+                onClick={() => setStep(5)}
+                className="inline-flex items-center gap-1.5 text-sm font-bold text-primary hover:underline cursor-pointer disabled:opacity-50"
+              >
+                <svg className="w-4 h-4 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+                Back to Edit Schedule
+              </button>
+              <span className="text-xs font-semibold uppercase tracking-wider text-on-surface-variant bg-surface-container px-3 py-1 rounded-full">
+                Step 6 of 6 · Booking Review
+              </span>
+            </div>
+
+            {/* Advisory Quote Notice Banner */}
+            <div className="bg-surface-container-low border border-outline-variant rounded-2xl p-4 flex items-start gap-3">
+              <span className="text-primary text-xl">ℹ️</span>
+              <div className="space-y-0.5">
+                <h3 className="type-label-large font-bold text-on-surface">
+                  Estimated Booking Quote
+                </h3>
+                <p className="type-body-small text-on-surface-variant">
+                  {reviewData.disclaimer} Please review your selections, price breakdown, and policy conditions before continuing.
+                </p>
+              </div>
+            </div>
+
+            {/* 1. Pet & Service Summary Card */}
+            <div className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4 shadow-soft">
+              <div className="flex items-center justify-between border-b border-outline-variant pb-3">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-2xl" aria-hidden="true">
+                    {reviewData.serviceType === 'GROOMING' ? '✂️' : reviewData.serviceType === 'DAYCARE' ? '🐾' : '🌙'}
+                  </span>
+                  <div>
+                    <h2 className="type-title-medium font-bold text-on-surface capitalize">
+                      {reviewData.serviceType.toLowerCase()} Service
+                    </h2>
+                    <span className="text-xs text-on-surface-variant">Selected pet and package details</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setStep(4)}
+                  className="text-xs font-bold text-primary hover:underline"
+                >
+                  Change Pet
+                </button>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                <div>
+                  <span className="text-on-surface-variant block font-medium">Pet Name</span>
+                  <span className="type-body-medium font-bold text-on-surface">{reviewData.pet.name}</span>
+                </div>
+                <div>
+                  <span className="text-on-surface-variant block font-medium">Species</span>
+                  <span className="type-body-medium font-bold text-on-surface capitalize">
+                    {reviewData.pet.species === 'CAT' ? 'Cat' : 'Dog'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-on-surface-variant block font-medium">Breed</span>
+                  <span className="type-body-medium font-bold text-on-surface">{reviewData.pet.breed}</span>
+                </div>
+                <div>
+                  <span className="text-on-surface-variant block font-medium">
+                    {reviewData.pet.species === 'DOG' ? 'Weight & Size Tier' : 'Weight'}
+                  </span>
+                  <span className="type-body-medium font-bold text-on-surface">
+                    {reviewData.pet.formattedWeight
+                      ? reviewData.pet.sizeTier
+                        ? `${reviewData.pet.formattedWeight} (${reviewData.pet.sizeTier})`
+                        : reviewData.pet.formattedWeight
+                      : 'Not recorded'}
+                  </span>
+                </div>
+              </div>
+
+              {reviewData.pet.careNotes && (
+                <div className="p-3 bg-surface-container-low rounded-xl border border-outline-variant text-xs text-on-surface-variant">
+                  <span className="font-bold text-on-surface mr-1.5">Care Notes:</span>
+                  {reviewData.pet.careNotes}
+                </div>
+              )}
+            </div>
+
+            {/* 2. Schedule Details Card (Service-Specific) */}
+            <div className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4 shadow-soft">
+              <div className="flex items-center justify-between border-b border-outline-variant pb-3">
+                <div>
+                  <h2 className="type-title-medium font-bold text-on-surface">
+                    Appointment &amp; Stay Schedule
+                  </h2>
+                  <span className="text-xs text-on-surface-variant">Confirmed arrival and service schedule</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setStep(5)}
+                  className="text-xs font-bold text-primary hover:underline"
+                >
+                  Edit Schedule
+                </button>
+              </div>
+
+              {reviewData.serviceType === 'GROOMING' && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                  <div>
+                    <span className="text-on-surface-variant block font-medium">Appointment Date</span>
+                    <span className="type-body-medium font-bold text-on-surface">{reviewData.schedule.appointmentDate}</span>
+                  </div>
+                  <div>
+                    <span className="text-on-surface-variant block font-medium">Appointment Time</span>
+                    <span className="type-body-medium font-bold text-on-surface">{reviewData.schedule.appointmentHours}</span>
+                  </div>
+                  <div>
+                    <span className="text-on-surface-variant block font-medium">Session Duration</span>
+                    <span className="type-body-medium font-bold text-on-surface">
+                      {reviewData.schedule.durationMinutes} minutes ({reviewData.schedule.groomingPackage} Package)
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {reviewData.serviceType === 'DAYCARE' && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                    <div>
+                      <span className="text-on-surface-variant block font-medium">
+                        {reviewData.schedule.mode === 'single' ? 'Service Date' : 'Booking Period'}
+                      </span>
+                      <span className="type-body-medium font-bold text-on-surface">
+                        {reviewData.schedule.mode === 'single'
+                          ? reviewData.schedule.startDate
+                          : `${reviewData.schedule.startDate} to ${reviewData.schedule.endDate}`}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant block font-medium">Total Calendar Days</span>
+                      <span className="type-body-medium font-bold text-on-surface">
+                        {reviewData.schedule.totalDays} calendar day{reviewData.schedule.totalDays > 1 ? 's' : ''}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant block font-medium">Operating Hours</span>
+                      <span className="type-body-medium font-bold text-on-surface">{reviewData.schedule.operatingHours}</span>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-on-surface-variant">
+                    Drop-off begins at 8:00 AM; collection is required by 8:00 PM (Africa/Lagos).
+                  </p>
+                </div>
+              )}
+
+              {reviewData.serviceType === 'BOARDING' && (
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+                    <div>
+                      <span className="text-on-surface-variant block font-medium">Check-In Date</span>
+                      <span className="type-body-medium font-bold text-on-surface">
+                        {reviewData.schedule.checkInDate} ({reviewData.schedule.checkInWindow})
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant block font-medium">Check-Out Date</span>
+                      <span className="type-body-medium font-bold text-on-surface">
+                        {reviewData.schedule.checkOutDate} ({reviewData.schedule.checkOutWindow})
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant block font-medium">Stay Length</span>
+                      <span className="type-body-medium font-bold text-on-surface">
+                        {reviewData.schedule.totalNights} night{reviewData.schedule.totalNights > 1 ? 's' : ''}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-[11px] text-on-surface-variant">
+                    {reviewData.schedule.kennelRule}. Kennel capacity is allocated exclusively across the {reviewData.schedule.totalNights} overnight period(s).
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* 3. Itemized Price Breakdown Card */}
+            <div className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4 shadow-soft">
+              <div className="border-b border-outline-variant pb-3">
+                <h2 className="type-title-medium font-bold text-on-surface">
+                  Itemized Price Breakdown
+                </h2>
+                <span className="text-xs text-on-surface-variant">
+                  Calculated using exact integer kobo to prevent floating-point rounding errors
+                </span>
+              </div>
+
+              <div className="space-y-2.5 text-xs">
+                <div className="flex items-center justify-between py-1">
+                  <span className="text-on-surface-variant font-medium">
+                    Base Rate ({reviewData.pricing.formattedUnitPrice} / {reviewData.pricing.quantityUnit})
+                  </span>
+                  <span className="font-semibold text-on-surface">
+                    {reviewData.pricing.quantity} × {reviewData.pricing.formattedUnitPrice}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between py-1 border-t border-outline-variant/60">
+                  <span className="text-on-surface-variant font-medium">Subtotal</span>
+                  <span className="type-body-medium font-bold text-on-surface">
+                    {reviewData.pricing.formattedSubtotal}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between py-1 border-t border-outline-variant/60">
+                  <span className="text-on-surface-variant font-medium flex items-center gap-1.5">
+                    <span>Applicable Tax ({reviewData.pricing.taxRatePercent}%)</span>
+                    <span className="text-[10px] text-on-surface-variant/70">(Lagos State Standard)</span>
+                  </span>
+                  <span className="type-body-medium font-bold text-on-surface">
+                    {reviewData.pricing.formattedTax}
+                  </span>
+                </div>
+
+                <div className="pt-3 border-t-2 border-outline-variant flex items-center justify-between">
+                  <div>
+                    <span className="type-label-large font-bold text-on-surface block">
+                      Total Estimated Amount Payable
+                    </span>
+                    <span className="text-[11px] text-on-surface-variant">
+                      Stored as {reviewData.pricing.totalKobo.toLocaleString()} kobo
+                    </span>
+                  </div>
+                  <span className="type-headline-large font-extrabold text-primary">
+                    {reviewData.pricing.formattedTotal}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* 4. Booking Policy Information Card */}
+            <div className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4 shadow-soft">
+              <div className="border-b border-outline-variant pb-3">
+                <h2 className="type-title-medium font-bold text-on-surface">
+                  Booking Policies &amp; Terms
+                </h2>
+                <span className="text-xs text-on-surface-variant">
+                  Please review our business and cancellation rules before proceeding
+                </span>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                {/* Cancellation Policy */}
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-surface-container-low border border-outline-variant">
+                  <span className="text-base text-primary shrink-0">🛡️</span>
+                  <div>
+                    <span className="font-bold text-on-surface block">No Cancellations or Refunds</span>
+                    <p className="text-on-surface-variant mt-0.5">
+                      {reviewData.policies.cancellation} Once payment is verified, bookings cannot be cancelled and no funds are refunded or credited.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Rescheduling Policy */}
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-surface-container-low border border-outline-variant">
+                  <span className="text-base text-primary shrink-0">📅</span>
+                  <div>
+                    <span className="font-bold text-on-surface block">Rescheduling Deadline</span>
+                    <p className="text-on-surface-variant mt-0.5">
+                      {reviewData.policies.rescheduling}
+                    </p>
+                    <p className="font-semibold text-primary mt-1">
+                      Deadline: {reviewData.policies.rescheduleDeadline}.
+                    </p>
+                  </div>
+                </div>
+
+                {/* Health & Vaccination Policy */}
+                <div className="flex items-start gap-3 p-3 rounded-xl bg-surface-container-low border border-outline-variant">
+                  <span className="text-base text-primary shrink-0">💉</span>
+                  <div>
+                    <span className="font-bold text-on-surface block">In-Person Vaccination Evidence</span>
+                    <p className="text-on-surface-variant mt-0.5">
+                      {reviewData.policies.vaccinationNotice} Evidence must be verified at check-in counter (BR-007).
+                    </p>
+                  </div>
+                </div>
+
+                {/* Late Pickup Notice (if Daycare) */}
+                {reviewData.policies.latePickupNotice && (
+                  <div className="flex items-start gap-3 p-3 rounded-xl bg-surface-container-low border border-outline-variant">
+                    <span className="text-base text-warning shrink-0">⚠️</span>
+                    <div>
+                      <span className="font-bold text-on-surface block">Daycare Closing &amp; Late Penalty</span>
+                      <p className="text-on-surface-variant mt-0.5">
+                        {reviewData.policies.latePickupNotice}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Creation Error Notification */}
+            {createBookingError && (
+              <div className="p-4 bg-error-container/30 border border-error rounded-xl text-xs space-y-1.5 animate-fadeIn">
+                <p className="font-bold text-error">Booking Reservation Failed</p>
+                <p className="text-on-surface">{createBookingError}</p>
+                <button
+                  type="button"
+                  onClick={() => setStep(5)}
+                  className="font-bold text-primary hover:underline block pt-1"
+                >
+                  Return to Schedule to select an alternative slot or date →
+                </button>
+              </div>
+            )}
+
+            {/* Actions & Navigation */}
+            <div className="pt-4 border-t border-outline-variant flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div className="flex items-center gap-3 w-full sm:w-auto">
+                <button
+                  type="button"
+                  disabled={creatingBooking}
+                  onClick={() => setStep(5)}
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-full border border-outline hover:border-primary text-xs font-bold text-on-surface hover:text-primary transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  ← Edit Schedule
+                </button>
+                <button
+                  type="button"
+                  disabled={creatingBooking}
+                  onClick={() => setStep(4)}
+                  className="w-full sm:w-auto px-5 py-2.5 rounded-full border border-outline hover:border-primary text-xs font-bold text-on-surface hover:text-primary transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  Change Pet
+                </button>
+              </div>
+
+              <button
+                type="button"
+                disabled={creatingBooking}
+                onClick={handleCreateBooking}
+                className="w-full sm:w-auto type-label-large inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-8 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all cursor-pointer font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {creatingBooking ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4 text-current" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                    </svg>
+                    Reserving Capacity...
+                  </span>
+                ) : (
+                  <>
+                    <span>Confirm &amp; Hold Capacity (Stage 4)</span>
+                    <svg className="w-4 h-4 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                    </svg>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 7: BOOKING CREATED & CAPACITY HOLD CONFIRMED (STAGE 4 SUCCESS) */}
+        {step === 7 && createdBooking && (
+          <div className="max-w-2xl mx-auto space-y-6 animate-fadeIn">
+            {/* Success Banner */}
+            <div className="bg-success-container/90 border border-success/40 rounded-2xl p-6 text-center space-y-3 shadow-soft">
+              <div className="w-14 h-14 bg-success text-on-success rounded-full flex items-center justify-center mx-auto text-2xl font-bold shadow-soft">
+                ✓
+              </div>
+              <div>
+                <h1 className="type-headline-large font-extrabold text-on-success-container">
+                  Capacity Hold Confirmed!
+                </h1>
+                <p className="type-body-small text-on-success-container/90 mt-1">
+                  Your place has been atomically reserved in the database. A unique booking reference has been issued.
+                </p>
+              </div>
+
+              {/* Booking Reference Display */}
+              <div className="bg-surface/90 rounded-2xl border border-outline-variant p-4 max-w-sm mx-auto shadow-sm">
+                <span className="text-[11px] uppercase tracking-wider font-bold text-on-surface-variant block">
+                  Booking Reference
+                </span>
+                <span className="text-3xl font-mono font-black text-primary tracking-wider block mt-0.5">
+                  {createdBooking.reference}
+                </span>
+                <span className="inline-block mt-2 px-3 py-1 rounded-full text-xs font-bold bg-warning-container text-on-warning-container">
+                  Status: Awaiting Payment (PENDING_PAYMENT)
+                </span>
+              </div>
+            </div>
+
+            {/* Hold Expiry Notice Card */}
+            <div className="bg-surface rounded-2xl border border-outline-variant p-5 shadow-soft space-y-3">
+              <div className="flex items-start gap-3">
+                <span className="text-2xl shrink-0" aria-hidden="true">⏳</span>
+                <div className="space-y-1">
+                  <h3 className="type-title-medium font-bold text-on-surface">
+                    10-Minute Capacity Hold Active
+                  </h3>
+                  <p className="type-body-small text-on-surface-variant">
+                    Capacity for your chosen service is held until{' '}
+                    <strong className="text-on-surface">
+                      {createdBooking.holdExpiresAt
+                        ? new Date(createdBooking.holdExpiresAt).toLocaleTimeString([], {
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })
+                        : '10 minutes from now'}{' '}
+                      (Africa/Lagos)
+                    </strong>
+                    . If payment is not completed before hold expiry, the reserved units will be safely released.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Persisted Booking Summary Card */}
+            <div className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4 shadow-soft">
+              <div className="border-b border-outline-variant pb-3">
+                <h2 className="type-title-medium font-bold text-on-surface">
+                  Persisted Booking Details
+                </h2>
+                <span className="text-xs text-on-surface-variant">
+                  Stored securely in the Good Pets database
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                <div>
+                  <span className="text-on-surface-variant block font-medium">Service</span>
+                  <span className="type-body-medium font-bold text-on-surface capitalize">
+                    {createdBooking.serviceType.toLowerCase()}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-on-surface-variant block font-medium">Pet</span>
+                  <span className="type-body-medium font-bold text-on-surface">
+                    {createdBooking.petNameSnapshot} ({createdBooking.petSpeciesSnapshot.toLowerCase()})
+                  </span>
+                </div>
+                <div>
+                  <span className="text-on-surface-variant block font-medium">Dates / Slot</span>
+                  <span className="type-body-medium font-bold text-on-surface">
+                    {createdBooking.serviceType === 'GROOMING'
+                      ? `${createdBooking.startDate} (${createdBooking.slotCode})`
+                      : `${createdBooking.startDate} to ${createdBooking.endDate}`}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-on-surface-variant block font-medium">Quantity</span>
+                  <span className="type-body-medium font-bold text-on-surface">
+                    {createdBooking.quantity}{' '}
+                    {createdBooking.serviceType === 'GROOMING'
+                      ? 'session'
+                      : createdBooking.serviceType === 'DAYCARE'
+                      ? 'days'
+                      : 'nights'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-outline-variant flex items-center justify-between">
+                <div>
+                  <span className="type-label-large font-bold text-on-surface block">
+                    Total Amount Awaiting Payment:
+                  </span>
+                  <span className="text-[11px] text-on-surface-variant">
+                    {createdBooking.totalKobo.toLocaleString()} kobo
+                  </span>
+                </div>
+                <span className="type-headline-large font-extrabold text-primary">
+                  {createdBooking.formattedTotal}
+                </span>
+              </div>
+            </div>
+
+            {/* Payment Integration Boundary Card */}
+            <div className="bg-surface-container-low rounded-2xl border border-outline-variant p-5 shadow-soft space-y-2">
+              <div className="flex items-center gap-2">
+                <span className="text-xl" aria-hidden="true">💳</span>
+                <h3 className="type-title-medium font-bold text-on-surface">
+                  Payment Status: Not Yet Completed
+                </h3>
+              </div>
+              <p className="type-body-small text-on-surface-variant">
+                No payment has been charged and no money has moved. In Stage 5, you will be redirected to Paystack (test mode) to finalize payment by card or bank transfer. Once Paystack reports verified payment, your booking will transition to CONFIRMED.
+              </p>
+            </div>
+
+            {/* Navigation Actions */}
+            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link
+                href="/"
+                className="w-full sm:w-auto px-6 py-3 rounded-full border border-outline hover:border-primary text-xs font-bold text-on-surface hover:text-primary transition-colors text-center"
+              >
+                Return to Home
+              </Link>
+              <button
+                type="button"
+                onClick={() => {
+                  setCreatedBooking(null);
+                  setReviewData(null);
+                  setBookingIdempotencyKey('');
+                  setStep(1);
+                  if (typeof window !== 'undefined') {
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }
+                }}
+                className="w-full sm:w-auto px-6 py-3 rounded-full bg-primary text-on-primary hover:brightness-105 text-xs font-bold transition-all text-center"
+              >
+                Book Another Service
+              </button>
             </div>
           </div>
         )}

@@ -25,6 +25,38 @@ enum AuthTokenPurpose {
   PASSWORD_RESET
 }
 
+enum Species {
+  DOG
+  CAT
+}
+
+enum ServiceType {
+  GROOMING
+  DAYCARE
+  BOARDING
+}
+
+enum GroomingPackage {
+  BASIC
+  FULL
+  PREMIUM
+}
+
+enum SizeTier {
+  SMALL
+  MEDIUM
+  LARGE
+}
+
+enum BookingStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  NEEDS_ATTENTION
+  EXPIRED
+  COMPLETED
+  NO_SHOW
+}
+
 // ---------- Users and Authentication ----------
 
 model User {
@@ -41,7 +73,10 @@ model User {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
-  authTokens     AuthToken[]
+  authTokens      AuthToken[]
+  pets            Pet[]
+  bookings        Booking[]
+  closuresCreated Closure[]
 
   @@index([role])
 }
@@ -60,3 +95,128 @@ model AuthToken {
   @@index([userId, purpose])
   @@index([expiresAt])
 }
+
+// ---------- Pets ----------
+
+model Pet {
+  id         String    @id @default(cuid())
+  ownerId    String
+  name       String
+  species    Species
+  breed      String?
+  weightKg   Decimal?  @db.Decimal(4, 1)
+  careNotes  String?
+  archivedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  owner    User      @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+  bookings Booking[]
+
+  @@index([ownerId])
+}
+
+// ---------- Services, Prices and Closures ----------
+
+model ServiceConfig {
+  serviceType     ServiceType @id
+  defaultCapacity Int
+  slotTimes       String[]
+  opensAt         String      @default("08:00")
+  closesAt        String      @default("20:00")
+  updatedAt       DateTime    @updatedAt
+}
+
+model PriceItem {
+  id              String           @id @default(cuid())
+  priceKey        String           @unique
+  serviceType     ServiceType
+  species         Species?
+  groomingPackage GroomingPackage?
+  sizeTier        SizeTier?
+  amountKobo      Int
+  isActive        Boolean          @default(true)
+  updatedAt       DateTime         @updatedAt
+
+  @@index([serviceType])
+}
+
+model Closure {
+  id          String       @id @default(cuid())
+  serviceType ServiceType?
+  startDate   DateTime     @db.Date
+  endDate     DateTime     @db.Date
+  message     String?
+  createdById String
+  createdAt   DateTime     @default(now())
+
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Restrict)
+
+  @@index([startDate, endDate])
+}
+
+// ---------- Capacity and Bookings ----------
+
+model CapacityUnit {
+  id          String      @id @default(cuid())
+  serviceType ServiceType
+  serviceDate DateTime    @db.Date
+  slotCode    String
+  capacity    Int
+  reserved    Int         @default(0)
+
+  bookingUnits BookingUnit[]
+
+  @@unique([serviceType, serviceDate, slotCode])
+  @@index([serviceDate])
+}
+
+model Booking {
+  id                  String          @id @default(cuid())
+  reference           String          @unique
+  idempotencyKey      String
+  customerId          String
+  petId               String
+  serviceType         ServiceType
+  groomingPackage     GroomingPackage?
+  slotCode            String?
+  status              BookingStatus   @default(PENDING_PAYMENT)
+  startDate           DateTime        @db.Date
+  endDate             DateTime        @db.Date
+  quantity            Int
+  petNameSnapshot     String
+  petSpeciesSnapshot  Species
+  petWeightKgSnapshot Decimal?        @db.Decimal(4, 1)
+  sizeTierSnapshot    SizeTier?
+  unitPriceKobo       Int
+  totalKobo           Int
+  currency            String          @default("NGN")
+  holdExpiresAt       DateTime?
+  confirmedAt         DateTime?
+  rescheduleCount     Int             @default(0)
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+
+  customer User          @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  pet      Pet           @relation(fields: [petId], references: [id], onDelete: Restrict)
+  units    BookingUnit[]
+
+  @@unique([customerId, idempotencyKey])
+  @@index([customerId, startDate])
+  @@index([status, holdExpiresAt])
+  @@index([startDate])
+}
+
+model BookingUnit {
+  id             String    @id @default(cuid())
+  bookingId      String
+  capacityUnitId String
+  releasedAt     DateTime?
+
+  booking      Booking      @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  capacityUnit CapacityUnit @relation(fields: [capacityUnitId], references: [id], onDelete: Restrict)
+
+  @@unique([bookingId, capacityUnitId])
+  @@index([capacityUnitId])
+}
+
