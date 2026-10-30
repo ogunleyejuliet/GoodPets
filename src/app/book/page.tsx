@@ -338,7 +338,7 @@ export default function BookingPage() {
             <div className="flex items-center gap-4">
               <Link
                 href="/"
-                className="text-sm font-semibold text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1.5"
+                className="type-label-large text-on-surface-variant hover:text-primary transition-colors flex items-center gap-1.5"
               >
                 <svg className="w-4 h-4 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -364,7 +364,7 @@ export default function BookingPage() {
                     setAuthMode('signin');
                     setStep(3);
                   }}
-                  className="type-label-large text-primary hover:text-on-primary-container px-[1.25rem] py-[0.625rem] rounded-full border border-primary/20 hover:border-primary transition-all cursor-pointer"
+                  className="type-label-large text-primary hover:text-on-primary-container px-5 py-2.5 rounded-full border border-primary/20 hover:border-primary transition-all cursor-pointer"
                 >
                   Sign In
                 </button>
@@ -378,7 +378,7 @@ export default function BookingPage() {
       <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Progress Stepper */}
         <nav aria-label="Booking progress" className="mb-8">
-          <ol className="flex items-center justify-between max-w-2xl mx-auto text-xs sm:text-sm font-semibold text-on-surface-variant">
+          <ol className="flex items-center justify-between max-w-2xl mx-auto type-label-medium font-semibold text-on-surface-variant">
             <li className={`flex items-center gap-2 ${step >= 1 ? 'text-primary font-bold' : ''}`}>
               <span
                 className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${
@@ -443,10 +443,10 @@ export default function BookingPage() {
         {step === 1 && (
           <div className="space-y-6 animate-fadeIn max-w-2xl mx-auto">
             <div className="space-y-1">
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-on-surface tracking-tight">
+              <h1 className="type-headline-large font-bold text-on-surface tracking-tight">
                 What would you like to book?
               </h1>
-              <p className="text-sm text-on-surface-variant">
+              <p className="type-body-medium text-on-surface-variant">
                 Select a service to see packages, availability and pricing.
               </p>
             </div>
@@ -461,10 +461,10 @@ export default function BookingPage() {
                 <div className="flex items-center gap-4 min-w-0">
                   <span className="text-2xl shrink-0" aria-hidden="true">✂️</span>
                   <div className="min-w-0">
-                    <div className="font-bold text-on-surface text-base leading-tight">Grooming</div>
+                    <div className="type-title-medium font-bold text-on-surface leading-tight">Grooming</div>
                     <div className="text-xs text-on-surface-variant mt-0.5">
                       Dogs &amp; cats · 90-min session · packages from{' '}
-                      <span className="font-semibold text-on-surface">₦12,000</span>
+                      <span className="type-label-large font-bold text-on-surface">₦12,000</span>
                     </div>
                   </div>
                 </div>
@@ -485,10 +485,10 @@ export default function BookingPage() {
                 <div className="flex items-center gap-4 min-w-0">
                   <span className="text-2xl shrink-0" aria-hidden="true">🐾</span>
                   <div className="min-w-0">
-                    <div className="font-bold text-on-surface text-base leading-tight">Daycare</div>
+                    <div className="type-title-medium font-bold text-on-surface leading-tight">Daycare</div>
                     <div className="text-xs text-on-surface-variant mt-0.5">
                       8 AM – 8 PM ·{' '}
-                      <span className="font-semibold text-on-surface">₦12,000</span>
+                      <span className="type-label-large font-bold text-on-surface">₦12,000</span>
                       {' '}per pet / calendar day
                     </div>
                   </div>
@@ -510,10 +510,10 @@ export default function BookingPage() {
                 <div className="flex items-center gap-4 min-w-0">
                   <span className="text-2xl shrink-0" aria-hidden="true">🌙</span>
                   <div className="min-w-0">
-                    <div className="font-bold text-on-surface text-base leading-tight">Boarding</div>
+                    <div className="type-title-medium font-bold text-on-surface leading-tight">Boarding</div>
                     <div className="text-xs text-on-surface-variant mt-0.5">
                       Overnight · 24/7 supervision ·{' '}
-                      <span className="font-semibold text-on-surface">₦25,000</span>
+                      <span className="type-label-large font-bold text-on-surface">₦25,000</span>
                       {' '}per pet / night
                     </div>
                   </div>
@@ -564,7 +564,7 @@ export default function BookingPage() {
             {service === 'grooming' && (
               <div className="space-y-8">
                 <div>
-                  <h1 className="text-3xl font-extrabold text-on-surface">Grooming Packages</h1>
+                  <h1 className="type-headline-large font-bold text-on-surface">Grooming Packages</h1>
                   <p className="text-sm text-on-surface-variant mt-1">
                     Select your pet type and size to view tailored packages. Appointments last 90 minutes.
                   </p>
@@ -572,7 +572,7 @@ export default function BookingPage() {
 
                 {/* Pet Species Selection */}
                 <div className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4">
-                  <label className="text-sm font-bold text-on-surface block">
+                  <label className="type-label-large font-bold text-on-surface block">
                     What type of pet are you booking for?
                   </label>
                   <div className="grid grid-cols-2 gap-4">
@@ -606,7 +606,7 @@ export default function BookingPage() {
                 {/* Dog Size Selection (Only if Dog) */}
                 {species === 'dog' && (
                   <div className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4 animate-fadeIn">
-                    <label className="text-sm font-bold text-on-surface block">
+                    <label className="type-label-large font-bold text-on-surface block">
                       Dog Weight & Size Tier
                     </label>
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -655,8 +655,8 @@ export default function BookingPage() {
                 {/* Packages Matrix */}
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
-                    <h2 className="text-base font-bold text-on-surface">Available Packages</h2>
-                    <span className="text-xs font-semibold text-primary">90-minute appointment</span>
+                    <h2 className="type-title-large font-bold text-on-surface">Available Packages</h2>
+                    <span className="type-label-small font-semibold text-primary">90-minute appointment</span>
                   </div>
 
                   {species === 'dog' ? (
@@ -672,7 +672,7 @@ export default function BookingPage() {
                       >
                         <div>
                           <div className="flex items-center justify-between">
-                            <h3 className="font-bold text-on-surface text-base">Basic Bath</h3>
+                            <h3 className="type-title-medium font-bold text-on-surface">Basic Bath</h3>
                             <input
                               type="radio"
                               name="grooming_package"
@@ -686,7 +686,7 @@ export default function BookingPage() {
                           </p>
                         </div>
                         <div className="mt-4 pt-3 border-t border-outline-variant/50">
-                          <div className="text-xl font-extrabold text-primary">
+                          <div className="type-headline-small font-extrabold text-primary">
                             ₦{dogSize === 'small' ? '12,000' : dogSize === 'medium' ? '16,000' : '22,000'}
                           </div>
                           <div className="text-[11px] text-on-surface-variant capitalize">
@@ -706,7 +706,7 @@ export default function BookingPage() {
                       >
                         <div>
                           <div className="flex items-center justify-between">
-                            <h3 className="font-bold text-on-surface text-base">Full Groom</h3>
+                            <h3 className="type-title-medium font-bold text-on-surface">Full Groom</h3>
                             <input
                               type="radio"
                               name="grooming_package"
@@ -720,7 +720,7 @@ export default function BookingPage() {
                           </p>
                         </div>
                         <div className="mt-4 pt-3 border-t border-outline-variant/50">
-                          <div className="text-xl font-extrabold text-primary">
+                          <div className="type-headline-small font-extrabold text-primary">
                             ₦{dogSize === 'small' ? '20,000' : dogSize === 'medium' ? '27,000' : '35,000'}
                           </div>
                           <div className="text-[11px] text-on-surface-variant capitalize">
@@ -740,7 +740,7 @@ export default function BookingPage() {
                       >
                         <div>
                           <div className="flex items-center justify-between">
-                            <h3 className="font-bold text-on-surface text-base">Premium Groom</h3>
+                            <h3 className="type-title-medium font-bold text-on-surface">Premium Groom</h3>
                             <input
                               type="radio"
                               name="grooming_package"
@@ -754,7 +754,7 @@ export default function BookingPage() {
                           </p>
                         </div>
                         <div className="mt-4 pt-3 border-t border-outline-variant/50">
-                          <div className="text-xl font-extrabold text-primary">
+                          <div className="type-headline-small font-extrabold text-primary">
                             ₦{dogSize === 'small' ? '25,000' : dogSize === 'medium' ? '33,000' : '42,000'}
                           </div>
                           <div className="text-[11px] text-on-surface-variant capitalize">
@@ -791,7 +791,7 @@ export default function BookingPage() {
                           </p>
                         </div>
                         <div className="mt-4 pt-3 border-t border-outline-variant/50">
-                          <div className="text-xl font-extrabold text-primary">₦15,000</div>
+                          <div className="type-headline-small font-extrabold text-primary">₦15,000</div>
                           <div className="text-[11px] text-on-surface-variant">All cats</div>
                         </div>
                       </div>
@@ -821,7 +821,7 @@ export default function BookingPage() {
                           </p>
                         </div>
                         <div className="mt-4 pt-3 border-t border-outline-variant/50">
-                          <div className="text-xl font-extrabold text-primary">₦22,000</div>
+                          <div className="type-headline-small font-extrabold text-primary">₦22,000</div>
                           <div className="text-[11px] text-on-surface-variant">All cats</div>
                         </div>
                       </div>
@@ -842,7 +842,7 @@ export default function BookingPage() {
             {service === 'daycare' && (
               <div className="space-y-6">
                 <div>
-                  <h1 className="text-3xl font-extrabold text-on-surface">Daycare Booking</h1>
+                  <h1 className="type-headline-large font-bold text-on-surface">Daycare Booking</h1>
                   <p className="text-sm text-on-surface-variant mt-1">
                     Care, exercise, and attention in Victoria Island, Lagos.
                   </p>
@@ -894,7 +894,7 @@ export default function BookingPage() {
             {service === 'boarding' && (
               <div className="space-y-6">
                 <div>
-                  <h1 className="text-3xl font-extrabold text-on-surface">Boarding Booking</h1>
+                  <h1 className="type-headline-large font-bold text-on-surface">Boarding Booking</h1>
                   <p className="text-sm text-on-surface-variant mt-1">
                     Safe overnight pet boarding with continuous 24/7 staff supervision.
                   </p>
@@ -956,7 +956,7 @@ export default function BookingPage() {
               <button
                 type="button"
                 onClick={handleContinueFromServiceOptions}
-                className="type-label-large w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-[1.5rem] py-[0.75rem] rounded-full shadow-soft hover:shadow-medium transition-all"
+                className="type-label-large w-full sm:w-auto inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-6 py-3 rounded-full shadow-soft hover:shadow-medium transition-all"
               >
                 <span>Continue to Booking</span>
                 <svg className="w-5 h-5 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
@@ -981,10 +981,10 @@ export default function BookingPage() {
                   />
                 </svg>
               </div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-on-surface">
+              <h1 className="type-headline-large font-bold text-on-surface">
                 {authMode === 'signin' ? 'Sign in to continue' : 'Create your account'}
               </h1>
-              <p className="text-xs sm:text-sm text-on-surface-variant max-w-sm mx-auto">
+              <p className="type-body-medium text-on-surface-variant max-w-sm mx-auto">
                 An account is needed to save your pet’s profiles, secure your reserved place, and manage your bookings.
               </p>
             </div>
@@ -1055,7 +1055,7 @@ export default function BookingPage() {
             {authMode === 'signin' ? (
               <form onSubmit={handleSignIn} className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4 shadow-soft">
                 <div>
-                  <label className="block text-xs font-bold text-on-surface mb-1" htmlFor="signin-email">
+                  <label className="block type-label-medium font-bold text-on-surface mb-1" htmlFor="signin-email">
                     Email Address
                   </label>
                   <input
@@ -1064,7 +1064,7 @@ export default function BookingPage() {
                     value={signInEmail}
                     onChange={(e) => setSignInEmail(e.target.value)}
                     placeholder="name@example.com"
-                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
+                    className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
                       signInErrors.email ? 'border-error ring-1 ring-error' : 'border-outline-variant'
                     }`}
                   />
@@ -1092,7 +1092,7 @@ export default function BookingPage() {
                     value={signInPassword}
                     onChange={(e) => setSignInPassword(e.target.value)}
                     placeholder="••••••••"
-                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
+                    className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
                       signInErrors.password ? 'border-error ring-1 ring-error' : 'border-outline-variant'
                     }`}
                   />
@@ -1104,7 +1104,7 @@ export default function BookingPage() {
                 <button
                   type="submit"
                   disabled={authLoading}
-                  className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-[1.5rem] py-[0.75rem] rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                  className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-6 py-3 rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {authLoading ? (
                     <span className="flex items-center gap-2">
@@ -1134,7 +1134,7 @@ export default function BookingPage() {
               /* Create Account Form */
               <form onSubmit={handleSignUp} className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4 shadow-soft">
                 <div>
-                  <label className="block text-xs font-bold text-on-surface mb-1" htmlFor="signup-name">
+                  <label className="block type-label-medium font-bold text-on-surface mb-1" htmlFor="signup-name">
                     Full Name
                   </label>
                   <input
@@ -1143,7 +1143,7 @@ export default function BookingPage() {
                     value={signUpName}
                     onChange={(e) => setSignUpName(e.target.value)}
                     placeholder="e.g. Juliet Ogunleye"
-                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
+                    className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
                       signUpErrors.name ? 'border-error ring-1 ring-error' : 'border-outline-variant'
                     }`}
                   />
@@ -1153,7 +1153,7 @@ export default function BookingPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-on-surface mb-1" htmlFor="signup-email">
+                  <label className="block type-label-medium font-bold text-on-surface mb-1" htmlFor="signup-email">
                     Email Address
                   </label>
                   <input
@@ -1162,7 +1162,7 @@ export default function BookingPage() {
                     value={signUpEmail}
                     onChange={(e) => setSignUpEmail(e.target.value)}
                     placeholder="name@example.com"
-                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
+                    className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
                       signUpErrors.email ? 'border-error ring-1 ring-error' : 'border-outline-variant'
                     }`}
                   />
@@ -1172,7 +1172,7 @@ export default function BookingPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-on-surface mb-1" htmlFor="signup-password">
+                  <label className="block type-label-medium font-bold text-on-surface mb-1" htmlFor="signup-password">
                     Password
                   </label>
                   <input
@@ -1181,7 +1181,7 @@ export default function BookingPage() {
                     value={signUpPassword}
                     onChange={(e) => setSignUpPassword(e.target.value)}
                     placeholder="At least 8 characters"
-                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
+                    className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
                       signUpErrors.password ? 'border-error ring-1 ring-error' : 'border-outline-variant'
                     }`}
                   />
@@ -1191,7 +1191,7 @@ export default function BookingPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-bold text-on-surface mb-1" htmlFor="signup-confirm-password">
+                  <label className="block type-label-medium font-bold text-on-surface mb-1" htmlFor="signup-confirm-password">
                     Confirm Password
                   </label>
                   <input
@@ -1200,7 +1200,7 @@ export default function BookingPage() {
                     value={signUpConfirmPassword}
                     onChange={(e) => setSignUpConfirmPassword(e.target.value)}
                     placeholder="Confirm your password"
-                    className={`w-full px-3.5 py-2.5 rounded-xl border text-sm bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
+                    className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
                       signUpErrors.confirmPassword ? 'border-error ring-1 ring-error' : 'border-outline-variant'
                     }`}
                   />
@@ -1212,7 +1212,7 @@ export default function BookingPage() {
                 <button
                   type="submit"
                   disabled={authLoading}
-                  className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-[1.5rem] py-[0.75rem] rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                  className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-6 py-3 rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
                 >
                   {authLoading ? (
                     <span className="flex items-center gap-2">
@@ -1440,7 +1440,7 @@ export default function BookingPage() {
                       `Ready for Date & Capacity Reservation: Next stage will query live availability for ${service} and proceed to Paystack capacity hold.`
                     )
                   }
-                  className="type-label-large inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-[1.5rem] py-[0.75rem] rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-40"
+                  className="type-label-large inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-6 py-3 rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-40"
                 >
                   <span>Proceed to Available Dates</span>
                   <svg className="w-4 h-4 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">

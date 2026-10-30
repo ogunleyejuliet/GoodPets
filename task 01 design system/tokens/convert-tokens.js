@@ -262,13 +262,18 @@ function convertTokens(tokens) {
           const formatted = formatValue(rawVal, type, propName);
           const propKebab = toKebab(propName);
 
+          let formattedVal = formatted;
+          if (propName === 'fontFamily') {
+            formattedVal = `var(--font-nunito), '${rawVal}', sans-serif`;
+            fontFamilyVal = formattedVal;
+          }
+
           const varName = `--typography-${styleKebab}-${propKebab}`;
-          linesLight.push(`  ${varName}: ${formatted};`);
+          linesLight.push(`  ${varName}: ${formattedVal};`);
           stats.typographyProps++;
 
           if (propName === 'fontSize') fontSizeVal = formatted;
           if (propName === 'lineHeight') lineHeightVal = formatted;
-          if (propName === 'fontFamily') fontFamilyVal = `'${rawVal}', sans-serif`;
           if (propName === 'fontWeight') fontWeightVal = String(rawVal);
           if (propName === 'fontStyle') fontStyleVal = String(rawVal);
           if (propName === 'letterSpacing') letterSpacingVal = formatted;

@@ -41,31 +41,31 @@ export default function LandingContent() {
             <nav className="hidden md:flex items-center gap-8" aria-label="Main Navigation">
               <a
                 href="#services"
-                className="type-label-large text-on-surface-variant hover:text-primary transition-colors py-[0.5rem] cursor-pointer"
+                className="type-label-large text-on-surface-variant hover:text-primary transition-colors py-2 cursor-pointer"
               >
                 Services & Pricing
               </a>
               <a
                 href="#standards"
-                className="type-label-large text-on-surface-variant hover:text-primary transition-colors py-[0.5rem] cursor-pointer"
+                className="type-label-large text-on-surface-variant hover:text-primary transition-colors py-2 cursor-pointer"
               >
                 Standards
               </a>
               <a
                 href="#how-it-works"
-                className="type-label-large text-on-surface-variant hover:text-primary transition-colors py-[0.5rem] cursor-pointer"
+                className="type-label-large text-on-surface-variant hover:text-primary transition-colors py-2 cursor-pointer"
               >
                 How It Works
               </a>
               <a
                 href="#faqs"
-                className="type-label-large text-on-surface-variant hover:text-primary transition-colors py-[0.5rem] cursor-pointer"
+                className="type-label-large text-on-surface-variant hover:text-primary transition-colors py-2 cursor-pointer"
               >
                 FAQs
               </a>
               <a
                 href="#contact"
-                className="type-label-large text-on-surface-variant hover:text-primary transition-colors py-[0.5rem] cursor-pointer"
+                className="type-label-large text-on-surface-variant hover:text-primary transition-colors py-2 cursor-pointer"
               >
                 Contact
               </a>
@@ -75,14 +75,14 @@ export default function LandingContent() {
             <div className="hidden md:flex items-center gap-4">
               <Link
                 href="/book"
-                className="type-label-large text-primary hover:text-on-primary-container px-[1.25rem] py-[0.625rem] rounded-full transition-colors cursor-pointer"
+                className="type-label-large text-primary hover:text-on-primary-container px-5 py-2.5 rounded-full transition-colors cursor-pointer"
               >
                 Sign In
               </Link>
               {/* Primary CTA using primary semantic colour role */}
               <Link
                 href="/book"
-                className="type-label-large inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-95 px-[1.5rem] py-[0.625rem] rounded-full shadow-soft hover:shadow-medium transition-all cursor-pointer"
+                className="type-label-large inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-95 px-6 py-2.5 rounded-full shadow-soft hover:shadow-medium transition-all cursor-pointer"
               >
                 <span>Book a Service</span>
                 <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -96,7 +96,7 @@ export default function LandingContent() {
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="p-[0.625rem] rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
+                className="p-2.5 rounded-xl text-on-surface-variant hover:text-on-surface hover:bg-surface-container transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary cursor-pointer"
                 aria-label="Toggle navigation menu"
                 aria-expanded={mobileMenuOpen}
               >
@@ -121,35 +121,35 @@ export default function LandingContent() {
               <a
                 href="#services"
                 onClick={() => setMobileMenuOpen(false)}
-                className="type-label-large text-on-surface hover:text-primary px-[0.75rem] py-[0.5rem] rounded-lg hover:bg-surface-container transition-colors cursor-pointer"
+                className="type-label-large text-on-surface hover:text-primary px-3 py-2 rounded-lg hover:bg-surface-container transition-colors cursor-pointer"
               >
                 Services & Pricing
               </a>
               <a
                 href="#standards"
                 onClick={() => setMobileMenuOpen(false)}
-                className="type-label-large text-on-surface hover:text-primary px-[0.75rem] py-[0.5rem] rounded-lg hover:bg-surface-container transition-colors cursor-pointer"
+                className="type-label-large text-on-surface hover:text-primary px-3 py-2 rounded-lg hover:bg-surface-container transition-colors cursor-pointer"
               >
                 Standards
               </a>
               <a
                 href="#how-it-works"
                 onClick={() => setMobileMenuOpen(false)}
-                className="type-label-large text-on-surface hover:text-primary px-[0.75rem] py-[0.5rem] rounded-lg hover:bg-surface-container transition-colors cursor-pointer"
+                className="type-label-large text-on-surface hover:text-primary px-3 py-2 rounded-lg hover:bg-surface-container transition-colors cursor-pointer"
               >
                 How It Works
               </a>
               <a
                 href="#faqs"
                 onClick={() => setMobileMenuOpen(false)}
-                className="type-label-large text-on-surface hover:text-primary px-[0.75rem] py-[0.5rem] rounded-lg hover:bg-surface-container transition-colors cursor-pointer"
+                className="type-label-large text-on-surface hover:text-primary px-3 py-2 rounded-lg hover:bg-surface-container transition-colors cursor-pointer"
               >
                 FAQs
               </a>
               <a
                 href="#contact"
                 onClick={() => setMobileMenuOpen(false)}
-                className="type-label-large text-on-surface hover:text-primary px-[0.75rem] py-[0.5rem] rounded-lg hover:bg-surface-container transition-colors cursor-pointer"
+                className="type-label-large text-on-surface hover:text-primary px-3 py-2 rounded-lg hover:bg-surface-container transition-colors cursor-pointer"
               >
                 Contact & Support
               </a>
@@ -158,14 +158,14 @@ export default function LandingContent() {
               <Link
                 href="/book"
                 onClick={() => setMobileMenuOpen(false)}
-                className="type-label-large w-full text-center py-[0.75rem] text-primary border border-outline rounded-full hover:bg-surface-container-low transition-colors cursor-pointer"
+                className="type-label-large w-full text-center py-3 text-primary border border-outline rounded-full hover:bg-surface-container-low transition-colors cursor-pointer"
               >
                 Sign In
               </Link>
               <Link
                 href="/book"
                 onClick={() => setMobileMenuOpen(false)}
-                className="type-label-large w-full text-center py-[0.75rem] bg-primary text-on-primary rounded-full shadow-soft hover:shadow-medium transition-all cursor-pointer"
+                className="type-label-large w-full text-center py-3 bg-primary text-on-primary rounded-full shadow-soft hover:shadow-medium transition-all cursor-pointer"
               >
                 Book a Service
               </Link>
@@ -184,18 +184,18 @@ export default function LandingContent() {
               {/* Left Column: Text Content (~58% desktop width) */}
               <div className="lg:col-span-7 flex flex-col items-start text-left">
                 {/* Eyebrow */}
-                <div className="inline-flex items-center gap-2 px-[0.875rem] py-[0.375rem] rounded-full bg-primary-container text-on-primary-container type-label-small uppercase tracking-wider mb-6 shadow-soft">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary-container text-on-primary-container type-label-small uppercase tracking-wider mb-6 shadow-soft">
                   <span className="w-2 h-2 rounded-full bg-primary animate-pulse" />
                   <span>Premium Pet Care in Lagos</span>
                 </div>
 
                 {/* Headline: Responsive clamp + deliberate max width */}
-                <h1 className="max-w-[18ch] sm:max-w-2xl text-[clamp(2.25rem,4.5vw+1rem,3.5625rem)] font-extrabold tracking-tight text-on-surface leading-[1.18] text-balance">
+                <h1 className="type-display-medium sm:type-display-large font-extrabold max-w-[18ch] sm:max-w-2xl tracking-tight text-on-surface leading-[1.18] text-balance">
                   Your Pet’s <span className="text-primary">Favourite</span> Place.
                 </h1>
 
                 {/* Supporting copy */}
-                <p className="mt-6 text-lg sm:text-xl text-on-surface-variant leading-relaxed max-w-xl">
+                <p className="mt-6 type-body-large text-on-surface-variant leading-relaxed max-w-xl">
                   From grooming and playful daycare to comfortable overnight stays, we make every visit a happy experience for you and your pet.
                 </p>
 
@@ -204,7 +204,7 @@ export default function LandingContent() {
                   {/* Primary CTA using primary semantic colour role and rem padding */}
                   <Link
                     href="/book"
-                    className="type-label-large inline-flex items-center justify-center gap-3 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-[2rem] py-[0.875rem] rounded-full shadow-soft hover:shadow-medium transition-all text-center cursor-pointer"
+                    className="type-label-large inline-flex items-center justify-center gap-3 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-8 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all text-center cursor-pointer"
                   >
                     <span>Book a Service</span>
                     <svg className="w-5 h-5 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -215,7 +215,7 @@ export default function LandingContent() {
                   {/* Secondary CTA */}
                   <a
                     href="#services"
-                    className="type-label-large inline-flex items-center justify-center gap-2 bg-surface text-primary border border-outline hover:bg-surface-container-low active:scale-[0.98] px-[2rem] py-[0.875rem] rounded-full transition-all text-center cursor-pointer"
+                    className="type-label-large inline-flex items-center justify-center gap-2 bg-surface text-primary border border-outline hover:bg-surface-container-low active:scale-[0.98] px-8 py-3.5 rounded-full transition-all text-center cursor-pointer"
                   >
                     <span>Explore Our Services</span>
                   </a>
@@ -262,7 +262,7 @@ export default function LandingContent() {
                       ★
                     </div>
                     <div>
-                      <div className="text-xs font-bold text-on-surface">5-Star Care Guaranteed</div>
+                      <div className="type-label-medium font-bold text-on-surface">5-Star Care Guaranteed</div>
                       <div className="text-[11px] text-on-surface-variant">Experienced staff & clean suites</div>
                     </div>
                   </div>
@@ -279,13 +279,13 @@ export default function LandingContent() {
         <section id="services" className="py-20 bg-background border-t border-outline-variant">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-3xl mx-auto mb-16">
-              <span className="inline-block px-[0.875rem] py-[0.25rem] rounded-full bg-secondary-container text-on-secondary-container type-label-small uppercase tracking-wider mb-3">
+              <span className="inline-block px-3.5 py-1 rounded-full bg-secondary-container text-on-secondary-container type-label-small uppercase tracking-wider mb-3">
                 Transparent Rates & Tailored Care
               </span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface">
+              <h2 className="type-headline-large font-bold tracking-tight text-on-surface">
                 Our Services & Pricing
               </h2>
-              <p className="mt-4 text-base sm:text-lg text-on-surface-variant leading-relaxed">
+              <p className="mt-4 type-body-large text-on-surface-variant leading-relaxed">
                 Clear pricing, upfront policies, and no hidden fees. All rates in Nigerian Naira (NGN).
               </p>
             </div>
@@ -303,23 +303,23 @@ export default function LandingContent() {
                       height={200}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                    <div className="absolute top-3 left-3 bg-primary text-on-primary text-xs font-bold px-[0.75rem] py-[0.25rem] rounded-full shadow-soft">
+                    <div className="absolute top-3 left-3 bg-primary text-on-primary text-xs font-bold px-3 py-1 rounded-full shadow-soft">
                       Dog & Cat Salon
                     </div>
                   </div>
                   <div className="p-6">
                     <div className="flex items-baseline justify-between mb-2">
-                      <h3 className="text-xl font-bold text-on-surface">Grooming</h3>
+                      <h3 className="type-title-large font-bold text-on-surface">Grooming</h3>
                       <div className="text-right">
-                        <span className="text-xs text-on-surface-variant block">From</span>
-                        <span className="text-lg font-extrabold text-primary">₦12,000</span>
+                        <span className="type-body-small text-on-surface-variant block">From</span>
+                        <span className="type-headline-small font-extrabold text-primary">₦12,000</span>
                       </div>
                     </div>
-                    <p className="text-sm text-on-surface-variant leading-relaxed mb-6">
+                    <p className="type-body-medium text-on-surface-variant leading-relaxed mb-6">
                       Bathing, trimming, coat care, ear cleaning, and nail clipping for dogs and cats of all sizes.
                     </p>
                     <div className="border-t border-outline-variant pt-4 space-y-2.5">
-                      <div className="text-xs font-bold text-on-surface">Package Overview:</div>
+                      <div className="type-label-medium font-bold text-on-surface">Package Overview:</div>
                       <div className="flex items-center justify-between text-xs text-on-surface-variant">
                         <span>Basic Bath (Small Dog / Cat)</span>
                         <span className="font-semibold text-on-surface">₦12,000 / ₦15,000</span>
@@ -338,7 +338,7 @@ export default function LandingContent() {
                 <div className="p-6 pt-0">
                   <Link
                     href="/book?service=grooming"
-                    className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] py-[0.75rem] px-[1.5rem] rounded-full shadow-soft hover:shadow-medium transition-all cursor-pointer"
+                    className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] py-3 px-6 rounded-full shadow-soft hover:shadow-medium transition-all cursor-pointer"
                   >
                     <span>Book Grooming</span>
                     <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -359,24 +359,24 @@ export default function LandingContent() {
                       height={200}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                    <div className="absolute top-3 left-3 bg-secondary text-on-secondary text-xs font-bold px-[0.75rem] py-[0.25rem] rounded-full shadow-soft">
+                    <div className="absolute top-3 left-3 bg-secondary text-on-secondary text-xs font-bold px-3 py-1 rounded-full shadow-soft">
                       Supervised Play
                     </div>
                   </div>
                   <div className="p-6">
                     <div className="flex items-baseline justify-between mb-2">
-                      <h3 className="text-xl font-bold text-on-surface">Daycare</h3>
+                      <h3 className="type-title-large font-bold text-on-surface">Daycare</h3>
                       <div className="text-right">
-                        <span className="text-xs text-on-surface-variant block">Flat Rate</span>
-                        <span className="text-lg font-extrabold text-primary">₦12,000</span>
+                        <span className="type-body-small text-on-surface-variant block">Flat Rate</span>
+                        <span className="type-headline-small font-extrabold text-primary">₦12,000</span>
                         <span className="text-xs text-on-surface-variant"> / day</span>
                       </div>
                     </div>
-                    <p className="text-sm text-on-surface-variant leading-relaxed mb-6">
+                    <p className="type-body-medium text-on-surface-variant leading-relaxed mb-6">
                       Supervised play, gentle socialisation, and regular exercise while you work or run errands in Lagos.
                     </p>
                     <div className="border-t border-outline-variant pt-4 space-y-2.5">
-                      <div className="text-xs font-bold text-on-surface">What is included:</div>
+                      <div className="type-label-medium font-bold text-on-surface">What is included:</div>
                       <div className="flex items-center gap-2 text-xs text-on-surface-variant">
                         <span className="text-secondary font-bold">✓</span>
                         <span>07:00 – 19:00 hours with staff supervision</span>
@@ -395,7 +395,7 @@ export default function LandingContent() {
                 <div className="p-6 pt-0">
                   <Link
                     href="/book?service=daycare"
-                    className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] py-[0.75rem] px-[1.5rem] rounded-full shadow-soft hover:shadow-medium transition-all cursor-pointer"
+                    className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] py-3 px-6 rounded-full shadow-soft hover:shadow-medium transition-all cursor-pointer"
                   >
                     <span>Book Daycare</span>
                     <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -416,24 +416,24 @@ export default function LandingContent() {
                       height={200}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                     />
-                    <div className="absolute top-3 left-3 bg-tertiary text-on-tertiary text-xs font-bold px-[0.75rem] py-[0.25rem] rounded-full shadow-soft">
+                    <div className="absolute top-3 left-3 bg-tertiary text-on-tertiary text-xs font-bold px-3 py-1 rounded-full shadow-soft">
                       Overnight Stays
                     </div>
                   </div>
                   <div className="p-6">
                     <div className="flex items-baseline justify-between mb-2">
-                      <h3 className="text-xl font-bold text-on-surface">Boarding</h3>
+                      <h3 className="type-title-large font-bold text-on-surface">Boarding</h3>
                       <div className="text-right">
-                        <span className="text-xs text-on-surface-variant block">Per Night</span>
-                        <span className="text-lg font-extrabold text-primary">₦25,000</span>
+                        <span className="type-body-small text-on-surface-variant block">Per Night</span>
+                        <span className="type-headline-small font-extrabold text-primary">₦25,000</span>
                         <span className="text-xs text-on-surface-variant"> / night</span>
                       </div>
                     </div>
-                    <p className="text-sm text-on-surface-variant leading-relaxed mb-6">
+                    <p className="type-body-medium text-on-surface-variant leading-relaxed mb-6">
                       Private, climate-controlled suites with 24/7 on-site attendant supervision when you are travelling.
                     </p>
                     <div className="border-t border-outline-variant pt-4 space-y-2.5">
-                      <div className="text-xs font-bold text-on-surface">What is included:</div>
+                      <div className="type-label-medium font-bold text-on-surface">What is included:</div>
                       <div className="flex items-center gap-2 text-xs text-on-surface-variant">
                         <span className="text-tertiary font-bold">✓</span>
                         <span>Private kennel suite with orthopedic bedding</span>
@@ -452,7 +452,7 @@ export default function LandingContent() {
                 <div className="p-6 pt-0">
                   <Link
                     href="/book?service=boarding"
-                    className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] py-[0.75rem] px-[1.5rem] rounded-full shadow-soft hover:shadow-medium transition-all cursor-pointer"
+                    className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] py-3 px-6 rounded-full shadow-soft hover:shadow-medium transition-all cursor-pointer"
                   >
                     <span>Book Boarding</span>
                     <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -471,13 +471,13 @@ export default function LandingContent() {
         <section id="standards" className="py-20 bg-surface-container-low border-t border-outline-variant">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-3xl mx-auto mb-16">
-              <span className="inline-block px-[0.875rem] py-[0.25rem] rounded-full bg-primary-container text-on-primary-container type-label-small uppercase tracking-wider mb-3">
+              <span className="inline-block px-3.5 py-1 rounded-full bg-primary-container text-on-primary-container type-label-small uppercase tracking-wider mb-3">
                 Health & Safety First
               </span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface">
+              <h2 className="type-headline-large font-bold tracking-tight text-on-surface">
                 Our Pet Care Standards
               </h2>
-              <p className="mt-4 text-base sm:text-lg text-on-surface-variant leading-relaxed">
+              <p className="mt-4 type-body-large text-on-surface-variant leading-relaxed">
                 We believe pet owners deserve complete peace of mind. Every pet in our care is protected by strict hygiene and verified safety protocols.
               </p>
             </div>
@@ -487,8 +487,8 @@ export default function LandingContent() {
                 <div className="w-12 h-12 rounded-xl bg-primary-container text-primary flex items-center justify-center font-bold text-xl mb-4">
                   💉
                 </div>
-                <h3 className="text-lg font-bold text-on-surface mb-2">Mandatory Vaccinations</h3>
-                <p className="text-sm text-on-surface-variant leading-relaxed">
+                <h3 className="type-title-medium font-bold text-on-surface mb-2">Mandatory Vaccinations</h3>
+                <p className="type-body-small text-on-surface-variant leading-relaxed">
                   All dogs must be up to date on DHPP, and all cats on FVRCP. Evidence is verified at check-in.
                 </p>
               </div>
@@ -497,8 +497,8 @@ export default function LandingContent() {
                 <div className="w-12 h-12 rounded-xl bg-secondary-container text-secondary flex items-center justify-center font-bold text-xl mb-4">
                   🛡️
                 </div>
-                <h3 className="text-lg font-bold text-on-surface mb-2">Secure Pickup Authorization</h3>
-                <p className="text-sm text-on-surface-variant leading-relaxed">
+                <h3 className="type-title-medium font-bold text-on-surface mb-2">Secure Pickup Authorization</h3>
+                <p className="type-body-small text-on-surface-variant leading-relaxed">
                   Only the registered owner or up to 3 authorized collectors with government photo ID may collect a pet.
                 </p>
               </div>
@@ -507,8 +507,8 @@ export default function LandingContent() {
                 <div className="w-12 h-12 rounded-xl bg-tertiary-container text-tertiary flex items-center justify-center font-bold text-xl mb-4">
                   🧹
                 </div>
-                <h3 className="text-lg font-bold text-on-surface mb-2">Hospital-Grade Sanitation</h3>
-                <p className="text-sm text-on-surface-variant leading-relaxed">
+                <h3 className="type-title-medium font-bold text-on-surface mb-2">Hospital-Grade Sanitation</h3>
+                <p className="type-body-small text-on-surface-variant leading-relaxed">
                   Suites and play spaces are deep-cleaned twice daily with pet-safe veterinary disinfectants.
                 </p>
               </div>
@@ -517,8 +517,8 @@ export default function LandingContent() {
                 <div className="w-12 h-12 rounded-xl bg-warning-container text-on-warning-container flex items-center justify-center font-bold text-xl mb-4">
                   📅
                 </div>
-                <h3 className="text-lg font-bold text-on-surface mb-2">Flexible Rescheduling</h3>
-                <p className="text-sm text-on-surface-variant leading-relaxed">
+                <h3 className="type-title-medium font-bold text-on-surface mb-2">Flexible Rescheduling</h3>
+                <p className="type-body-small text-on-surface-variant leading-relaxed">
                   Reschedule bookings within the cut-off window at zero extra cost. Capacity is held in real time.
                 </p>
               </div>
@@ -532,13 +532,13 @@ export default function LandingContent() {
         <section id="how-it-works" className="py-20 bg-background border-t border-outline-variant">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-16">
-              <span className="inline-block px-[0.875rem] py-[0.25rem] rounded-full bg-secondary-container text-on-secondary-container type-label-small uppercase tracking-wider mb-3">
+              <span className="inline-block px-3.5 py-1 rounded-full bg-secondary-container text-on-secondary-container type-label-small uppercase tracking-wider mb-3">
                 Simple & Guaranteed
               </span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface">
+              <h2 className="type-headline-large font-bold tracking-tight text-on-surface">
                 How Booking Works
               </h2>
-              <p className="mt-4 text-base sm:text-lg text-on-surface-variant">
+              <p className="mt-4 type-body-large text-on-surface-variant">
                 From selecting a date to safe arrival and pickup in Victoria Island.
               </p>
             </div>
@@ -548,8 +548,8 @@ export default function LandingContent() {
                 <div className="w-14 h-14 rounded-full bg-primary text-on-primary flex items-center justify-center font-extrabold text-xl shadow-soft mb-6">
                   1
                 </div>
-                <h3 className="text-lg font-bold text-on-surface mb-2">Choose Service</h3>
-                <p className="text-sm text-on-surface-variant leading-relaxed">
+                <h3 className="type-title-medium font-bold text-on-surface mb-2">Choose Service</h3>
+                <p className="type-body-small text-on-surface-variant leading-relaxed">
                   Pick grooming, daycare, or boarding, and enter your pet’s details and size.
                 </p>
               </div>
@@ -558,8 +558,8 @@ export default function LandingContent() {
                 <div className="w-14 h-14 rounded-full bg-primary text-on-primary flex items-center justify-center font-extrabold text-xl shadow-soft mb-6">
                   2
                 </div>
-                <h3 className="text-lg font-bold text-on-surface mb-2">Instant Hold</h3>
-                <p className="text-sm text-on-surface-variant leading-relaxed">
+                <h3 className="type-title-medium font-bold text-on-surface mb-2">Instant Hold</h3>
+                <p className="type-body-small text-on-surface-variant leading-relaxed">
                   Real-time capacity is held immediately on our database while you checkout.
                 </p>
               </div>
@@ -568,8 +568,8 @@ export default function LandingContent() {
                 <div className="w-14 h-14 rounded-full bg-primary text-on-primary flex items-center justify-center font-extrabold text-xl shadow-soft mb-6">
                   3
                 </div>
-                <h3 className="text-lg font-bold text-on-surface mb-2">Pay Securely</h3>
-                <p className="text-sm text-on-surface-variant leading-relaxed">
+                <h3 className="type-title-medium font-bold text-on-surface mb-2">Pay Securely</h3>
+                <p className="type-body-small text-on-surface-variant leading-relaxed">
                   Complete payment via Paystack test mode by card or bank transfer.
                 </p>
               </div>
@@ -578,8 +578,8 @@ export default function LandingContent() {
                 <div className="w-14 h-14 rounded-full bg-primary text-on-primary flex items-center justify-center font-extrabold text-xl shadow-soft mb-6">
                   4
                 </div>
-                <h3 className="text-lg font-bold text-on-surface mb-2">Drop-off & Enjoy</h3>
-                <p className="text-sm text-on-surface-variant leading-relaxed">
+                <h3 className="type-title-medium font-bold text-on-surface mb-2">Drop-off & Enjoy</h3>
+                <p className="type-body-small text-on-surface-variant leading-relaxed">
                   Check in at our Victoria Island desk with your booking reference.
                 </p>
               </div>
@@ -588,7 +588,7 @@ export default function LandingContent() {
             <div className="mt-14 text-center">
               <Link
                 href="/book"
-                className="type-label-large inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-95 px-[2rem] py-[0.875rem] rounded-full shadow-soft hover:shadow-medium transition-all cursor-pointer"
+                className="type-label-large inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-95 px-8 py-3.5 rounded-full shadow-soft hover:shadow-medium transition-all cursor-pointer"
               >
                 <span>Book Your Pet’s Visit</span>
                 <svg className="w-4 h-4 fill-none stroke-current stroke-2" viewBox="0 0 24 24">
@@ -605,10 +605,10 @@ export default function LandingContent() {
         <section id="faqs" className="py-20 bg-surface-container-low border-t border-outline-variant">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center max-w-2xl mx-auto mb-16">
-              <span className="inline-block px-[0.875rem] py-[0.25rem] rounded-full bg-primary-container text-on-primary-container type-label-small uppercase tracking-wider mb-3">
+              <span className="inline-block px-3.5 py-1 rounded-full bg-primary-container text-on-primary-container type-label-small uppercase tracking-wider mb-3">
                 Got Questions?
               </span>
-              <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-on-surface">
+              <h2 className="type-headline-large font-bold tracking-tight text-on-surface">
                 Frequently Asked Questions
               </h2>
             </div>
@@ -646,7 +646,7 @@ export default function LandingContent() {
                     className="w-full flex items-center justify-between text-left p-6 gap-4 group cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     aria-expanded={faqOpen === index}
                   >
-                    <span className="text-base font-bold text-on-surface group-hover:text-primary transition-colors">
+                    <span className="type-title-medium font-bold text-on-surface group-hover:text-primary transition-colors">
                       {faq.q}
                     </span>
                     <span
@@ -658,7 +658,7 @@ export default function LandingContent() {
                     </span>
                   </button>
                   {faqOpen === index && (
-                    <div className="px-6 pb-6 text-sm text-on-surface-variant leading-relaxed border-t border-outline-variant pt-4">
+                    <div className="px-6 pb-6 type-body-medium text-on-surface-variant leading-relaxed border-t border-outline-variant pt-4">
                       {faq.a}
                     </div>
                   )}
@@ -746,7 +746,7 @@ export default function LandingContent() {
       <button
         type="button"
         onClick={() => setAssistantModalOpen(true)}
-        className="fixed bottom-6 right-6 z-50 inline-flex items-center gap-2.5 bg-primary text-on-primary hover:brightness-105 active:scale-95 px-[1.25rem] py-[0.75rem] rounded-full shadow-medium hover:shadow-hard transition-all type-label-large cursor-pointer group"
+        className="fixed bottom-6 right-6 z-50 inline-flex items-center gap-2.5 bg-primary text-on-primary hover:brightness-105 active:scale-95 px-5 py-3 rounded-full shadow-medium hover:shadow-hard transition-all type-label-large cursor-pointer group"
         aria-label="Open AI Assistant"
       >
         <span className="text-lg">🐾</span>
@@ -791,7 +791,7 @@ export default function LandingContent() {
               />
               <button
                 type="button"
-                className="type-label-large bg-primary text-on-primary px-[1.25rem] py-[0.625rem] rounded-full hover:brightness-105 cursor-pointer"
+                className="type-label-large bg-primary text-on-primary px-5 py-2.5 rounded-full hover:brightness-105 cursor-pointer"
               >
                 Send
               </button>
