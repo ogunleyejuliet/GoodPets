@@ -6,7 +6,7 @@ async function waitForServer(url, timeoutMs = 20000) {
   while (Date.now() - start < timeoutMs) {
     try {
       await new Promise((resolve, reject) => {
-        const req = http.get(url, (res) => {
+        const req = http.get('http://127.0.0.1:3000/', (res) => {
           resolve(res.statusCode);
         });
         req.on('error', reject);
@@ -25,19 +25,22 @@ async function waitForServer(url, timeoutMs = 20000) {
 
 async function main() {
   console.log('Starting Next.js production server for testing...');
-  const server = spawn('cmd.exe', ['/c', 'npx', 'next', 'start', '-p', '3000'], {
+  const server = spawn('cmd.exe', ['/c', 'npx', 'next', 'start', '-p', '3000', '-H', '127.0.0.1'], {
     stdio: 'inherit',
     cwd: process.cwd(),
   });
 
   try {
-    await waitForServer('http://localhost:3000/');
-    console.log('Server is ready on http://localhost:3000. Running tests...');
+    await waitForServer('http://127.0.0.1:3000/');
+    console.log('Server is ready on http://127.0.0.1:3000. Running tests...');
     
     // Run test-task3-consolidated
     const { fork } = require('child_process');
     await new Promise((resolve, reject) => {
-      const testProc = fork('scratch/test-task3-consolidated.js', [], { stdio: 'inherit' });
+      const testProc = fork('scratch/test-task3-consolidated.js', [], {
+        stdio: 'inherit',
+        env: { ...process.env, BASE_URL: 'http://127.0.0.1:3000' }
+      });
       testProc.on('exit', (code) => {
         if (code === 0) resolve();
         else reject(new Error(`Test exited with code ${code}`));
