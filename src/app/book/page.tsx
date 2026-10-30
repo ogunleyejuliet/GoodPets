@@ -1548,13 +1548,12 @@ export default function BookingPage() {
                     <label className="block text-xs font-bold text-on-surface" htmlFor="signin-password">
                       Password
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => alert('Password reset link will be sent to your email address per Flow 12.')}
+                    <Link
+                      href="/auth?mode=reset&returnUrl=/book"
                       className="text-xs font-semibold text-primary hover:underline"
                     >
                       Forgot password?
-                    </button>
+                    </Link>
                   </div>
                   <input
                     id="signin-password"

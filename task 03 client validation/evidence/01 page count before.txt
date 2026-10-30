@@ -1,0 +1,6 @@
+Total page count
+Total distinct user-facing application routes: 5 (/, /book, /login, /signup, /reset-password)
+Route groups / dynamic routes effect:
+There are no route groups (e.g. (auth) or (marketing)) in src/app.
+There are no dynamic page routes (e.g. [slug]/page.tsx or [id]/page.tsx).
+Therefore, each page.tsx represents exactly one distinct static route UR
