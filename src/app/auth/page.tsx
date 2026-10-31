@@ -147,11 +147,13 @@ function AuthContent() {
   const [signUpEmail, setSignUpEmail] = useState('');
   const [signUpPassword, setSignUpPassword] = useState('');
   const [signUpConfirmPassword, setSignUpConfirmPassword] = useState('');
+  const [signUpAgreeToTerms, setSignUpAgreeToTerms] = useState(false);
   const [signUpErrors, setSignUpErrors] = useState<{
     name?: string;
     email?: string;
     password?: string;
     confirmPassword?: string;
+    terms?: string;
   }>({});
   const [signUpLoading, setSignUpLoading] = useState(false);
   const [signUpServerError, setSignUpServerError] = useState<string | null>(null);
@@ -167,6 +169,7 @@ function AuthContent() {
       email?: string;
       password?: string;
       confirmPassword?: string;
+      terms?: string;
     } = {};
 
     const trimmedName = signUpName.trim();
@@ -192,6 +195,10 @@ function AuthContent() {
 
     if (signUpPassword !== signUpConfirmPassword) {
       errors.confirmPassword = 'Passwords do not match.';
+    }
+
+    if (!signUpAgreeToTerms) {
+      errors.terms = 'You must agree to the Terms and Conditions to create an account.';
     }
 
     if (Object.keys(errors).length > 0) {
@@ -565,6 +572,57 @@ function AuthContent() {
                 {signUpErrors.confirmPassword && (
                   <p className="text-xs text-error mt-1 font-semibold">
                     {signUpErrors.confirmPassword}
+                  </p>
+                )}
+              </div>
+
+              {/* Terms and Conditions Acceptance Checkbox */}
+              <div>
+                <div className="flex items-start gap-3 mt-1">
+                  <div className="flex items-center h-5 mt-0.5">
+                    <input
+                      id="auth-signup-terms"
+                      type="checkbox"
+                      checked={signUpAgreeToTerms}
+                      onChange={(e) => {
+                        setSignUpAgreeToTerms(e.target.checked);
+                        if (signUpErrors.terms) {
+                          setSignUpErrors((prev) => ({ ...prev, terms: undefined }));
+                        }
+                      }}
+                      aria-invalid={!!signUpErrors.terms}
+                      aria-describedby={signUpErrors.terms ? 'auth-signup-terms-error' : undefined}
+                      className={`h-4 w-4 rounded border text-primary focus:ring-2 focus:ring-primary focus:outline-none cursor-pointer transition-colors ${
+                        signUpErrors.terms
+                          ? 'border-error ring-1 ring-error'
+                          : 'border-outline-variant'
+                      }`}
+                    />
+                  </div>
+                  <label
+                    htmlFor="auth-signup-terms"
+                    className="type-body-medium text-xs text-on-surface leading-normal cursor-pointer select-none"
+                  >
+                    I agree to the{' '}
+                    <a
+                      href="/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-bold text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Terms and Conditions
+                    </a>
+                    .
+                  </label>
+                </div>
+                {signUpErrors.terms && (
+                  <p
+                    id="auth-signup-terms-error"
+                    role="alert"
+                    className="text-xs text-error mt-1.5 font-semibold"
+                  >
+                    {signUpErrors.terms}
                   </p>
                 )}
               </div>
