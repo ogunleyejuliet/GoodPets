@@ -560,14 +560,21 @@ function AuthContent() {
                 </label>
                 <input
                   id="auth-login-customer-id"
-                  type="number"
+                  type="text"
+                  inputMode="numeric"
                   value={loginCustomerId}
                   onChange={(e) => handleLoginCustomerIdChange(e.target.value)}
                   onBlur={handleLoginCustomerIdBlur}
+                  onKeyDown={(e) => {
+                    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                      e.preventDefault();
+                    }
+                  }}
+                  placeholder="e.g. 1001 or 3214"
                   autoComplete="off"
                   aria-invalid={!!loginErrors.customerId}
                   aria-describedby={loginErrors.customerId ? 'auth-login-customer-id-error' : undefined}
-                  className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary no-spinner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-inner-spin-button]:m-0 ${
+                  className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
                     loginErrors.customerId ? 'border-error ring-1 ring-error focus:ring-error' : 'border-outline-variant'
                   }`}
                 />
