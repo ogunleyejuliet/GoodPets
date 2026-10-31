@@ -203,7 +203,7 @@ export default function LandingContent() {
                 </div>
 
                 {/* Headline: Responsive clamp + deliberate max width */}
-                <h1 className="type-display-medium sm:type-display-large font-extrabold max-w-[18ch] sm:max-w-2xl tracking-tight text-on-surface leading-[1.18] text-balance">
+                <h1 className="type-display-medium sm:type-display-large font-extrabold max-w-[14ch] sm:max-w-md tracking-tight text-on-surface leading-[1.18] text-balance">
                   Your Pet’s <span className="text-primary">Favourite</span> Place.
                 </h1>
 

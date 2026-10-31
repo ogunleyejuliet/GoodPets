@@ -4,6 +4,14 @@ import React, { useState, Suspense } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter, useSearchParams, usePathname } from 'next/navigation';
+import {
+  validateRequired,
+  validateFullName,
+  validateEmail,
+  validatePassword,
+  validateConfirmPassword,
+  EMAIL_REGEX,
+} from '@/lib/auth-validation';
 
 export type AuthMode = 'login' | 'signup' | 'reset';
 
@@ -36,6 +44,19 @@ function getSafeReturnUrl(rawUrl: string | null): string {
     }
   }
   return '/book';
+}
+
+
+function CautionIcon({ className = 'w-4 h-4 text-error shrink-0' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path
+        fillRule="evenodd"
+        d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
 }
 
 function AuthContent() {
@@ -74,22 +95,56 @@ function AuthContent() {
   const [loginServerError, setLoginServerError] = useState<string | null>(null);
   const [loginSuccessMsg, setLoginSuccessMsg] = useState<string | null>(null);
 
+  const handleLoginEmailBlur = () => {
+    const err = validateEmail(loginEmail);
+    if (err) {
+      setLoginErrors((prev) => ({ ...prev, email: err }));
+    } else {
+      setLoginErrors((prev) => ({ ...prev, email: undefined }));
+    }
+  };
+
+  const handleLoginEmailChange = (val: string) => {
+    setLoginEmail(val);
+    if (loginErrors.email) {
+      if (val.trim() && EMAIL_REGEX.test(val.trim())) {
+        setLoginErrors((prev) => ({ ...prev, email: undefined }));
+      } else if (val.trim() && loginErrors.email === 'This field must not be empty') {
+        setLoginErrors((prev) => ({ ...prev, email: undefined }));
+      }
+    }
+  };
+
+  const handleLoginPasswordBlur = () => {
+    const err = validateRequired(loginPassword);
+    if (err) {
+      setLoginErrors((prev) => ({ ...prev, password: err }));
+    } else {
+      setLoginErrors((prev) => ({ ...prev, password: undefined }));
+    }
+  };
+
+  const handleLoginPasswordChange = (val: string) => {
+    setLoginPassword(val);
+    if (val && loginErrors.password) {
+      setLoginErrors((prev) => ({ ...prev, password: undefined }));
+    }
+  };
+
   const handleLoginSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginServerError(null);
     setLoginSuccessMsg(null);
 
     const errors: { email?: string; password?: string } = {};
-    const trimmedEmail = loginEmail.trim();
-
-    if (!trimmedEmail) {
-      errors.email = 'Email address is required.';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      errors.email = 'Please enter a valid email address.';
+    const emailErr = validateEmail(loginEmail);
+    if (emailErr) {
+      errors.email = emailErr;
     }
 
-    if (!loginPassword) {
-      errors.password = 'Password is required.';
+    const passwordErr = validateRequired(loginPassword);
+    if (passwordErr) {
+      errors.password = passwordErr;
     }
 
     if (Object.keys(errors).length > 0) {
@@ -105,7 +160,7 @@ function AuthContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: trimmedEmail.toLowerCase(),
+          email: loginEmail.trim().toLowerCase(),
           password: loginPassword,
         }),
       });
@@ -121,7 +176,7 @@ function AuthContent() {
       setLoginLoading(false);
       const loggedUser: UserProfile = {
         id: data.user.id,
-        name: data.user.name || trimmedEmail.split('@')[0],
+        name: data.user.name || loginEmail.trim().split('@')[0],
         email: data.user.email,
         role: data.user.role,
       };
@@ -148,6 +203,7 @@ function AuthContent() {
   const [signUpPassword, setSignUpPassword] = useState('');
   const [signUpConfirmPassword, setSignUpConfirmPassword] = useState('');
   const [signUpAgreeToTerms, setSignUpAgreeToTerms] = useState(false);
+  const [showPasswordHint, setShowPasswordHint] = useState(false);
   const [signUpErrors, setSignUpErrors] = useState<{
     name?: string;
     email?: string;
@@ -159,43 +215,120 @@ function AuthContent() {
   const [signUpServerError, setSignUpServerError] = useState<string | null>(null);
   const [signUpSuccessMsg, setSignUpSuccessMsg] = useState<string | null>(null);
 
+  const handleSignUpNameChange = (val: string) => {
+    setSignUpName(val);
+    if (signUpErrors.name) {
+      const err = validateFullName(val);
+      if (!err) {
+        setSignUpErrors((prev) => ({ ...prev, name: undefined }));
+      }
+    }
+  };
+
+  const handleSignUpNameBlur = () => {
+    const err = validateFullName(signUpName);
+    if (err) {
+      setSignUpErrors((prev) => ({ ...prev, name: err }));
+    } else {
+      setSignUpErrors((prev) => ({ ...prev, name: undefined }));
+    }
+  };
+
+  const handleSignUpEmailChange = (val: string) => {
+    setSignUpEmail(val);
+    if (val.length > 0) {
+      if (!EMAIL_REGEX.test(val.trim())) {
+        setSignUpErrors((prev) => ({ ...prev, email: 'Enter a valid email address' }));
+      } else {
+        setSignUpErrors((prev) => ({ ...prev, email: undefined }));
+      }
+    } else {
+      setSignUpErrors((prev) => ({ ...prev, email: undefined }));
+    }
+  };
+
+  const handleSignUpEmailBlur = () => {
+    const trimmed = signUpEmail.trim();
+    if (!trimmed) {
+      setSignUpErrors((prev) => ({ ...prev, email: 'This field must not be empty' }));
+    } else if (!EMAIL_REGEX.test(trimmed)) {
+      setSignUpErrors((prev) => ({ ...prev, email: 'Enter a valid email address' }));
+    } else {
+      setSignUpErrors((prev) => ({ ...prev, email: undefined }));
+    }
+  };
+
+  const handleSignUpPasswordChange = (val: string) => {
+    setSignUpPassword(val);
+    if (!showPasswordHint && val.length > 0) {
+      setShowPasswordHint(true);
+    }
+    if (signUpErrors.password) {
+      if (val.length >= 8) {
+        setSignUpErrors((prev) => ({ ...prev, password: undefined }));
+      }
+    }
+    if (signUpConfirmPassword && signUpErrors.confirmPassword) {
+      if (val === signUpConfirmPassword) {
+        setSignUpErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+      }
+    }
+  };
+
+  const handleSignUpPasswordBlur = () => {
+    const err = validatePassword(signUpPassword);
+    if (err) {
+      setSignUpErrors((prev) => ({ ...prev, password: err }));
+    } else {
+      setSignUpErrors((prev) => ({ ...prev, password: undefined }));
+    }
+  };
+
+  const handleSignUpConfirmPasswordChange = (val: string) => {
+    setSignUpConfirmPassword(val);
+    if (signUpErrors.confirmPassword) {
+      if (val === signUpPassword) {
+        setSignUpErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+      }
+    }
+  };
+
+  const handleSignUpConfirmPasswordBlur = () => {
+    const err = validateConfirmPassword(signUpConfirmPassword, signUpPassword);
+    if (err) {
+      setSignUpErrors((prev) => ({ ...prev, confirmPassword: err }));
+    } else {
+      setSignUpErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+    }
+  };
+
+  // Sign-up validity computations
+  const isNameValid = validateFullName(signUpName) === undefined;
+  const isEmailValid = signUpEmail.trim().length > 0 && EMAIL_REGEX.test(signUpEmail.trim());
+  const isPasswordValid = signUpPassword.length >= 8;
+  const isConfirmPasswordValid = signUpConfirmPassword.length > 0 && signUpConfirmPassword === signUpPassword;
+
+  const areAllSignUpFieldsValid = isNameValid && isEmailValid && isPasswordValid && isConfirmPasswordValid;
+  const isSignUpFormValid = areAllSignUpFieldsValid && signUpAgreeToTerms;
+  const showTermsRequiredSignal = (areAllSignUpFieldsValid && !signUpAgreeToTerms) || !!signUpErrors.terms;
+
   const handleSignUpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSignUpServerError(null);
     setSignUpSuccessMsg(null);
 
-    const errors: {
-      name?: string;
-      email?: string;
-      password?: string;
-      confirmPassword?: string;
-      terms?: string;
-    } = {};
+    const errors: typeof signUpErrors = {};
+    const nameErr = validateFullName(signUpName);
+    if (nameErr) errors.name = nameErr;
 
-    const trimmedName = signUpName.trim();
-    const trimmedEmail = signUpEmail.trim();
+    const emailErr = validateEmail(signUpEmail);
+    if (emailErr) errors.email = emailErr;
 
-    if (!trimmedName || trimmedName.length < 2) {
-      errors.name = 'Full name must be at least 2 characters.';
-    } else if (trimmedName.length > 100) {
-      errors.name = 'Full name cannot exceed 100 characters.';
-    }
+    const passwordErr = validatePassword(signUpPassword);
+    if (passwordErr) errors.password = passwordErr;
 
-    if (!trimmedEmail) {
-      errors.email = 'Email address is required.';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)) {
-      errors.email = 'Please enter a valid email address.';
-    }
-
-    if (!signUpPassword) {
-      errors.password = 'Password is required.';
-    } else if (signUpPassword.length < 8) {
-      errors.password = 'Password must be at least 8 characters.';
-    }
-
-    if (signUpPassword !== signUpConfirmPassword) {
-      errors.confirmPassword = 'Passwords do not match.';
-    }
+    const confirmErr = validateConfirmPassword(signUpConfirmPassword, signUpPassword);
+    if (confirmErr) errors.confirmPassword = confirmErr;
 
     if (!signUpAgreeToTerms) {
       errors.terms = 'You must agree to the Terms and Conditions to create an account.';
@@ -214,8 +347,8 @@ function AuthContent() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: trimmedName,
-          email: trimmedEmail.toLowerCase(),
+          name: signUpName.trim(),
+          email: signUpEmail.trim().toLowerCase(),
           password: signUpPassword,
           confirmPassword: signUpConfirmPassword,
         }),
@@ -232,7 +365,7 @@ function AuthContent() {
       setSignUpLoading(false);
       const newUser: UserProfile = {
         id: data.user.id,
-        name: data.user.name || trimmedName,
+        name: data.user.name || signUpName.trim(),
         email: data.user.email,
         role: data.user.role,
       };
@@ -369,15 +502,25 @@ function AuthContent() {
                   id="auth-login-email"
                   type="email"
                   value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
+                  onChange={(e) => handleLoginEmailChange(e.target.value)}
+                  onBlur={handleLoginEmailBlur}
                   placeholder="name@example.com"
                   autoComplete="email"
+                  aria-invalid={!!loginErrors.email}
+                  aria-describedby={loginErrors.email ? 'auth-login-email-error' : undefined}
                   className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
-                    loginErrors.email ? 'border-error ring-1 ring-error' : 'border-outline-variant'
+                    loginErrors.email ? 'border-error ring-1 ring-error focus:ring-error' : 'border-outline-variant'
                   }`}
                 />
                 {loginErrors.email && (
-                  <p className="text-xs text-error mt-1 font-semibold">{loginErrors.email}</p>
+                  <div
+                    id="auth-login-email-error"
+                    role="alert"
+                    className="flex items-center gap-1.5 mt-1.5 text-xs text-error font-semibold"
+                  >
+                    <CautionIcon />
+                    <span>{loginErrors.email}</span>
+                  </div>
                 )}
               </div>
 
@@ -401,15 +544,25 @@ function AuthContent() {
                   id="auth-login-password"
                   type="password"
                   value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
+                  onChange={(e) => handleLoginPasswordChange(e.target.value)}
+                  onBlur={handleLoginPasswordBlur}
                   placeholder="••••••••"
                   autoComplete="current-password"
+                  aria-invalid={!!loginErrors.password}
+                  aria-describedby={loginErrors.password ? 'auth-login-password-error' : undefined}
                   className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
-                    loginErrors.password ? 'border-error ring-1 ring-error' : 'border-outline-variant'
+                    loginErrors.password ? 'border-error ring-1 ring-error focus:ring-error' : 'border-outline-variant'
                   }`}
                 />
                 {loginErrors.password && (
-                  <p className="text-xs text-error mt-1 font-semibold">{loginErrors.password}</p>
+                  <div
+                    id="auth-login-password-error"
+                    role="alert"
+                    className="flex items-center gap-1.5 mt-1.5 text-xs text-error font-semibold"
+                  >
+                    <CautionIcon />
+                    <span>{loginErrors.password}</span>
+                  </div>
                 )}
               </div>
 
@@ -489,15 +642,25 @@ function AuthContent() {
                   id="auth-signup-name"
                   type="text"
                   value={signUpName}
-                  onChange={(e) => setSignUpName(e.target.value)}
+                  onChange={(e) => handleSignUpNameChange(e.target.value)}
+                  onBlur={handleSignUpNameBlur}
                   placeholder="e.g. Juliet Ogunleye"
                   autoComplete="name"
+                  aria-invalid={!!signUpErrors.name}
+                  aria-describedby={signUpErrors.name ? 'auth-signup-name-error' : undefined}
                   className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
-                    signUpErrors.name ? 'border-error ring-1 ring-error' : 'border-outline-variant'
+                    signUpErrors.name ? 'border-error ring-1 ring-error focus:ring-error' : 'border-outline-variant'
                   }`}
                 />
                 {signUpErrors.name && (
-                  <p className="text-xs text-error mt-1 font-semibold">{signUpErrors.name}</p>
+                  <div
+                    id="auth-signup-name-error"
+                    role="alert"
+                    className="flex items-center gap-1.5 mt-1.5 text-xs text-error font-semibold"
+                  >
+                    <CautionIcon />
+                    <span>{signUpErrors.name}</span>
+                  </div>
                 )}
               </div>
 
@@ -512,15 +675,25 @@ function AuthContent() {
                   id="auth-signup-email"
                   type="email"
                   value={signUpEmail}
-                  onChange={(e) => setSignUpEmail(e.target.value)}
+                  onChange={(e) => handleSignUpEmailChange(e.target.value)}
+                  onBlur={handleSignUpEmailBlur}
                   placeholder="name@example.com"
                   autoComplete="email"
+                  aria-invalid={!!signUpErrors.email}
+                  aria-describedby={signUpErrors.email ? 'auth-signup-email-error' : undefined}
                   className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
-                    signUpErrors.email ? 'border-error ring-1 ring-error' : 'border-outline-variant'
+                    signUpErrors.email ? 'border-error ring-1 ring-error focus:ring-error' : 'border-outline-variant'
                   }`}
                 />
                 {signUpErrors.email && (
-                  <p className="text-xs text-error mt-1 font-semibold">{signUpErrors.email}</p>
+                  <div
+                    id="auth-signup-email-error"
+                    role="alert"
+                    className="flex items-center gap-1.5 mt-1.5 text-xs text-error font-semibold"
+                  >
+                    <CautionIcon />
+                    <span>{signUpErrors.email}</span>
+                  </div>
                 )}
               </div>
 
@@ -535,17 +708,39 @@ function AuthContent() {
                   id="auth-signup-password"
                   type="password"
                   value={signUpPassword}
-                  onChange={(e) => setSignUpPassword(e.target.value)}
+                  onChange={(e) => handleSignUpPasswordChange(e.target.value)}
+                  onBlur={handleSignUpPasswordBlur}
                   placeholder="At least 8 characters"
                   autoComplete="new-password"
+                  aria-invalid={!!signUpErrors.password}
+                  aria-describedby={
+                    [
+                      showPasswordHint ? 'auth-signup-password-hint' : '',
+                      signUpErrors.password ? 'auth-signup-password-error' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ') || undefined
+                  }
                   className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
                     signUpErrors.password
-                      ? 'border-error ring-1 ring-error'
+                      ? 'border-error ring-1 ring-error focus:ring-error'
                       : 'border-outline-variant'
                   }`}
                 />
+                {showPasswordHint && (
+                  <p id="auth-signup-password-hint" className="type-body-small text-on-surface-variant mt-1">
+                    Password must be at least 8 characters.
+                  </p>
+                )}
                 {signUpErrors.password && (
-                  <p className="text-xs text-error mt-1 font-semibold">{signUpErrors.password}</p>
+                  <div
+                    id="auth-signup-password-error"
+                    role="alert"
+                    className="flex items-center gap-1.5 mt-1.5 text-xs text-error font-semibold"
+                  >
+                    <CautionIcon />
+                    <span>{signUpErrors.password}</span>
+                  </div>
                 )}
               </div>
 
@@ -560,19 +755,29 @@ function AuthContent() {
                   id="auth-signup-confirm-password"
                   type="password"
                   value={signUpConfirmPassword}
-                  onChange={(e) => setSignUpConfirmPassword(e.target.value)}
+                  onChange={(e) => handleSignUpConfirmPasswordChange(e.target.value)}
+                  onBlur={handleSignUpConfirmPasswordBlur}
                   placeholder="Re-enter your password"
                   autoComplete="new-password"
+                  aria-invalid={!!signUpErrors.confirmPassword}
+                  aria-describedby={
+                    signUpErrors.confirmPassword ? 'auth-signup-confirm-password-error' : undefined
+                  }
                   className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
                     signUpErrors.confirmPassword
-                      ? 'border-error ring-1 ring-error'
+                      ? 'border-error ring-1 ring-error focus:ring-error'
                       : 'border-outline-variant'
                   }`}
                 />
                 {signUpErrors.confirmPassword && (
-                  <p className="text-xs text-error mt-1 font-semibold">
-                    {signUpErrors.confirmPassword}
-                  </p>
+                  <div
+                    id="auth-signup-confirm-password-error"
+                    role="alert"
+                    className="flex items-center gap-1.5 mt-1.5 text-xs text-error font-semibold"
+                  >
+                    <CautionIcon />
+                    <span>{signUpErrors.confirmPassword}</span>
+                  </div>
                 )}
               </div>
 
@@ -590,10 +795,10 @@ function AuthContent() {
                           setSignUpErrors((prev) => ({ ...prev, terms: undefined }));
                         }
                       }}
-                      aria-invalid={!!signUpErrors.terms}
-                      aria-describedby={signUpErrors.terms ? 'auth-signup-terms-error' : undefined}
+                      aria-invalid={showTermsRequiredSignal}
+                      aria-describedby={showTermsRequiredSignal ? 'auth-signup-terms-error' : undefined}
                       className={`h-4 w-4 rounded border text-primary focus:ring-2 focus:ring-primary focus:outline-none cursor-pointer transition-colors ${
-                        signUpErrors.terms
+                        showTermsRequiredSignal
                           ? 'border-error ring-1 ring-error'
                           : 'border-outline-variant'
                       }`}
@@ -616,20 +821,21 @@ function AuthContent() {
                     .
                   </label>
                 </div>
-                {signUpErrors.terms && (
-                  <p
+                {showTermsRequiredSignal && (
+                  <div
                     id="auth-signup-terms-error"
                     role="alert"
-                    className="text-xs text-error mt-1.5 font-semibold"
+                    className="flex items-center gap-1.5 text-xs text-error mt-1.5 font-semibold"
                   >
-                    {signUpErrors.terms}
-                  </p>
+                    <CautionIcon />
+                    <span>{signUpErrors.terms || 'You must agree to the Terms and Conditions to create an account.'}</span>
+                  </div>
                 )}
               </div>
 
               <button
                 type="submit"
-                disabled={signUpLoading}
+                disabled={!isSignUpFormValid || signUpLoading}
                 className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-6 py-3 rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed mt-2"
               >
                 {signUpLoading ? (
