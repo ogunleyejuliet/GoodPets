@@ -9,6 +9,7 @@ import {
   validateEmail,
   validatePassword,
   validateConfirmPassword,
+  validateCustomerId,
   isFullNameValid,
   isEmailValid,
   isPasswordValid,
@@ -107,8 +108,9 @@ export default function BookingPage() {
 
   // Sign In Form fields
   const [signInEmail, setSignInEmail] = useState('');
+  const [signInCustomerId, setSignInCustomerId] = useState('');
   const [signInPassword, setSignInPassword] = useState('');
-  const [signInErrors, setSignInErrors] = useState<{ email?: string; password?: string }>({});
+  const [signInErrors, setSignInErrors] = useState<{ email?: string; customerId?: string; password?: string }>({});
 
   // Sign Up Form fields
   const [signUpName, setSignUpName] = useState('');
@@ -557,10 +559,12 @@ export default function BookingPage() {
 
   // Validation handlers: Sign In
   const handleSignInEmailBlur = () => {
-    const err = validateEmail(signInEmail);
+    const err = validateRequired(signInEmail);
     if (err) {
       setSignInErrors((prev) => ({ ...prev, email: err }));
-    } else {
+    } else if (EMAIL_REGEX.test(signInEmail.trim())) {
+      setSignInErrors((prev) => ({ ...prev, email: undefined }));
+    } else if (signInErrors.email === 'This field must not be empty') {
       setSignInErrors((prev) => ({ ...prev, email: undefined }));
     }
   };
@@ -570,8 +574,28 @@ export default function BookingPage() {
     if (signInErrors.email) {
       if (val.trim() && EMAIL_REGEX.test(val.trim())) {
         setSignInErrors((prev) => ({ ...prev, email: undefined }));
-      } else if (val.trim() && signInErrors.email === 'This field must not be empty') {
+      } else if (signInErrors.email === 'This field must not be empty' && val.trim()) {
         setSignInErrors((prev) => ({ ...prev, email: undefined }));
+      }
+    }
+  };
+
+  const handleSignInCustomerIdBlur = () => {
+    const err = validateCustomerId(signInCustomerId);
+    if (err) {
+      setSignInErrors((prev) => ({ ...prev, customerId: err }));
+    } else {
+      setSignInErrors((prev) => ({ ...prev, customerId: undefined }));
+    }
+  };
+
+  const handleSignInCustomerIdChange = (val: string) => {
+    setSignInCustomerId(val);
+    if (signInErrors.customerId) {
+      if (validateCustomerId(val) === undefined) {
+        setSignInErrors((prev) => ({ ...prev, customerId: undefined }));
+      } else if (signInErrors.customerId === 'This field must not be empty' && val.trim()) {
+        setSignInErrors((prev) => ({ ...prev, customerId: undefined }));
       }
     }
   };
@@ -598,9 +622,12 @@ export default function BookingPage() {
     setAuthError(null);
     setAuthSuccessMsg(null);
 
-    const errors: { email?: string; password?: string } = {};
+    const errors: { email?: string; customerId?: string; password?: string } = {};
     const emailErr = validateEmail(signInEmail);
     if (emailErr) errors.email = emailErr;
+
+    const customerIdErr = validateCustomerId(signInCustomerId);
+    if (customerIdErr) errors.customerId = customerIdErr;
 
     const passwordErr = validateRequired(signInPassword);
     if (passwordErr) errors.password = passwordErr;
@@ -673,14 +700,12 @@ export default function BookingPage() {
 
   const handleSignUpEmailChange = (val: string) => {
     setSignUpEmail(val);
-    if (val.length > 0) {
-      if (!EMAIL_REGEX.test(val.trim())) {
-        setSignUpErrors((prev) => ({ ...prev, email: 'Enter a valid email address' }));
-      } else {
+    if (signUpErrors.email) {
+      if (val.trim() && EMAIL_REGEX.test(val.trim())) {
+        setSignUpErrors((prev) => ({ ...prev, email: undefined }));
+      } else if (signUpErrors.email === 'This field must not be empty' && val.trim()) {
         setSignUpErrors((prev) => ({ ...prev, email: undefined }));
       }
-    } else {
-      setSignUpErrors((prev) => ({ ...prev, email: undefined }));
     }
   };
 
@@ -1677,7 +1702,7 @@ export default function BookingPage() {
 
             {/* Sign In Form */}
             {authMode === 'signin' ? (
-              <form onSubmit={handleSignIn} className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4 shadow-soft">
+              <form noValidate onSubmit={handleSignIn} className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4 shadow-soft">
                 <div>
                   <label className="block type-label-medium font-bold text-on-surface mb-1" htmlFor="signin-email">
                     Email Address
@@ -1704,6 +1729,35 @@ export default function BookingPage() {
                     >
                       <CautionIcon />
                       <span>{signInErrors.email}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block type-label-medium font-bold text-on-surface mb-1" htmlFor="signin-customer-id">
+                    Customer ID
+                  </label>
+                  <input
+                    id="signin-customer-id"
+                    type="number"
+                    value={signInCustomerId}
+                    onChange={(e) => handleSignInCustomerIdChange(e.target.value)}
+                    onBlur={handleSignInCustomerIdBlur}
+                    autoComplete="off"
+                    aria-invalid={!!signInErrors.customerId}
+                    aria-describedby={signInErrors.customerId ? 'signin-customer-id-error' : undefined}
+                    className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary no-spinner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-inner-spin-button]:m-0 ${
+                      signInErrors.customerId ? 'border-error ring-1 ring-error focus:ring-error' : 'border-outline-variant'
+                    }`}
+                  />
+                  {signInErrors.customerId && (
+                    <div
+                      id="signin-customer-id-error"
+                      role="alert"
+                      className="flex items-center gap-1.5 mt-1.5 text-xs text-error font-semibold"
+                    >
+                      <CautionIcon />
+                      <span>{signInErrors.customerId}</span>
                     </div>
                   )}
                 </div>
@@ -1777,7 +1831,7 @@ export default function BookingPage() {
               </form>
             ) : (
               /* Create Account Form */
-              <form onSubmit={handleSignUp} className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4 shadow-soft">
+              <form noValidate onSubmit={handleSignUp} className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4 shadow-soft">
                 <div>
                   <label className="block type-label-medium font-bold text-on-surface mb-1" htmlFor="signup-name">
                     Full Name

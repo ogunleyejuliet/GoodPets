@@ -10,6 +10,7 @@ import {
   validateEmail,
   validatePassword,
   validateConfirmPassword,
+  validateCustomerId,
   EMAIL_REGEX,
 } from '@/lib/auth-validation';
 
@@ -89,17 +90,20 @@ function AuthContent() {
   // Form States: Login
   // ----------------------------------------------------
   const [loginEmail, setLoginEmail] = useState('');
+  const [loginCustomerId, setLoginCustomerId] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
-  const [loginErrors, setLoginErrors] = useState<{ email?: string; password?: string }>({});
+  const [loginErrors, setLoginErrors] = useState<{ email?: string; customerId?: string; password?: string }>({});
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginServerError, setLoginServerError] = useState<string | null>(null);
   const [loginSuccessMsg, setLoginSuccessMsg] = useState<string | null>(null);
 
   const handleLoginEmailBlur = () => {
-    const err = validateEmail(loginEmail);
+    const err = validateRequired(loginEmail);
     if (err) {
       setLoginErrors((prev) => ({ ...prev, email: err }));
-    } else {
+    } else if (EMAIL_REGEX.test(loginEmail.trim())) {
+      setLoginErrors((prev) => ({ ...prev, email: undefined }));
+    } else if (loginErrors.email === 'This field must not be empty') {
       setLoginErrors((prev) => ({ ...prev, email: undefined }));
     }
   };
@@ -109,8 +113,28 @@ function AuthContent() {
     if (loginErrors.email) {
       if (val.trim() && EMAIL_REGEX.test(val.trim())) {
         setLoginErrors((prev) => ({ ...prev, email: undefined }));
-      } else if (val.trim() && loginErrors.email === 'This field must not be empty') {
+      } else if (loginErrors.email === 'This field must not be empty' && val.trim()) {
         setLoginErrors((prev) => ({ ...prev, email: undefined }));
+      }
+    }
+  };
+
+  const handleLoginCustomerIdBlur = () => {
+    const err = validateCustomerId(loginCustomerId);
+    if (err) {
+      setLoginErrors((prev) => ({ ...prev, customerId: err }));
+    } else {
+      setLoginErrors((prev) => ({ ...prev, customerId: undefined }));
+    }
+  };
+
+  const handleLoginCustomerIdChange = (val: string) => {
+    setLoginCustomerId(val);
+    if (loginErrors.customerId) {
+      if (validateCustomerId(val) === undefined) {
+        setLoginErrors((prev) => ({ ...prev, customerId: undefined }));
+      } else if (loginErrors.customerId === 'This field must not be empty' && val.trim()) {
+        setLoginErrors((prev) => ({ ...prev, customerId: undefined }));
       }
     }
   };
@@ -136,10 +160,15 @@ function AuthContent() {
     setLoginServerError(null);
     setLoginSuccessMsg(null);
 
-    const errors: { email?: string; password?: string } = {};
+    const errors: { email?: string; customerId?: string; password?: string } = {};
     const emailErr = validateEmail(loginEmail);
     if (emailErr) {
       errors.email = emailErr;
+    }
+
+    const customerIdErr = validateCustomerId(loginCustomerId);
+    if (customerIdErr) {
+      errors.customerId = customerIdErr;
     }
 
     const passwordErr = validateRequired(loginPassword);
@@ -236,14 +265,12 @@ function AuthContent() {
 
   const handleSignUpEmailChange = (val: string) => {
     setSignUpEmail(val);
-    if (val.length > 0) {
-      if (!EMAIL_REGEX.test(val.trim())) {
-        setSignUpErrors((prev) => ({ ...prev, email: 'Enter a valid email address' }));
-      } else {
+    if (signUpErrors.email) {
+      if (val.trim() && EMAIL_REGEX.test(val.trim())) {
+        setSignUpErrors((prev) => ({ ...prev, email: undefined }));
+      } else if (signUpErrors.email === 'This field must not be empty' && val.trim()) {
         setSignUpErrors((prev) => ({ ...prev, email: undefined }));
       }
-    } else {
-      setSignUpErrors((prev) => ({ ...prev, email: undefined }));
     }
   };
 
@@ -490,7 +517,7 @@ function AuthContent() {
               </div>
             )}
 
-            <form onSubmit={handleLoginSubmit} className="space-y-4">
+            <form noValidate onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
                 <label
                   className="block type-label-medium font-bold text-on-surface mb-1"
@@ -520,6 +547,38 @@ function AuthContent() {
                   >
                     <CautionIcon />
                     <span>{loginErrors.email}</span>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label
+                  className="block type-label-medium font-bold text-on-surface mb-1"
+                  htmlFor="auth-login-customer-id"
+                >
+                  Customer ID
+                </label>
+                <input
+                  id="auth-login-customer-id"
+                  type="number"
+                  value={loginCustomerId}
+                  onChange={(e) => handleLoginCustomerIdChange(e.target.value)}
+                  onBlur={handleLoginCustomerIdBlur}
+                  autoComplete="off"
+                  aria-invalid={!!loginErrors.customerId}
+                  aria-describedby={loginErrors.customerId ? 'auth-login-customer-id-error' : undefined}
+                  className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary no-spinner [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:m-0 [&::-webkit-inner-spin-button]:m-0 ${
+                    loginErrors.customerId ? 'border-error ring-1 ring-error focus:ring-error' : 'border-outline-variant'
+                  }`}
+                />
+                {loginErrors.customerId && (
+                  <div
+                    id="auth-login-customer-id-error"
+                    role="alert"
+                    className="flex items-center gap-1.5 mt-1.5 text-xs text-error font-semibold"
+                  >
+                    <CautionIcon />
+                    <span>{loginErrors.customerId}</span>
                   </div>
                 )}
               </div>
@@ -630,7 +689,7 @@ function AuthContent() {
               </div>
             )}
 
-            <form onSubmit={handleSignUpSubmit} className="space-y-4">
+            <form noValidate onSubmit={handleSignUpSubmit} className="space-y-4">
               <div>
                 <label
                   className="block type-label-medium font-bold text-on-surface mb-1"
@@ -916,7 +975,7 @@ function AuthContent() {
                 </Link>
               </div>
             ) : (
-              <form onSubmit={handleResetSubmit} className="space-y-4">
+              <form noValidate onSubmit={handleResetSubmit} className="space-y-4">
                 <div>
                   <label
                     className="block type-label-medium font-bold text-on-surface mb-1"
