@@ -4,6 +4,20 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import {
+  validateRequired,
+  validateFullName,
+  validateEmail,
+  validatePassword,
+  validateConfirmPassword,
+  validateCustomerId,
+  isCustomerIdValid,
+  isFullNameValid,
+  isEmailValid,
+  isPasswordValid,
+  isConfirmPasswordValid,
+  EMAIL_REGEX,
+} from '@/lib/auth-validation';
+import {
   calculatePrice,
   formatNaira,
   calculateDogSizeTier,
@@ -60,6 +74,18 @@ function getDogSizeTier(weightKg: number | null): string {
 const STORAGE_KEY = 'goodpets_booking_context';
 const AUTH_STORAGE_KEY = 'goodpets_customer_session';
 
+function CautionIcon({ className = 'w-4 h-4 text-error shrink-0' }: { className?: string }) {
+  return (
+    <svg className={className} viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+      <path
+        fillRule="evenodd"
+        d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z"
+        clipRule="evenodd"
+      />
+    </svg>
+  );
+}
+
 export default function BookingPage() {
   // Step in the flow:
   // 1 = Choose a Service
@@ -83,19 +109,23 @@ export default function BookingPage() {
 
   // Sign In Form fields
   const [signInEmail, setSignInEmail] = useState('');
+  const [signInCustomerId, setSignInCustomerId] = useState('');
   const [signInPassword, setSignInPassword] = useState('');
-  const [signInErrors, setSignInErrors] = useState<{ email?: string; password?: string }>({});
+  const [signInErrors, setSignInErrors] = useState<{ email?: string; customerId?: string; password?: string }>({});
 
   // Sign Up Form fields
   const [signUpName, setSignUpName] = useState('');
   const [signUpEmail, setSignUpEmail] = useState('');
   const [signUpPassword, setSignUpPassword] = useState('');
   const [signUpConfirmPassword, setSignUpConfirmPassword] = useState('');
+  const [signUpAgreeToTerms, setSignUpAgreeToTerms] = useState(false);
+  const [showSignUpPasswordHint, setShowSignUpPasswordHint] = useState(false);
   const [signUpErrors, setSignUpErrors] = useState<{
     name?: string;
     email?: string;
     password?: string;
     confirmPassword?: string;
+    terms?: string;
   }>({});
 
   // Pet selection and persistence state
@@ -528,25 +558,89 @@ export default function BookingPage() {
     }
   }, [step, service, boardingCheckIn, boardingCheckOut, fetchBoardingAvailability]);
 
+  // Validation handlers: Sign In
+  const handleSignInEmailBlur = () => {
+    const err = validateRequired(signInEmail);
+    if (err) {
+      setSignInErrors((prev) => ({ ...prev, email: err }));
+    } else if (EMAIL_REGEX.test(signInEmail.trim())) {
+      setSignInErrors((prev) => ({ ...prev, email: undefined }));
+    } else if (signInErrors.email === 'This field must not be empty') {
+      setSignInErrors((prev) => ({ ...prev, email: undefined }));
+    }
+  };
+
+  const handleSignInEmailChange = (val: string) => {
+    setSignInEmail(val);
+    if (signInErrors.email) {
+      if (val.trim() && EMAIL_REGEX.test(val.trim())) {
+        setSignInErrors((prev) => ({ ...prev, email: undefined }));
+      } else if (signInErrors.email === 'This field must not be empty' && val.trim()) {
+        setSignInErrors((prev) => ({ ...prev, email: undefined }));
+      }
+    }
+  };
+
+  const handleSignInCustomerIdBlur = () => {
+    const err = validateCustomerId(signInCustomerId);
+    if (err) {
+      setSignInErrors((prev) => ({ ...prev, customerId: err }));
+    } else {
+      setSignInErrors((prev) => ({ ...prev, customerId: undefined }));
+    }
+  };
+
+  const handleSignInCustomerIdChange = (val: string) => {
+    setSignInCustomerId(val);
+    if (signInErrors.customerId) {
+      if (validateCustomerId(val) === undefined) {
+        setSignInErrors((prev) => ({ ...prev, customerId: undefined }));
+      } else if (signInErrors.customerId === 'This field must not be empty' && val.trim()) {
+        setSignInErrors((prev) => ({ ...prev, customerId: undefined }));
+      }
+    }
+  };
+
+  const handleSignInPasswordBlur = () => {
+    const err = validateRequired(signInPassword);
+    if (err) {
+      setSignInErrors((prev) => ({ ...prev, password: err }));
+    } else {
+      setSignInErrors((prev) => ({ ...prev, password: undefined }));
+    }
+  };
+
+  const handleSignInPasswordChange = (val: string) => {
+    setSignInPassword(val);
+    if (val && signInErrors.password) {
+      setSignInErrors((prev) => ({ ...prev, password: undefined }));
+    }
+  };
+
   // Sign In handler - Real server-side authentication
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
     setAuthError(null);
     setAuthSuccessMsg(null);
 
-    const errors: { email?: string; password?: string } = {};
-    if (!signInEmail.trim()) {
-      errors.email = 'Email address is required.';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signInEmail)) {
-      errors.email = 'Please enter a valid email address.';
-    }
+    const errors: { email?: string; customerId?: string; password?: string } = {};
+    const emailErr = validateEmail(signInEmail);
+    if (emailErr) errors.email = emailErr;
 
-    if (!signInPassword) {
-      errors.password = 'Password is required.';
-    }
+    const customerIdErr = validateRequired(signInCustomerId);
+    if (customerIdErr) errors.customerId = customerIdErr;
+
+    const passwordErr = validateRequired(signInPassword);
+    if (passwordErr) errors.password = passwordErr;
 
     if (Object.keys(errors).length > 0) {
       setSignInErrors(errors);
+      return;
+    }
+
+    // Underlying 4-digit validation: generic authentication error on failure
+    if (!isCustomerIdValid(signInCustomerId)) {
+      setAuthError('Invalid Customer ID or password.');
       return;
     }
 
@@ -559,6 +653,7 @@ export default function BookingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: signInEmail.trim().toLowerCase(),
+          customerId: signInCustomerId.trim(),
           password: signInPassword,
         }),
       });
@@ -566,14 +661,14 @@ export default function BookingPage() {
       const data = await res.json();
       if (!res.ok || !data.success) {
         setAuthLoading(false);
-        setAuthError(data.error || 'Email or password is incorrect.');
+        setAuthError(data.error || 'Invalid Customer ID or password.');
         return;
       }
 
       setAuthLoading(false);
       const loggedUser: UserProfile = {
         id: data.user.id,
-        name: data.user.name || signInEmail.split('@')[0],
+        name: data.user.name || signInEmail.trim().split('@')[0],
         email: data.user.email,
         role: data.user.role,
       };
@@ -591,6 +686,103 @@ export default function BookingPage() {
     }
   };
 
+  // Validation handlers: Sign Up
+  const handleSignUpNameChange = (val: string) => {
+    setSignUpName(val);
+    if (signUpErrors.name) {
+      const err = validateFullName(val);
+      if (!err) {
+        setSignUpErrors((prev) => ({ ...prev, name: undefined }));
+      }
+    }
+  };
+
+  const handleSignUpNameBlur = () => {
+    const err = validateFullName(signUpName);
+    if (err) {
+      setSignUpErrors((prev) => ({ ...prev, name: err }));
+    } else {
+      setSignUpErrors((prev) => ({ ...prev, name: undefined }));
+    }
+  };
+
+  const handleSignUpEmailChange = (val: string) => {
+    setSignUpEmail(val);
+    if (signUpErrors.email) {
+      if (val.trim() && EMAIL_REGEX.test(val.trim())) {
+        setSignUpErrors((prev) => ({ ...prev, email: undefined }));
+      } else if (signUpErrors.email === 'This field must not be empty' && val.trim()) {
+        setSignUpErrors((prev) => ({ ...prev, email: undefined }));
+      }
+    }
+  };
+
+  const handleSignUpEmailBlur = () => {
+    const trimmed = signUpEmail.trim();
+    if (!trimmed) {
+      setSignUpErrors((prev) => ({ ...prev, email: 'This field must not be empty' }));
+    } else if (!EMAIL_REGEX.test(trimmed)) {
+      setSignUpErrors((prev) => ({ ...prev, email: 'Enter a valid email address' }));
+    } else {
+      setSignUpErrors((prev) => ({ ...prev, email: undefined }));
+    }
+  };
+
+  const handleSignUpPasswordChange = (val: string) => {
+    setSignUpPassword(val);
+    if (!showSignUpPasswordHint && val.length > 0) {
+      setShowSignUpPasswordHint(true);
+    }
+    if (signUpErrors.password) {
+      if (val.length >= 8) {
+        setSignUpErrors((prev) => ({ ...prev, password: undefined }));
+      }
+    }
+    if (signUpConfirmPassword && signUpErrors.confirmPassword) {
+      const confirmErr = validateConfirmPassword(signUpConfirmPassword, val);
+      if (!confirmErr) {
+        setSignUpErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+      }
+    }
+  };
+
+  const handleSignUpPasswordBlur = () => {
+    const err = validatePassword(signUpPassword);
+    if (err) {
+      setSignUpErrors((prev) => ({ ...prev, password: err }));
+    } else {
+      setSignUpErrors((prev) => ({ ...prev, password: undefined }));
+    }
+  };
+
+  const handleSignUpConfirmPasswordChange = (val: string) => {
+    setSignUpConfirmPassword(val);
+    if (signUpErrors.confirmPassword) {
+      const err = validateConfirmPassword(val, signUpPassword);
+      if (!err) {
+        setSignUpErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+      }
+    }
+  };
+
+  const handleSignUpConfirmPasswordBlur = () => {
+    const err = validateConfirmPassword(signUpConfirmPassword, signUpPassword);
+    if (err) {
+      setSignUpErrors((prev) => ({ ...prev, confirmPassword: err }));
+    } else {
+      setSignUpErrors((prev) => ({ ...prev, confirmPassword: undefined }));
+    }
+  };
+
+  const isSignUpNameValid = isFullNameValid(signUpName);
+  const isSignUpEmailValid = isEmailValid(signUpEmail);
+  const isSignUpPasswordValid = isPasswordValid(signUpPassword);
+  const isSignUpConfirmValid = isConfirmPasswordValid(signUpConfirmPassword, signUpPassword);
+
+  const areAllSignUpFieldsValid = isSignUpNameValid && isSignUpEmailValid && isSignUpPasswordValid && isSignUpConfirmValid;
+  const isSignUpFormValid = areAllSignUpFieldsValid && signUpAgreeToTerms;
+  const showTermsRequiredSignal = (areAllSignUpFieldsValid && !signUpAgreeToTerms) || !!signUpErrors.terms;
+
   // Sign Up handler
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -602,28 +794,23 @@ export default function BookingPage() {
       email?: string;
       password?: string;
       confirmPassword?: string;
+      terms?: string;
     } = {};
 
-    if (!signUpName.trim() || signUpName.trim().length < 2) {
-      errors.name = 'Full name must be at least 2 characters.';
-    } else if (signUpName.trim().length > 100) {
-      errors.name = 'Full name cannot exceed 100 characters.';
-    }
+    const nameErr = validateFullName(signUpName);
+    if (nameErr) errors.name = nameErr;
 
-    if (!signUpEmail.trim()) {
-      errors.email = 'Email address is required.';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(signUpEmail)) {
-      errors.email = 'Please enter a valid email address.';
-    }
+    const emailErr = validateEmail(signUpEmail);
+    if (emailErr) errors.email = emailErr;
 
-    if (!signUpPassword) {
-      errors.password = 'Password is required.';
-    } else if (signUpPassword.length < 8) {
-      errors.password = 'Password must be at least 8 characters.';
-    }
+    const passwordErr = validatePassword(signUpPassword);
+    if (passwordErr) errors.password = passwordErr;
 
-    if (signUpPassword !== signUpConfirmPassword) {
-      errors.confirmPassword = 'Passwords do not match.';
+    const confirmErr = validateConfirmPassword(signUpConfirmPassword, signUpPassword);
+    if (confirmErr) errors.confirmPassword = confirmErr;
+
+    if (!signUpAgreeToTerms) {
+      errors.terms = 'You must agree to the Terms and Conditions to create an account.';
     }
 
     if (Object.keys(errors).length > 0) {
@@ -668,7 +855,7 @@ export default function BookingPage() {
       if (typeof window !== 'undefined') {
         sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(newUser));
       }
-      setAuthSuccessMsg('Account created and saved to database! Resuming your booking...');
+      setAuthSuccessMsg('Account created successfully! Returning to your booking...');
       setTimeout(() => {
         setStep(4);
       }, 700);
@@ -1523,7 +1710,7 @@ export default function BookingPage() {
 
             {/* Sign In Form */}
             {authMode === 'signin' ? (
-              <form onSubmit={handleSignIn} className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4 shadow-soft">
+              <form noValidate onSubmit={handleSignIn} className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4 shadow-soft">
                 <div>
                   <label className="block type-label-medium font-bold text-on-surface mb-1" htmlFor="signin-email">
                     Email Address
@@ -1532,14 +1719,60 @@ export default function BookingPage() {
                     id="signin-email"
                     type="email"
                     value={signInEmail}
-                    onChange={(e) => setSignInEmail(e.target.value)}
+                    onChange={(e) => handleSignInEmailChange(e.target.value)}
+                    onBlur={handleSignInEmailBlur}
                     placeholder="name@example.com"
+                    autoComplete="email"
+                    aria-invalid={!!signInErrors.email}
+                    aria-describedby={signInErrors.email ? 'signin-email-error' : undefined}
                     className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
-                      signInErrors.email ? 'border-error ring-1 ring-error' : 'border-outline-variant'
+                      signInErrors.email ? 'border-error ring-1 ring-error focus:ring-error' : 'border-outline-variant'
                     }`}
                   />
                   {signInErrors.email && (
-                    <p className="text-xs text-error mt-1 font-semibold">{signInErrors.email}</p>
+                    <div
+                      id="signin-email-error"
+                      role="alert"
+                      className="flex items-center gap-1.5 mt-1.5 text-xs text-error font-semibold"
+                    >
+                      <CautionIcon />
+                      <span>{signInErrors.email}</span>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block type-label-medium font-bold text-on-surface mb-1" htmlFor="signin-customer-id">
+                    Customer ID
+                  </label>
+                  <input
+                    id="signin-customer-id"
+                    type="text"
+                    inputMode="numeric"
+                    value={signInCustomerId}
+                    onChange={(e) => handleSignInCustomerIdChange(e.target.value)}
+                    onBlur={handleSignInCustomerIdBlur}
+                    onKeyDown={(e) => {
+                      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+                        e.preventDefault();
+                      }
+                    }}
+                    autoComplete="off"
+                    aria-invalid={!!signInErrors.customerId}
+                    aria-describedby={signInErrors.customerId ? 'signin-customer-id-error' : undefined}
+                    className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
+                      signInErrors.customerId ? 'border-error ring-1 ring-error focus:ring-error' : 'border-outline-variant'
+                    }`}
+                  />
+                  {signInErrors.customerId && (
+                    <div
+                      id="signin-customer-id-error"
+                      role="alert"
+                      className="flex items-center gap-1.5 mt-1.5 text-xs text-error font-semibold"
+                    >
+                      <CautionIcon />
+                      <span>{signInErrors.customerId}</span>
+                    </div>
                   )}
                 </div>
 
@@ -1548,26 +1781,36 @@ export default function BookingPage() {
                     <label className="block text-xs font-bold text-on-surface" htmlFor="signin-password">
                       Password
                     </label>
-                    <button
-                      type="button"
-                      onClick={() => alert('Password reset link will be sent to your email address per Flow 12.')}
+                    <Link
+                      href="/auth?mode=reset&returnUrl=/book"
                       className="text-xs font-semibold text-primary hover:underline"
                     >
                       Forgot password?
-                    </button>
+                    </Link>
                   </div>
                   <input
                     id="signin-password"
                     type="password"
                     value={signInPassword}
-                    onChange={(e) => setSignInPassword(e.target.value)}
+                    onChange={(e) => handleSignInPasswordChange(e.target.value)}
+                    onBlur={handleSignInPasswordBlur}
                     placeholder="••••••••"
+                    autoComplete="current-password"
+                    aria-invalid={!!signInErrors.password}
+                    aria-describedby={signInErrors.password ? 'signin-password-error' : undefined}
                     className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
-                      signInErrors.password ? 'border-error ring-1 ring-error' : 'border-outline-variant'
+                      signInErrors.password ? 'border-error ring-1 ring-error focus:ring-error' : 'border-outline-variant'
                     }`}
                   />
                   {signInErrors.password && (
-                    <p className="text-xs text-error mt-1 font-semibold">{signInErrors.password}</p>
+                    <div
+                      id="signin-password-error"
+                      role="alert"
+                      className="flex items-center gap-1.5 mt-1.5 text-xs text-error font-semibold"
+                    >
+                      <CautionIcon />
+                      <span>{signInErrors.password}</span>
+                    </div>
                   )}
                 </div>
 
@@ -1602,7 +1845,7 @@ export default function BookingPage() {
               </form>
             ) : (
               /* Create Account Form */
-              <form onSubmit={handleSignUp} className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4 shadow-soft">
+              <form noValidate onSubmit={handleSignUp} className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4 shadow-soft">
                 <div>
                   <label className="block type-label-medium font-bold text-on-surface mb-1" htmlFor="signup-name">
                     Full Name
@@ -1611,14 +1854,25 @@ export default function BookingPage() {
                     id="signup-name"
                     type="text"
                     value={signUpName}
-                    onChange={(e) => setSignUpName(e.target.value)}
+                    onChange={(e) => handleSignUpNameChange(e.target.value)}
+                    onBlur={handleSignUpNameBlur}
                     placeholder="e.g. Juliet Ogunleye"
+                    autoComplete="name"
+                    aria-invalid={!!signUpErrors.name}
+                    aria-describedby={signUpErrors.name ? 'signup-name-error' : undefined}
                     className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
-                      signUpErrors.name ? 'border-error ring-1 ring-error' : 'border-outline-variant'
+                      signUpErrors.name ? 'border-error ring-1 ring-error focus:ring-error' : 'border-outline-variant'
                     }`}
                   />
                   {signUpErrors.name && (
-                    <p className="text-xs text-error mt-1 font-semibold">{signUpErrors.name}</p>
+                    <div
+                      id="signup-name-error"
+                      role="alert"
+                      className="flex items-center gap-1.5 mt-1.5 text-xs text-error font-semibold"
+                    >
+                      <CautionIcon />
+                      <span>{signUpErrors.name}</span>
+                    </div>
                   )}
                 </div>
 
@@ -1630,14 +1884,25 @@ export default function BookingPage() {
                     id="signup-email"
                     type="email"
                     value={signUpEmail}
-                    onChange={(e) => setSignUpEmail(e.target.value)}
+                    onChange={(e) => handleSignUpEmailChange(e.target.value)}
+                    onBlur={handleSignUpEmailBlur}
                     placeholder="name@example.com"
+                    autoComplete="email"
+                    aria-invalid={!!signUpErrors.email}
+                    aria-describedby={signUpErrors.email ? 'signup-email-error' : undefined}
                     className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
-                      signUpErrors.email ? 'border-error ring-1 ring-error' : 'border-outline-variant'
+                      signUpErrors.email ? 'border-error ring-1 ring-error focus:ring-error' : 'border-outline-variant'
                     }`}
                   />
                   {signUpErrors.email && (
-                    <p className="text-xs text-error mt-1 font-semibold">{signUpErrors.email}</p>
+                    <div
+                      id="signup-email-error"
+                      role="alert"
+                      className="flex items-center gap-1.5 mt-1.5 text-xs text-error font-semibold"
+                    >
+                      <CautionIcon />
+                      <span>{signUpErrors.email}</span>
+                    </div>
                   )}
                 </div>
 
@@ -1649,14 +1914,36 @@ export default function BookingPage() {
                     id="signup-password"
                     type="password"
                     value={signUpPassword}
-                    onChange={(e) => setSignUpPassword(e.target.value)}
+                    onChange={(e) => handleSignUpPasswordChange(e.target.value)}
+                    onBlur={handleSignUpPasswordBlur}
                     placeholder="At least 8 characters"
+                    autoComplete="new-password"
+                    aria-invalid={!!signUpErrors.password}
+                    aria-describedby={
+                      signUpErrors.password
+                        ? 'signup-password-error'
+                        : showSignUpPasswordHint
+                        ? 'signup-password-hint'
+                        : undefined
+                    }
                     className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
-                      signUpErrors.password ? 'border-error ring-1 ring-error' : 'border-outline-variant'
+                      signUpErrors.password ? 'border-error ring-1 ring-error focus:ring-error' : 'border-outline-variant'
                     }`}
                   />
+                  {showSignUpPasswordHint && (
+                    <p id="signup-password-hint" className="type-body-small text-on-surface-variant mt-1">
+                      Password must be at least 8 characters.
+                    </p>
+                  )}
                   {signUpErrors.password && (
-                    <p className="text-xs text-error mt-1 font-semibold">{signUpErrors.password}</p>
+                    <div
+                      id="signup-password-error"
+                      role="alert"
+                      className="flex items-center gap-1.5 mt-1.5 text-xs text-error font-semibold"
+                    >
+                      <CautionIcon />
+                      <span>{signUpErrors.password}</span>
+                    </div>
                   )}
                 </div>
 
@@ -1668,21 +1955,84 @@ export default function BookingPage() {
                     id="signup-confirm-password"
                     type="password"
                     value={signUpConfirmPassword}
-                    onChange={(e) => setSignUpConfirmPassword(e.target.value)}
+                    onChange={(e) => handleSignUpConfirmPasswordChange(e.target.value)}
+                    onBlur={handleSignUpConfirmPasswordBlur}
                     placeholder="Confirm your password"
+                    autoComplete="new-password"
+                    aria-invalid={!!signUpErrors.confirmPassword}
+                    aria-describedby={signUpErrors.confirmPassword ? 'signup-confirm-password-error' : undefined}
                     className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
-                      signUpErrors.confirmPassword ? 'border-error ring-1 ring-error' : 'border-outline-variant'
+                      signUpErrors.confirmPassword ? 'border-error ring-1 ring-error focus:ring-error' : 'border-outline-variant'
                     }`}
                   />
                   {signUpErrors.confirmPassword && (
-                    <p className="text-xs text-error mt-1 font-semibold">{signUpErrors.confirmPassword}</p>
+                    <div
+                      id="signup-confirm-password-error"
+                      role="alert"
+                      className="flex items-center gap-1.5 mt-1.5 text-xs text-error font-semibold"
+                    >
+                      <CautionIcon />
+                      <span>{signUpErrors.confirmPassword}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Terms and Conditions Acceptance Checkbox */}
+                <div>
+                  <div className="flex items-start gap-3 mt-1">
+                    <div className="flex items-center h-5 mt-0.5">
+                      <input
+                        id="book-signup-terms"
+                        type="checkbox"
+                        checked={signUpAgreeToTerms}
+                        onChange={(e) => {
+                          setSignUpAgreeToTerms(e.target.checked);
+                          if (signUpErrors.terms) {
+                            setSignUpErrors((prev) => ({ ...prev, terms: undefined }));
+                          }
+                        }}
+                        aria-invalid={showTermsRequiredSignal}
+                        aria-describedby={showTermsRequiredSignal ? 'book-signup-terms-error' : undefined}
+                        className={`h-4 w-4 rounded border text-primary focus:ring-2 focus:ring-primary focus:outline-none cursor-pointer transition-colors ${
+                          showTermsRequiredSignal
+                            ? 'border-error ring-1 ring-error'
+                            : 'border-outline-variant'
+                        }`}
+                      />
+                    </div>
+                    <label
+                      htmlFor="book-signup-terms"
+                      className="type-body-medium text-xs text-on-surface leading-normal cursor-pointer select-none"
+                    >
+                      I agree to the{' '}
+                      <a
+                        href="/terms"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-bold text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        Terms and Conditions
+                      </a>
+                      .
+                    </label>
+                  </div>
+                  {showTermsRequiredSignal && (
+                    <div
+                      id="book-signup-terms-error"
+                      role="alert"
+                      className="flex items-center gap-1.5 text-xs text-error mt-1.5 font-semibold"
+                    >
+                      <CautionIcon />
+                      <span>{signUpErrors.terms || 'You must agree to the Terms and Conditions to create an account.'}</span>
+                    </div>
                   )}
                 </div>
 
                 <button
                   type="submit"
-                  disabled={authLoading}
-                  className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-6 py-3 rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed"
+                  disabled={!isSignUpFormValid || authLoading}
+                  className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-6 py-3 rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed mt-2"
                 >
                   {authLoading ? (
                     <span className="flex items-center gap-2">
@@ -1693,7 +2043,7 @@ export default function BookingPage() {
                       Creating account...
                     </span>
                   ) : (
-                    <span>Create Account & Continue</span>
+                    <span>Create Account & Continue Booking</span>
                   )}
                 </button>
 

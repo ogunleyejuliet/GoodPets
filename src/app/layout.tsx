@@ -1,11 +1,12 @@
 import type { Metadata } from 'next';
-import { Nunito } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 
-const nunito = Nunito({
-  subsets: ['latin'],
+const nunito = localFont({
+  src: '../../public/fonts/Nunito-VariableFont_wght.ttf',
   variable: '--font-nunito',
   display: 'swap',
+  adjustFontFallback: 'Arial',
 });
 
 export const metadata: Metadata = {

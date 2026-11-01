@@ -1,0 +1,10 @@
+
+VM628:1 === GOOD PETS EVIDENCE 04: FORM SWITCHING LOG AUDIT ===
+VM628:2 1. Current URL: http://localhost:3000/auth?mode=reset
+VM628:3 2. Window global context persisted (No reload): true
+VM628:4 3. Window probe ID match: audit_y8c13ew
+VM628:5 4. sessionStorage probe match: audit_y8c13ew
+VM628:6 5. Session intact (IDs equal): true
+VM628:10 6. Performance navigation entries (Must equal 1): 1
+VM628:14 7. History entries traversed: 19
+undefined

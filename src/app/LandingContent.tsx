@@ -74,10 +74,16 @@ export default function LandingContent() {
             {/* Desktop Right Actions */}
             <div className="hidden md:flex items-center gap-4">
               <Link
-                href="/book"
-                className="type-label-large text-primary hover:text-on-primary-container px-5 py-2.5 rounded-full transition-colors cursor-pointer"
+                href="/auth?mode=login"
+                className="type-label-large text-primary hover:text-on-primary-container px-4 py-2.5 rounded-full transition-colors cursor-pointer"
               >
                 Sign In
+              </Link>
+              <Link
+                href="/auth?mode=signup"
+                className="type-label-large text-on-surface hover:text-primary px-4 py-2.5 rounded-full border border-outline-variant hover:border-outline transition-colors cursor-pointer"
+              >
+                Create Account
               </Link>
               {/* Primary CTA using primary semantic colour role */}
               <Link
@@ -156,11 +162,18 @@ export default function LandingContent() {
             </nav>
             <div className="pt-4 border-t border-outline-variant flex flex-col gap-3">
               <Link
-                href="/book"
+                href="/auth?mode=login"
                 onClick={() => setMobileMenuOpen(false)}
                 className="type-label-large w-full text-center py-3 text-primary border border-outline rounded-full hover:bg-surface-container-low transition-colors cursor-pointer"
               >
                 Sign In
+              </Link>
+              <Link
+                href="/auth?mode=signup"
+                onClick={() => setMobileMenuOpen(false)}
+                className="type-label-large w-full text-center py-3 text-on-surface border border-outline-variant rounded-full hover:bg-surface-container-low transition-colors cursor-pointer"
+              >
+                Create Account
               </Link>
               <Link
                 href="/book"
@@ -190,7 +203,7 @@ export default function LandingContent() {
                 </div>
 
                 {/* Headline: Responsive clamp + deliberate max width */}
-                <h1 className="type-display-medium sm:type-display-large font-extrabold max-w-[18ch] sm:max-w-2xl tracking-tight text-on-surface leading-[1.18] text-balance">
+                <h1 className="type-display-medium sm:type-display-large font-extrabold max-w-[14ch] sm:max-w-md tracking-tight text-on-surface leading-[1.18] text-balance">
                   Your Pet’s <span className="text-primary">Favourite</span> Place.
                 </h1>
 
