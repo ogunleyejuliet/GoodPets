@@ -118,21 +118,21 @@ export function isConfirmPasswordValid(value: string, passwordValue: string): bo
 /**
  * Validates a Customer ID:
  * - Must not be empty.
- * - Must be exactly 4 digits (e.g. 1001 or 0042).
+ * - Format guidance is kept generic to avoid enumeration risks.
  * - Preserves leading zeros.
  */
 export function validateCustomerId(value: string): string | undefined {
   if (!value || !value.trim()) {
     return 'This field must not be empty';
   }
-  const trimmed = value.trim();
-  if (!/^\d{4}$/.test(trimmed)) {
-    return 'Customer ID must be exactly 4 digits.';
-  }
   return undefined;
 }
 
+/**
+ * Underlying 4-digit validation for Customer ID.
+ */
 export function isCustomerIdValid(value: string): boolean {
-  return validateCustomerId(value) === undefined;
+  if (!value || !value.trim()) return false;
+  return /^\d{4}$/.test(value.trim());
 }
 

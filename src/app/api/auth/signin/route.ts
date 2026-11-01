@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { email, password } = body;
+    const { email, customerId, password } = body;
 
     // 1. Validation
     if (!email || typeof email !== 'string' || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
@@ -31,6 +31,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Server-side Customer ID validation
+    if (customerId !== undefined) {
+      if (!customerId || typeof customerId !== 'string' || !/^\d{4}$/.test(customerId.trim())) {
+        return NextResponse.json(
+          { success: false, error: 'Invalid Customer ID or password.' },
+          { status: 401 }
+        );
+      }
+    }
+
     const normalizedEmail = email.trim().toLowerCase();
 
     // 2. Query user from database
@@ -42,7 +52,7 @@ export async function POST(request: NextRequest) {
       // Run dummy verification to prevent timing attacks / user enumeration (PRD FR-003, BR-045)
       await verify(DUMMY_ARGON2_HASH, password).catch(() => false);
       return NextResponse.json(
-        { success: false, error: 'Email or password is incorrect.' },
+        { success: false, error: 'Invalid Customer ID or password.' },
         { status: 401 }
       );
     }
@@ -51,7 +61,7 @@ export async function POST(request: NextRequest) {
     const isValid = await verify(user.passwordHash, password);
     if (!isValid) {
       return NextResponse.json(
-        { success: false, error: 'Email or password is incorrect.' },
+        { success: false, error: 'Invalid Customer ID or password.' },
         { status: 401 }
       );
     }

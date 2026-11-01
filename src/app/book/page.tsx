@@ -10,6 +10,7 @@ import {
   validatePassword,
   validateConfirmPassword,
   validateCustomerId,
+  isCustomerIdValid,
   isFullNameValid,
   isEmailValid,
   isPasswordValid,
@@ -626,7 +627,7 @@ export default function BookingPage() {
     const emailErr = validateEmail(signInEmail);
     if (emailErr) errors.email = emailErr;
 
-    const customerIdErr = validateCustomerId(signInCustomerId);
+    const customerIdErr = validateRequired(signInCustomerId);
     if (customerIdErr) errors.customerId = customerIdErr;
 
     const passwordErr = validateRequired(signInPassword);
@@ -634,6 +635,12 @@ export default function BookingPage() {
 
     if (Object.keys(errors).length > 0) {
       setSignInErrors(errors);
+      return;
+    }
+
+    // Underlying 4-digit validation: generic authentication error on failure
+    if (!isCustomerIdValid(signInCustomerId)) {
+      setAuthError('Invalid Customer ID or password.');
       return;
     }
 
@@ -646,6 +653,7 @@ export default function BookingPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: signInEmail.trim().toLowerCase(),
+          customerId: signInCustomerId.trim(),
           password: signInPassword,
         }),
       });
@@ -653,7 +661,7 @@ export default function BookingPage() {
       const data = await res.json();
       if (!res.ok || !data.success) {
         setAuthLoading(false);
-        setAuthError(data.error || 'Email or password is incorrect.');
+        setAuthError(data.error || 'Invalid Customer ID or password.');
         return;
       }
 
@@ -1749,7 +1757,6 @@ export default function BookingPage() {
                         e.preventDefault();
                       }
                     }}
-                    placeholder="e.g. 1001 or 3214"
                     autoComplete="off"
                     aria-invalid={!!signInErrors.customerId}
                     aria-describedby={signInErrors.customerId ? 'signin-customer-id-error' : undefined}

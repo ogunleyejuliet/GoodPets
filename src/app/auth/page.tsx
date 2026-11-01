@@ -11,6 +11,7 @@ import {
   validatePassword,
   validateConfirmPassword,
   validateCustomerId,
+  isCustomerIdValid,
   EMAIL_REGEX,
 } from '@/lib/auth-validation';
 
@@ -166,7 +167,7 @@ function AuthContent() {
       errors.email = emailErr;
     }
 
-    const customerIdErr = validateCustomerId(loginCustomerId);
+    const customerIdErr = validateRequired(loginCustomerId);
     if (customerIdErr) {
       errors.customerId = customerIdErr;
     }
@@ -181,6 +182,12 @@ function AuthContent() {
       return;
     }
 
+    // Underlying 4-digit validation: generic authentication error on failure
+    if (!isCustomerIdValid(loginCustomerId)) {
+      setLoginServerError('Invalid Customer ID or password.');
+      return;
+    }
+
     setLoginErrors({});
     setLoginLoading(true);
 
@@ -190,6 +197,7 @@ function AuthContent() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: loginEmail.trim().toLowerCase(),
+          customerId: loginCustomerId.trim(),
           password: loginPassword,
         }),
       });
@@ -198,7 +206,7 @@ function AuthContent() {
 
       if (!res.ok || !data.success) {
         setLoginLoading(false);
-        setLoginServerError(data.error || 'Email or password is incorrect.');
+        setLoginServerError(data.error || 'Invalid Customer ID or password.');
         return;
       }
 
@@ -570,7 +578,6 @@ function AuthContent() {
                       e.preventDefault();
                     }
                   }}
-                  placeholder="e.g. 1001 or 3214"
                   autoComplete="off"
                   aria-invalid={!!loginErrors.customerId}
                   aria-describedby={loginErrors.customerId ? 'auth-login-customer-id-error' : undefined}
