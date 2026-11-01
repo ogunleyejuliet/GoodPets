@@ -1,0 +1,137 @@
+# Evidence 16 — Direct Request Command and Response
+
+## 1. Endpoint Tested
+
+- **Method:** `POST`
+- **Endpoint:** `http://localhost:3000/api/auth/signup`
+- **Purpose:** Test server-side signup validation by sending HTTP requests directly to the API, bypassing the website form.
+- **Tool:** Windows PowerShell (`Invoke-WebRequest`)
+
+## 2. Test 1 — Invalid Name
+
+### Request command
+
+```powershell
+$body = @{
+    name = "A"
+    email = "direct-test-$(Get-Date -Format 'yyyyMMddHHmmss')@example.com"
+    password = "        "
+    confirmPassword = "        "
+} | ConvertTo-Json
+
+try {
+    $response = Invoke-WebRequest `
+        -Uri "http://localhost:3000/api/auth/signup" `
+        -Method POST `
+        -ContentType "application/json" `
+        -Body $body
+
+    "HTTP Status: $([int]$response.StatusCode)"
+    "Response Body:"
+    $response.Content
+}
+catch {
+    "HTTP Status: $([int]$_.Exception.Response.StatusCode)"
+    "Response Body:"
+    $reader = [System.IO.StreamReader]::new($_.Exception.Response.GetResponseStream())
+    $reader.ReadToEnd()
+    $reader.Dispose()
+}
+```
+
+### Actual response
+
+```text
+HTTP Status: 400
+Response Body:
+{"success":false,"error":"Full name must be between 2 and 100 characters."}
+```
+
+### Observation
+
+The API rejected the one-character name and returned HTTP 400 with a JSON validation error. This confirms that the server performs name validation independently of the frontend form.
+
+## 3. Test 2 — Whitespace-Only Password
+
+### Request command
+
+```powershell
+$body = @{
+    name = "Test Customer"
+    email = "direct-test-$(Get-Date -Format 'yyyyMMddHHmmss')@example.com"
+    password = "        "
+    confirmPassword = "        "
+} | ConvertTo-Json
+
+try {
+    $response = Invoke-WebRequest `
+        -Uri "http://localhost:3000/api/auth/signup" `
+        -Method POST `
+        -ContentType "application/json" `
+        -Body $body
+
+    "HTTP Status: $([int]$response.StatusCode)"
+    "Response Body:"
+    $response.Content
+}
+catch {
+    "HTTP Status: $([int]$_.Exception.Response.StatusCode)"
+    "Response Body:"
+    $reader = [System.IO.StreamReader]::new($_.Exception.Response.GetResponseStream())
+    $reader.ReadToEnd()
+    $reader.Dispose()
+}
+```
+
+### Actual PowerShell warning
+
+```text
+Security Warning: Script Execution Risk
+Invoke-WebRequest parses the content of the web page. Script
+code in the web page might be run when the page is parsed.
+RECOMMENDED ACTION:
+Use the -UseBasicParsing switch to avoid script code
+execution.
+
+Do you want to continue?
+
+[Y] Yes  [A] Yes to All  [N] No  [L] No to All  [S] Suspend
+[?] Help(default is "N"): y
+```
+
+This was a PowerShell warning, not an API validation response. The request continued after `y` was entered.
+
+### Actual response
+
+```text
+HTTP Status: 201
+Response Body:
+{"success":true,"user":{"id":"cmvyc7bvr0000tpycx4lwlcwp","name":"Test Customer","email":"direct-test-20261101222311@example.com","role":"CUSTOMER","createdAt":"2026-11-01T21:23:29.894Z"}}
+```
+
+### Observation
+
+The API accepted the whitespace-only password and created the account, returning HTTP 201.
+
+The test account details returned by the API were:
+
+- **Name:** Test Customer
+- **Email:** direct-test-20261101222311@example.com
+- **Role:** CUSTOMER
+
+## 4. Findings
+
+| Test | Actual status | Finding |
+|---|---:|---|
+| One-character name | 400 | Server correctly rejected the invalid name. |
+| Eight-space password | 201 | Server accepted the whitespace-only password and created an account. |
+
+The direct requests demonstrate that the backend independently validates the submitted name. However, the password validation has a weakness: it checks whether the password contains at least eight characters but does not reject a password made entirely of whitespace.
+
+## 5. Conclusion
+
+The direct API tests confirmed that client-side validation can be bypassed and that server-side validation must independently enforce all required rules.
+
+The name validation worked as expected. The whitespace-only password test exposed a server-side validation gap because the API accepted the password and created an account.
+
+Both results were recorded from actual HTTP responses. No claim is made that the password validation issue has been fixed.
