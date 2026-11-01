@@ -1,0 +1,67 @@
+# Evidence 17 — Commit List and Rollback
+
+## 1. Commit history before rollback
+
+The following commits were present before reverting the testimonial section:
+
+```text
+53b5d1d fix: css issue
+e37158e added testimonial to landing page
+22e5928 added evidence for databse test and client side val.
+```
+
+The testimonial change was introduced by commit `e37158e`.
+
+## 2. Change selected for rollback
+
+- **Commit ID:** `e37158e`
+- **Commit message:** `added testimonial to landing page`
+- **File affected:** `src/app/LandingContent.tsx`
+- **Change:** Added a testimonial section to the Good Pets landing page.
+
+The subsequent CSS commit, `53b5d1d`, modified `.vscode/settings.json`, not the landing-page component.
+
+## 3. Rollback command
+
+The following command was executed:
+
+```powershell
+git revert e37158e
+```
+
+Git created a new revert commit:
+
+```text
+0eda991 Revert "added testimonial to landing page"
+```
+
+## 4. Commit history after rollback
+
+The resulting Git history was:
+
+```text
+0eda991 (HEAD -> main) Revert "added testimonial to landing page"
+53b5d1d (origin/main, origin/HEAD) fix: css issue
+e37158e added testimonial to landing page
+22e5928 added evidence for databse test and client side val.
+```
+
+## 5. Verification results
+
+- The testimonial section was removed from the landing page.
+- The original testimonial commit remains in Git history.
+- The new revert commit records the reversal.
+- The subsequent CSS commit was preserved.
+- `git status --short --branch` reported:
+
+```text
+## main...origin/main [ahead 1]
+```
+
+This indicates that the local `main` branch contains one additional commit compared with `origin/main`. The revert commit has not been pushed.
+
+## 6. Conclusion
+
+The testimonial section was successfully removed using `git revert` and its exact commit ID.
+
+The original commit was preserved, and Git recorded the reversal as a separate commit. This demonstrates how a previously committed change can be undone without rewriting shared project history.
