@@ -134,7 +134,7 @@
 - **Field & Validation Rule:** The acceptance checkbox must be checked (`true`). Unchecked by default. Displays inline error: `"You must agree to the Terms and Conditions to create an account."`.
 - **When Validation Triggers:** 
   - Evaluated continuously for button enablement.
-  - Inline caution signal displays when all form fields are valid but the checkbox is unchecked, or if the form is submitted without checking.
+  - Inline caution signal displays when the user attempts to submit or clicks the disabled Create Account button without accepting terms. It does not display prematurely while filling other fields.
 - **What Could Go Wrong Without the Rule:** 
   - Customers register without acknowledging business policies, pet vaccination requirements, daycare collection cut-offs, or the no-refund rescheduling policy.
 - **Which Legitimate Users Might Be Inconvenienced or Blocked:** 

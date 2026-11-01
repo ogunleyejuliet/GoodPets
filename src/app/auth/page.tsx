@@ -345,7 +345,29 @@ function AuthContent() {
 
   const areAllSignUpFieldsValid = isNameValid && isEmailValid && isPasswordValid && isConfirmPasswordValid;
   const isSignUpFormValid = areAllSignUpFieldsValid && signUpAgreeToTerms;
-  const showTermsRequiredSignal = (areAllSignUpFieldsValid && !signUpAgreeToTerms) || !!signUpErrors.terms;
+
+  const handleDisabledSignUpClick = () => {
+    const errors: typeof signUpErrors = {};
+    const nameErr = validateFullName(signUpName);
+    if (nameErr) errors.name = nameErr;
+
+    const emailErr = validateEmail(signUpEmail);
+    if (emailErr) errors.email = emailErr;
+
+    const passwordErr = validatePassword(signUpPassword);
+    if (passwordErr) errors.password = passwordErr;
+
+    const confirmErr = validateConfirmPassword(signUpConfirmPassword, signUpPassword);
+    if (confirmErr) errors.confirmPassword = confirmErr;
+
+    if (!signUpAgreeToTerms) {
+      errors.terms = 'You must agree to the Terms and Conditions to create an account.';
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setSignUpErrors((prev) => ({ ...prev, ...errors }));
+    }
+  };
 
   const handleSignUpSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -485,7 +507,8 @@ function AuthContent() {
             <Link
               href={getModeHref('login')}
               scroll={false}
-              className={`flex-1 py-2 text-center text-xs sm:text-sm font-bold rounded-full transition-all cursor-pointer ${
+              aria-current={activeMode === 'login' ? 'page' : undefined}
+              className={`flex-1 py-2 text-center text-xs sm:text-sm font-bold rounded-full transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
                 activeMode === 'login'
                   ? 'bg-surface text-on-surface shadow-soft'
                   : 'text-on-surface-variant hover:text-on-surface'
@@ -496,7 +519,8 @@ function AuthContent() {
             <Link
               href={getModeHref('signup')}
               scroll={false}
-              className={`flex-1 py-2 text-center text-xs sm:text-sm font-bold rounded-full transition-all cursor-pointer ${
+              aria-current={activeMode === 'signup' ? 'page' : undefined}
+              className={`flex-1 py-2 text-center text-xs sm:text-sm font-bold rounded-full transition-all cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 ${
                 activeMode === 'signup'
                   ? 'bg-surface text-on-surface shadow-soft'
                   : 'text-on-surface-variant hover:text-on-surface'
@@ -513,14 +537,22 @@ function AuthContent() {
         {activeMode === 'login' && (
           <div className="space-y-4">
             {loginSuccessMsg && (
-              <div className="bg-success-container text-on-success-container p-3.5 rounded-xl text-xs font-semibold flex items-center gap-2">
-                <span>✓</span>
+              <div
+                role="status"
+                aria-live="polite"
+                className="bg-success-container text-on-success-container p-3.5 rounded-xl text-xs font-semibold flex items-center gap-2"
+              >
+                <span aria-hidden="true">✓</span>
                 <span>{loginSuccessMsg}</span>
               </div>
             )}
             {loginServerError && (
-              <div className="bg-error-container text-on-error-container p-3.5 rounded-xl text-xs font-semibold flex items-center gap-2">
-                <span>⚠️</span>
+              <div
+                role="alert"
+                aria-live="assertive"
+                className="bg-error-container text-on-error-container p-3.5 rounded-xl text-xs font-semibold flex items-center gap-2"
+              >
+                <span aria-hidden="true">⚠️</span>
                 <span>{loginServerError}</span>
               </div>
             )}
@@ -691,14 +723,22 @@ function AuthContent() {
         {activeMode === 'signup' && (
           <div className="space-y-4">
             {signUpSuccessMsg && (
-              <div className="bg-success-container text-on-success-container p-3.5 rounded-xl text-xs font-semibold flex items-center gap-2">
-                <span>✓</span>
+              <div
+                role="status"
+                aria-live="polite"
+                className="bg-success-container text-on-success-container p-3.5 rounded-xl text-xs font-semibold flex items-center gap-2"
+              >
+                <span aria-hidden="true">✓</span>
                 <span>{signUpSuccessMsg}</span>
               </div>
             )}
             {signUpServerError && (
-              <div className="bg-error-container text-on-error-container p-3.5 rounded-xl text-xs font-semibold flex items-center gap-2">
-                <span>⚠️</span>
+              <div
+                role="alert"
+                aria-live="assertive"
+                className="bg-error-container text-on-error-container p-3.5 rounded-xl text-xs font-semibold flex items-center gap-2"
+              >
+                <span aria-hidden="true">⚠️</span>
                 <span>{signUpServerError}</span>
               </div>
             )}
@@ -868,73 +908,84 @@ function AuthContent() {
                           setSignUpErrors((prev) => ({ ...prev, terms: undefined }));
                         }
                       }}
-                      aria-invalid={showTermsRequiredSignal}
-                      aria-describedby={showTermsRequiredSignal ? 'auth-signup-terms-error' : undefined}
+                      aria-invalid={!!signUpErrors.terms}
+                      aria-describedby={signUpErrors.terms ? 'auth-signup-terms-error' : undefined}
                       className={`h-4 w-4 rounded border text-primary focus:ring-2 focus:ring-primary focus:outline-none cursor-pointer transition-colors ${
-                        showTermsRequiredSignal
+                        signUpErrors.terms
                           ? 'border-error ring-1 ring-error'
                           : 'border-outline-variant'
                       }`}
                     />
                   </div>
-                  <label
-                    htmlFor="auth-signup-terms"
-                    className="type-body-medium text-xs text-on-surface leading-normal cursor-pointer select-none"
-                  >
-                    I agree to the{' '}
+                  <div className="type-body-medium text-xs text-on-surface leading-normal select-none">
+                    <label
+                      htmlFor="auth-signup-terms"
+                      className="cursor-pointer"
+                    >
+                      I agree to the{' '}
+                    </label>
                     <a
                       href="/terms"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="font-bold text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
-                      onClick={(e) => e.stopPropagation()}
                     >
                       Terms and Conditions
+                      <span className="sr-only"> (opens in a new tab)</span>
                     </a>
                     .
-                  </label>
+                  </div>
                 </div>
-                {showTermsRequiredSignal && (
+                {signUpErrors.terms && (
                   <div
                     id="auth-signup-terms-error"
                     role="alert"
                     className="flex items-center gap-1.5 text-xs text-error mt-1.5 font-semibold"
                   >
                     <CautionIcon />
-                    <span>{signUpErrors.terms || 'You must agree to the Terms and Conditions to create an account.'}</span>
+                    <span>{signUpErrors.terms}</span>
                   </div>
                 )}
               </div>
 
-              <button
-                type="submit"
-                disabled={!isSignUpFormValid || signUpLoading}
-                className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-6 py-3 rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed mt-2"
+              <div
+                onClick={() => {
+                  if (!isSignUpFormValid && !signUpLoading) {
+                    handleDisabledSignUpClick();
+                  }
+                }}
+                className={`w-full mt-2 ${!isSignUpFormValid ? 'cursor-not-allowed' : ''}`}
               >
-                {signUpLoading ? (
-                  <span className="flex items-center gap-2">
-                    <svg className="animate-spin h-4 w-4 text-current" viewBox="0 0 24 24">
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                        fill="none"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8v8H4z"
-                      />
-                    </svg>
-                    Creating account...
-                  </span>
-                ) : (
-                  <span>Create Account</span>
-                )}
-              </button>
+                <button
+                  type="submit"
+                  disabled={!isSignUpFormValid || signUpLoading}
+                  className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-6 py-3 rounded-full shadow-soft hover:shadow-medium transition-all disabled:opacity-50 cursor-pointer disabled:cursor-not-allowed disabled:pointer-events-none"
+                >
+                  {signUpLoading ? (
+                    <span className="flex items-center gap-2">
+                      <svg className="animate-spin h-4 w-4 text-current" viewBox="0 0 24 24">
+                        <circle
+                          className="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          strokeWidth="4"
+                          fill="none"
+                        />
+                        <path
+                          className="opacity-75"
+                          fill="currentColor"
+                          d="M4 12a8 8 0 018-8v8H4z"
+                        />
+                      </svg>
+                      Creating account...
+                    </span>
+                  ) : (
+                    <span>Create Account</span>
+                  )}
+                </button>
+              </div>
             </form>
 
             <div className="pt-4 border-t border-outline-variant/60 text-center">
@@ -1007,12 +1058,21 @@ function AuthContent() {
                     }}
                     placeholder="name@example.com"
                     autoComplete="email"
+                    aria-invalid={!!resetError}
+                    aria-describedby={resetError ? 'auth-reset-email-error' : undefined}
                     className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
-                      resetError ? 'border-error ring-1 ring-error' : 'border-outline-variant'
+                      resetError ? 'border-error ring-1 ring-error focus:ring-error' : 'border-outline-variant'
                     }`}
                   />
                   {resetError && (
-                    <p className="text-xs text-error mt-1 font-semibold">{resetError}</p>
+                    <div
+                      id="auth-reset-email-error"
+                      role="alert"
+                      className="flex items-center gap-1.5 mt-1.5 text-xs text-error font-semibold"
+                    >
+                      <CautionIcon />
+                      <span>{resetError}</span>
+                    </div>
                   )}
                 </div>
 

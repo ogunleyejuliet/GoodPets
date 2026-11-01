@@ -1,0 +1,27 @@
+# Form Attack Results
+
+## Test environment
+- Application: Good Pets
+- Test method: Manual form testing through the browser
+- Date: 1 November 2026
+
+## Test results
+
+| Input tested | Expected behaviour | Actual result | Status |
+|---|---|---|---|
+| One-character name | Reject the name because it does not contain at least two names. | Displayed: “Please enter your full name (at least two names).” | Passed |
+| Email: `favout@b` | Reject the malformed email address. | Displayed: “Enter a valid email address.” | Passed |
+| Password containing only spaces | Reject a password containing no meaningful characters. | Account creation succeeded. | Failed |
+| Email with a leading space | Reject or normalize the malformed email input. | Displayed an invalid-email error. | Passed |
+| Email with a space in the middle | Reject or normalize the malformed email input. | Displayed an invalid-email error. | Passed |
+| Email: `ytutit@gmail. com` | Reject the email because it contains an invalid space. | Displayed an invalid-email error. | Passed |
+
+## Finding requiring correction
+
+The application allowed an account to be created using a password made entirely of spaces. This means the current password validation does not adequately reject whitespace-only values.
+
+The password should be checked for meaningful non-whitespace content before account creation. The same rule must also be enforced on the server, because browser-side validation can be bypassed.
+
+## Summary
+
+Five of the six tested inputs were rejected as expected. The whitespace-only password test exposed a validation failure that needs investigation and correction. These results describe the observed browser behaviour; they do not establish whether equivalent server-side validation exists.
