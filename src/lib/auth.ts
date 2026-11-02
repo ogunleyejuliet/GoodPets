@@ -12,9 +12,18 @@ export const DUMMY_ARGON2_HASH =
 
 export interface SessionPayload {
   userId: string;
+  customerId?: string | null;
   role: string;
   sessionVersion: number;
   exp: number;
+}
+
+/**
+ * Generates a random 4-digit customer ID between 1000 and 9999 (inclusive).
+ * Uses cryptographically secure random integers.
+ */
+export function generateRandomCustomerId(): string {
+  return crypto.randomInt(1000, 10000).toString();
 }
 
 export function getAuthSecret(): string {
@@ -89,6 +98,7 @@ export async function requireUser(allowedRoles?: string[]) {
     where: { id: payload.userId },
     select: {
       id: true,
+      customerId: true,
       email: true,
       name: true,
       phone: true,

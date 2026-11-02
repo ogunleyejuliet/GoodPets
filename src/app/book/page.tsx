@@ -47,6 +47,7 @@ interface BookingContext {
 
 interface UserProfile {
   id?: string;
+  customerId?: string | null;
   name: string;
   email: string;
   role?: string;
@@ -323,6 +324,7 @@ export default function BookingPage() {
           if (data.authenticated && data.user) {
             const authUser: UserProfile = {
               id: data.user.id,
+              customerId: data.user.customerId,
               name: data.user.name || data.user.email.split('@')[0],
               email: data.user.email,
               role: data.user.role,
@@ -668,6 +670,7 @@ export default function BookingPage() {
       setAuthLoading(false);
       const loggedUser: UserProfile = {
         id: data.user.id,
+        customerId: data.user.customerId,
         name: data.user.name || signInEmail.trim().split('@')[0],
         email: data.user.email,
         role: data.user.role,
@@ -869,6 +872,7 @@ export default function BookingPage() {
       setAuthLoading(false);
       const newUser: UserProfile = {
         id: data.user.id,
+        customerId: data.user.customerId,
         name: data.user.name || signUpName.trim(),
         email: data.user.email,
         role: data.user.role,

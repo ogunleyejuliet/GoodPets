@@ -19,6 +19,7 @@ export type AuthMode = 'login' | 'signup' | 'reset';
 
 interface UserProfile {
   id: string;
+  customerId?: string | null;
   name: string;
   email: string;
   role: string;
@@ -213,6 +214,7 @@ function AuthContent() {
       setLoginLoading(false);
       const loggedUser: UserProfile = {
         id: data.user.id,
+        customerId: data.user.customerId,
         name: data.user.name || loginEmail.trim().split('@')[0],
         email: data.user.email,
         role: data.user.role,
@@ -422,6 +424,7 @@ function AuthContent() {
       setSignUpLoading(false);
       const newUser: UserProfile = {
         id: data.user.id,
+        customerId: data.user.customerId,
         name: data.user.name || signUpName.trim(),
         email: data.user.email,
         role: data.user.role,

@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Server-side Customer ID validation
-    if (customerId !== undefined) {
+    if (customerId !== undefined && customerId !== null) {
       if (!customerId || typeof customerId !== 'string' || !/^\d{4}$/.test(customerId.trim())) {
         return NextResponse.json(
           { success: false, error: 'Invalid Customer ID or password.' },
@@ -46,6 +46,16 @@ export async function POST(request: NextRequest) {
     // 2. Query user from database
     const user = await prisma.user.findUnique({
       where: { email: normalizedEmail },
+      select: {
+        id: true,
+        customerId: true,
+        email: true,
+        name: true,
+        passwordHash: true,
+        role: true,
+        isActive: true,
+        sessionVersion: true,
+      },
     });
 
     if (!user || !user.passwordHash) {
@@ -55,6 +65,17 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'Invalid Customer ID or password.' },
         { status: 401 }
       );
+    }
+
+    // Verify Customer ID match if supplied by customer
+    if (customerId !== undefined && customerId !== null && user.role === 'CUSTOMER') {
+      if (user.customerId && user.customerId !== customerId.trim()) {
+        await verify(DUMMY_ARGON2_HASH, password).catch(() => false);
+        return NextResponse.json(
+          { success: false, error: 'Invalid Customer ID or password.' },
+          { status: 401 }
+        );
+      }
     }
 
     // 3. Verify Argon2id password hash
@@ -77,13 +98,14 @@ export async function POST(request: NextRequest) {
     // 5. Issue session cookie
     const token = signSessionToken({
       userId: user.id,
+      customerId: user.customerId,
       role: user.role,
       sessionVersion: user.sessionVersion,
       exp: Date.now() + 7 * 24 * 60 * 60 * 1000,
     });
 
     console.log(
-      `[${timestamp}] POST /api/auth/signin - Status: 200 - User signed in successfully - ID: ${user.id} - Email: ${user.email} - Role: ${user.role}`
+      `[${timestamp}] POST /api/auth/signin - Status: 200 - User signed in successfully - ID: ${user.id} - Customer ID: ${user.customerId} - Email: ${user.email} - Role: ${user.role}`
     );
 
     const cookieOpts = getSessionCookieOptions();
@@ -91,6 +113,7 @@ export async function POST(request: NextRequest) {
       success: true,
       user: {
         id: user.id,
+        customerId: user.customerId,
         name: user.name,
         email: user.email,
         role: user.role,

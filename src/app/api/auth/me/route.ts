@@ -16,6 +16,7 @@ export async function GET() {
       authenticated: true,
       user: {
         id: user.id,
+        customerId: user.customerId,
         name: user.name,
         email: user.email,
         phone: user.phone,
