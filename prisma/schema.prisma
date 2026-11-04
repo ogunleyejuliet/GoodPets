@@ -201,6 +201,7 @@ model Booking {
   customer User          @relation(fields: [customerId], references: [id], onDelete: Restrict)
   pet      Pet           @relation(fields: [petId], references: [id], onDelete: Restrict)
   units    BookingUnit[]
+  payments Payment[]
 
   @@unique([customerId, idempotencyKey])
   @@index([customerId, startDate])
@@ -219,5 +220,59 @@ model BookingUnit {
 
   @@unique([bookingId, capacityUnitId])
   @@index([capacityUnitId])
+}
+
+// ---------- Payments and Webhooks ----------
+
+enum PaymentStatus {
+  INITIATED
+  SUCCEEDED
+  FAILED
+  ABANDONED
+  DUPLICATE_SUCCESS
+}
+
+enum WebhookStatus {
+  RECEIVED
+  PROCESSED
+  FAILED
+  IGNORED
+}
+
+model Payment {
+  id                    String        @id @default(cuid())
+  bookingId             String
+  reference             String        @unique
+  amountKobo            Int
+  currency              String        @default("NGN")
+  status                PaymentStatus @default(INITIATED)
+  channel               String?
+  paystackTransactionId String?
+  accessCode            String?
+  gatewayResponse       String?
+  verifySummary         Json?
+  initiatedAt           DateTime      @default(now())
+  paidAt                DateTime?
+  verifiedAt            DateTime?
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
+
+  @@index([bookingId])
+  @@index([status, initiatedAt])
+}
+
+model WebhookEvent {
+  id             String        @id @default(cuid())
+  provider       String        @default("paystack")
+  dedupeKey      String        @unique
+  eventType      String
+  reference      String?
+  payloadSummary Json
+  status         WebhookStatus @default(RECEIVED)
+  error          String?
+  receivedAt     DateTime      @default(now())
+  processedAt    DateTime?
+
+  @@index([receivedAt])
 }
 

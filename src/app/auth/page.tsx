@@ -62,6 +62,44 @@ function CautionIcon({ className = 'w-4 h-4 text-error shrink-0' }: { className?
   );
 }
 
+function EyeIcon({ className = 'w-5 h-5 text-on-surface-variant' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function EyeOffIcon({ className = 'w-5 h-5 text-on-surface-variant' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+      <line x1="2" y1="2" x2="22" y2="22" />
+    </svg>
+  );
+}
+
 function AuthContent() {
   const router = useRouter();
   const pathname = usePathname();
@@ -94,6 +132,7 @@ function AuthContent() {
   const [loginEmail, setLoginEmail] = useState('');
   const [loginCustomerId, setLoginCustomerId] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [loginErrors, setLoginErrors] = useState<{ email?: string; customerId?: string; password?: string }>({});
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginServerError, setLoginServerError] = useState<string | null>(null);
@@ -241,6 +280,8 @@ function AuthContent() {
   const [signUpEmail, setSignUpEmail] = useState('');
   const [signUpPassword, setSignUpPassword] = useState('');
   const [signUpConfirmPassword, setSignUpConfirmPassword] = useState('');
+  const [showSignUpPassword, setShowSignUpPassword] = useState(false);
+  const [showSignUpConfirmPassword, setShowSignUpConfirmPassword] = useState(false);
   const [signUpAgreeToTerms, setSignUpAgreeToTerms] = useState(false);
   const [showPasswordHint, setShowPasswordHint] = useState(false);
   const [signUpErrors, setSignUpErrors] = useState<{
@@ -648,20 +689,30 @@ function AuthContent() {
                     Forgot password?
                   </Link>
                 </div>
-                <input
-                  id="auth-login-password"
-                  type="password"
-                  value={loginPassword}
-                  onChange={(e) => handleLoginPasswordChange(e.target.value)}
-                  onBlur={handleLoginPasswordBlur}
-                  placeholder="••••••••"
-                  autoComplete="current-password"
-                  aria-invalid={!!loginErrors.password}
-                  aria-describedby={loginErrors.password ? 'auth-login-password-error' : undefined}
-                  className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
-                    loginErrors.password ? 'border-error ring-1 ring-error focus:ring-error' : 'border-outline-variant'
-                  }`}
-                />
+                <div className="relative">
+                  <input
+                    id="auth-login-password"
+                    type={showLoginPassword ? 'text' : 'password'}
+                    value={loginPassword}
+                    onChange={(e) => handleLoginPasswordChange(e.target.value)}
+                    onBlur={handleLoginPasswordBlur}
+                    placeholder="••••••••"
+                    autoComplete="current-password"
+                    aria-invalid={!!loginErrors.password}
+                    aria-describedby={loginErrors.password ? 'auth-login-password-error' : undefined}
+                    className={`w-full pl-3.5 pr-11 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
+                      loginErrors.password ? 'border-error ring-1 ring-error focus:ring-error' : 'border-outline-variant'
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowLoginPassword((prev) => !prev)}
+                    aria-label={showLoginPassword ? 'Hide password' : 'Show password'}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-on-surface-variant hover:text-on-surface focus:outline-none transition-colors"
+                  >
+                    {showLoginPassword ? <EyeOffIcon /> : <EyeIcon />}
+                  </button>
+                </div>
                 {loginErrors.password && (
                   <div
                     id="auth-login-password-error"
@@ -820,29 +871,39 @@ function AuthContent() {
                 >
                   Password
                 </label>
-                <input
-                  id="auth-signup-password"
-                  type="password"
-                  value={signUpPassword}
-                  onChange={(e) => handleSignUpPasswordChange(e.target.value)}
-                  onBlur={handleSignUpPasswordBlur}
-                  placeholder="At least 8 characters"
-                  autoComplete="new-password"
-                  aria-invalid={!!signUpErrors.password}
-                  aria-describedby={
-                    [
-                      showPasswordHint ? 'auth-signup-password-hint' : '',
-                      signUpErrors.password ? 'auth-signup-password-error' : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' ') || undefined
-                  }
-                  className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
-                    signUpErrors.password
-                      ? 'border-error ring-1 ring-error focus:ring-error'
-                      : 'border-outline-variant'
-                  }`}
-                />
+                <div className="relative">
+                  <input
+                    id="auth-signup-password"
+                    type={showSignUpPassword ? 'text' : 'password'}
+                    value={signUpPassword}
+                    onChange={(e) => handleSignUpPasswordChange(e.target.value)}
+                    onBlur={handleSignUpPasswordBlur}
+                    placeholder="At least 8 characters"
+                    autoComplete="new-password"
+                    aria-invalid={!!signUpErrors.password}
+                    aria-describedby={
+                      [
+                        showPasswordHint ? 'auth-signup-password-hint' : '',
+                        signUpErrors.password ? 'auth-signup-password-error' : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' ') || undefined
+                    }
+                    className={`w-full pl-3.5 pr-11 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
+                      signUpErrors.password
+                        ? 'border-error ring-1 ring-error focus:ring-error'
+                        : 'border-outline-variant'
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSignUpPassword((prev) => !prev)}
+                    aria-label={showSignUpPassword ? 'Hide password' : 'Show password'}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-on-surface-variant hover:text-on-surface focus:outline-none transition-colors"
+                  >
+                    {showSignUpPassword ? <EyeOffIcon /> : <EyeIcon />}
+                  </button>
+                </div>
                 {showPasswordHint && (
                   <p id="auth-signup-password-hint" className="type-body-small text-on-surface-variant mt-1">
                     Password must be at least 8 characters.
@@ -867,24 +928,34 @@ function AuthContent() {
                 >
                   Confirm Password
                 </label>
-                <input
-                  id="auth-signup-confirm-password"
-                  type="password"
-                  value={signUpConfirmPassword}
-                  onChange={(e) => handleSignUpConfirmPasswordChange(e.target.value)}
-                  onBlur={handleSignUpConfirmPasswordBlur}
-                  placeholder="Re-enter your password"
-                  autoComplete="new-password"
-                  aria-invalid={!!signUpErrors.confirmPassword}
-                  aria-describedby={
-                    signUpErrors.confirmPassword ? 'auth-signup-confirm-password-error' : undefined
-                  }
-                  className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
-                    signUpErrors.confirmPassword
-                      ? 'border-error ring-1 ring-error focus:ring-error'
-                      : 'border-outline-variant'
-                  }`}
-                />
+                <div className="relative">
+                  <input
+                    id="auth-signup-confirm-password"
+                    type={showSignUpConfirmPassword ? 'text' : 'password'}
+                    value={signUpConfirmPassword}
+                    onChange={(e) => handleSignUpConfirmPasswordChange(e.target.value)}
+                    onBlur={handleSignUpConfirmPasswordBlur}
+                    placeholder="Re-enter your password"
+                    autoComplete="new-password"
+                    aria-invalid={!!signUpErrors.confirmPassword}
+                    aria-describedby={
+                      signUpErrors.confirmPassword ? 'auth-signup-confirm-password-error' : undefined
+                    }
+                    className={`w-full pl-3.5 pr-11 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
+                      signUpErrors.confirmPassword
+                        ? 'border-error ring-1 ring-error focus:ring-error'
+                        : 'border-outline-variant'
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowSignUpConfirmPassword((prev) => !prev)}
+                    aria-label={showSignUpConfirmPassword ? 'Hide password' : 'Show password'}
+                    className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-on-surface-variant hover:text-on-surface focus:outline-none transition-colors"
+                  >
+                    {showSignUpConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
+                  </button>
+                </div>
                 {signUpErrors.confirmPassword && (
                   <div
                     id="auth-signup-confirm-password-error"

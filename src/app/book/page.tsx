@@ -87,6 +87,44 @@ function CautionIcon({ className = 'w-4 h-4 text-error shrink-0' }: { className?
   );
 }
 
+function EyeIcon({ className = 'w-5 h-5 text-on-surface-variant' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function EyeOffIcon({ className = 'w-5 h-5 text-on-surface-variant' }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" />
+      <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68" />
+      <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61" />
+      <line x1="2" y1="2" x2="22" y2="22" />
+    </svg>
+  );
+}
+
 export default function BookingPage() {
   // Step in the flow:
   // 1 = Choose a Service
@@ -112,6 +150,7 @@ export default function BookingPage() {
   const [signInEmail, setSignInEmail] = useState('');
   const [signInCustomerId, setSignInCustomerId] = useState('');
   const [signInPassword, setSignInPassword] = useState('');
+  const [showSignInPassword, setShowSignInPassword] = useState(false);
   const [signInErrors, setSignInErrors] = useState<{ email?: string; customerId?: string; password?: string }>({});
 
   // Sign Up Form fields
@@ -119,6 +158,8 @@ export default function BookingPage() {
   const [signUpEmail, setSignUpEmail] = useState('');
   const [signUpPassword, setSignUpPassword] = useState('');
   const [signUpConfirmPassword, setSignUpConfirmPassword] = useState('');
+  const [showSignUpPassword, setShowSignUpPassword] = useState(false);
+  const [showSignUpConfirmPassword, setShowSignUpConfirmPassword] = useState(false);
   const [signUpAgreeToTerms, setSignUpAgreeToTerms] = useState(false);
   const [showSignUpPasswordHint, setShowSignUpPasswordHint] = useState(false);
   const [signUpErrors, setSignUpErrors] = useState<{
@@ -1824,20 +1865,30 @@ export default function BookingPage() {
                       Forgot password?
                     </Link>
                   </div>
-                  <input
-                    id="signin-password"
-                    type="password"
-                    value={signInPassword}
-                    onChange={(e) => handleSignInPasswordChange(e.target.value)}
-                    onBlur={handleSignInPasswordBlur}
-                    placeholder="••••••••"
-                    autoComplete="current-password"
-                    aria-invalid={!!signInErrors.password}
-                    aria-describedby={signInErrors.password ? 'signin-password-error' : undefined}
-                    className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
-                      signInErrors.password ? 'border-error ring-1 ring-error focus:ring-error' : 'border-outline-variant'
-                    }`}
-                  />
+                  <div className="relative">
+                    <input
+                      id="signin-password"
+                      type={showSignInPassword ? 'text' : 'password'}
+                      value={signInPassword}
+                      onChange={(e) => handleSignInPasswordChange(e.target.value)}
+                      onBlur={handleSignInPasswordBlur}
+                      placeholder="••••••••"
+                      autoComplete="current-password"
+                      aria-invalid={!!signInErrors.password}
+                      aria-describedby={signInErrors.password ? 'signin-password-error' : undefined}
+                      className={`w-full pl-3.5 pr-11 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
+                        signInErrors.password ? 'border-error ring-1 ring-error focus:ring-error' : 'border-outline-variant'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSignInPassword((prev) => !prev)}
+                      aria-label={showSignInPassword ? 'Hide password' : 'Show password'}
+                      className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-on-surface-variant hover:text-on-surface focus:outline-none transition-colors"
+                    >
+                      {showSignInPassword ? <EyeOffIcon /> : <EyeIcon />}
+                    </button>
+                  </div>
                   {signInErrors.password && (
                     <div
                       id="signin-password-error"
@@ -1946,27 +1997,37 @@ export default function BookingPage() {
                   <label className="block type-label-medium font-bold text-on-surface mb-1" htmlFor="signup-password">
                     Password
                   </label>
-                  <input
-                    id="signup-password"
-                    type="password"
-                    value={signUpPassword}
-                    onChange={(e) => handleSignUpPasswordChange(e.target.value)}
-                    onBlur={handleSignUpPasswordBlur}
-                    placeholder="At least 8 characters"
-                    autoComplete="new-password"
-                    aria-invalid={!!signUpErrors.password}
-                    aria-describedby={
-                      [
-                        showSignUpPasswordHint ? 'signup-password-hint' : '',
-                        signUpErrors.password ? 'signup-password-error' : '',
-                      ]
-                        .filter(Boolean)
-                        .join(' ') || undefined
-                    }
-                    className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
-                      signUpErrors.password ? 'border-error ring-1 ring-error focus:ring-error' : 'border-outline-variant'
-                    }`}
-                  />
+                  <div className="relative">
+                    <input
+                      id="signup-password"
+                      type={showSignUpPassword ? 'text' : 'password'}
+                      value={signUpPassword}
+                      onChange={(e) => handleSignUpPasswordChange(e.target.value)}
+                      onBlur={handleSignUpPasswordBlur}
+                      placeholder="At least 8 characters"
+                      autoComplete="new-password"
+                      aria-invalid={!!signUpErrors.password}
+                      aria-describedby={
+                        [
+                          showSignUpPasswordHint ? 'signup-password-hint' : '',
+                          signUpErrors.password ? 'signup-password-error' : '',
+                        ]
+                          .filter(Boolean)
+                          .join(' ') || undefined
+                      }
+                      className={`w-full pl-3.5 pr-11 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
+                        signUpErrors.password ? 'border-error ring-1 ring-error focus:ring-error' : 'border-outline-variant'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSignUpPassword((prev) => !prev)}
+                      aria-label={showSignUpPassword ? 'Hide password' : 'Show password'}
+                      className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-on-surface-variant hover:text-on-surface focus:outline-none transition-colors"
+                    >
+                      {showSignUpPassword ? <EyeOffIcon /> : <EyeIcon />}
+                    </button>
+                  </div>
                   {showSignUpPasswordHint && (
                     <p id="signup-password-hint" className="type-body-small text-on-surface-variant mt-1">
                       Password must be at least 8 characters.
@@ -1988,20 +2049,30 @@ export default function BookingPage() {
                   <label className="block type-label-medium font-bold text-on-surface mb-1" htmlFor="signup-confirm-password">
                     Confirm Password
                   </label>
-                  <input
-                    id="signup-confirm-password"
-                    type="password"
-                    value={signUpConfirmPassword}
-                    onChange={(e) => handleSignUpConfirmPasswordChange(e.target.value)}
-                    onBlur={handleSignUpConfirmPasswordBlur}
-                    placeholder="Confirm your password"
-                    autoComplete="new-password"
-                    aria-invalid={!!signUpErrors.confirmPassword}
-                    aria-describedby={signUpErrors.confirmPassword ? 'signup-confirm-password-error' : undefined}
-                    className={`w-full px-3.5 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
-                      signUpErrors.confirmPassword ? 'border-error ring-1 ring-error focus:ring-error' : 'border-outline-variant'
-                    }`}
-                  />
+                  <div className="relative">
+                    <input
+                      id="signup-confirm-password"
+                      type={showSignUpConfirmPassword ? 'text' : 'password'}
+                      value={signUpConfirmPassword}
+                      onChange={(e) => handleSignUpConfirmPasswordChange(e.target.value)}
+                      onBlur={handleSignUpConfirmPasswordBlur}
+                      placeholder="Confirm your password"
+                      autoComplete="new-password"
+                      aria-invalid={!!signUpErrors.confirmPassword}
+                      aria-describedby={signUpErrors.confirmPassword ? 'signup-confirm-password-error' : undefined}
+                      className={`w-full pl-3.5 pr-11 py-2.5 rounded-xl border type-body-medium bg-background text-on-background focus:outline-none focus:ring-2 focus:ring-primary ${
+                        signUpErrors.confirmPassword ? 'border-error ring-1 ring-error focus:ring-error' : 'border-outline-variant'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowSignUpConfirmPassword((prev) => !prev)}
+                      aria-label={showSignUpConfirmPassword ? 'Hide password' : 'Show password'}
+                      className="absolute inset-y-0 right-0 flex items-center pr-3.5 text-on-surface-variant hover:text-on-surface focus:outline-none transition-colors"
+                    >
+                      {showSignUpConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
+                    </button>
+                  </div>
                   {signUpErrors.confirmPassword && (
                     <div
                       id="signup-confirm-password-error"
