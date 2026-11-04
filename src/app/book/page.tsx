@@ -240,6 +240,15 @@ export default function BookingPage() {
   const [creatingBooking, setCreatingBooking] = useState<boolean>(false);
   const [createBookingError, setCreateBookingError] = useState<string | null>(null);
 
+  // Stage 5: Paystack Payment Integration State
+  const [paymentChannel, setPaymentChannel] = useState<'card' | 'bank_transfer'>('card');
+  const [initializingPayment, setInitializingPayment] = useState<boolean>(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
+  const [confirmedBookingData, setConfirmedBookingData] = useState<any | null>(null);
+  const [paymentStatusDetails, setPaymentStatusDetails] = useState<any | null>(null);
+  const [verifyingPayment, setVerifyingPayment] = useState<boolean>(false);
+  const [holdRemainingSeconds, setHoldRemainingSeconds] = useState<number | null>(null);
+
   // Validate selections and advance to Stage 3 Review
   const handleProceedToReview = async () => {
     if (!service || !selectedPet) return;
@@ -344,6 +353,106 @@ export default function BookingPage() {
       setCreatingBooking(false);
     }
   };
+
+  // Stage 5: Initialize Paystack Payment Flow
+  const handlePayWithPaystack = async () => {
+    if (!createdBooking) return;
+    setInitializingPayment(true);
+    setPaymentError(null);
+
+    try {
+      const callbackUrl =
+        typeof window !== 'undefined'
+          ? `${window.location.origin}/book?bookingRef=${createdBooking.reference}`
+          : undefined;
+
+      const res = await fetch('/api/payments/initialize', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          bookingReference: createdBooking.reference,
+          channel: paymentChannel,
+          callbackUrl,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.authorizationUrl) {
+        // Redirect customer to Paystack checkout URL
+        window.location.href = data.authorizationUrl;
+      } else {
+        setPaymentError(data.error || 'Failed to initialize payment with Paystack.');
+      }
+    } catch {
+      setPaymentError('Unable to connect to the payment service. Please try again.');
+    } finally {
+      setInitializingPayment(false);
+    }
+  };
+
+  // Hold Countdown Timer Effect (10-minute capacity hold)
+  useEffect(() => {
+    if (step !== 7 || !createdBooking?.holdExpiresAt || confirmedBookingData) {
+      return;
+    }
+
+    const updateRemaining = () => {
+      const remaining = Math.max(
+        0,
+        Math.floor((new Date(createdBooking.holdExpiresAt).getTime() - Date.now()) / 1000)
+      );
+      setHoldRemainingSeconds(remaining);
+    };
+
+    updateRemaining();
+    const interval = setInterval(updateRemaining, 1000);
+    return () => clearInterval(interval);
+  }, [step, createdBooking, confirmedBookingData]);
+
+  // Handle Paystack Return / Callback Verification
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const bookingRefParam = params.get('bookingRef');
+    const trxrefParam = params.get('trxref') || params.get('reference');
+
+    if (bookingRefParam || trxrefParam) {
+      let targetRef = bookingRefParam;
+      if (!targetRef && trxrefParam && trxrefParam.startsWith('PAY-')) {
+        const parts = trxrefParam.split('-');
+        if (parts.length >= 3) {
+          targetRef = parts.slice(1, -1).join('-');
+        }
+      }
+
+      if (targetRef) {
+        setVerifyingPayment(true);
+        const verifyQuery = trxrefParam
+          ? `?verifyReference=${encodeURIComponent(trxrefParam)}`
+          : '';
+        fetch(`/api/bookings/${targetRef}/status${verifyQuery}`)
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.success && data.booking) {
+              setCreatedBooking(data.booking);
+              if (data.payment) {
+                setPaymentStatusDetails(data.payment);
+              }
+              if (data.booking.status === 'CONFIRMED') {
+                setConfirmedBookingData(data.booking);
+              }
+              setStep(7);
+            }
+          })
+          .catch((err) => {
+            console.error('Error verifying payment on return:', err);
+          })
+          .finally(() => {
+            setVerifyingPayment(false);
+          });
+      }
+    }
+  }, []);
 
   // Restore saved session & booking context from sessionStorage
   useEffect(() => {
@@ -3516,159 +3625,412 @@ export default function BookingPage() {
           </div>
         )}
 
-        {/* STEP 7: BOOKING CREATED & CAPACITY HOLD CONFIRMED (STAGE 4 SUCCESS) */}
-        {step === 7 && createdBooking && (
+        {/* STEP 7: BOOKING & PAYMENT LIFECYCLE (STAGE 5 ACTIVE PAYSTACK INTEGRATION) */}
+        {step === 7 && (
           <div className="max-w-2xl mx-auto space-y-6 animate-fadeIn">
-            {/* Success Banner */}
-            <div className="bg-success-container/90 border border-success/40 rounded-2xl p-6 text-center space-y-3 shadow-soft">
-              <div className="w-14 h-14 bg-success text-on-success rounded-full flex items-center justify-center mx-auto text-2xl font-bold shadow-soft">
-                ✓
-              </div>
-              <div>
-                <h1 className="type-headline-large font-extrabold text-on-success-container">
-                  Capacity Hold Confirmed!
-                </h1>
-                <p className="type-body-small text-on-success-container/90 mt-1">
-                  Your place has been atomically reserved in the database. A unique booking reference has been issued.
+            {/* 1. Verification Loading State (Return from Paystack) */}
+            {verifyingPayment && (
+              <div className="bg-surface rounded-2xl border border-outline-variant p-8 text-center space-y-4 shadow-soft">
+                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto" />
+                <h2 className="type-title-large font-bold text-on-surface">
+                  Verifying Payment with Paystack...
+                </h2>
+                <p className="type-body-small text-on-surface-variant max-w-md mx-auto">
+                  Please hold on while we verify your transaction against the Paystack gateway and confirm your booking.
                 </p>
               </div>
+            )}
 
-              {/* Booking Reference Display */}
-              <div className="bg-surface/90 rounded-2xl border border-outline-variant p-4 max-w-sm mx-auto shadow-sm">
-                <span className="text-[11px] uppercase tracking-wider font-bold text-on-surface-variant block">
-                  Booking Reference
-                </span>
-                <span className="text-3xl font-mono font-black text-primary tracking-wider block mt-0.5">
-                  {createdBooking.reference}
-                </span>
-                <span className="inline-block mt-2 px-3 py-1 rounded-full text-xs font-bold bg-warning-container text-on-warning-container">
-                  Status: Awaiting Payment (PENDING_PAYMENT)
-                </span>
+            {/* 2. Confirmed Booking State (Payment Succeeded & Verified) */}
+            {!verifyingPayment && (confirmedBookingData || createdBooking?.status === 'CONFIRMED') && (
+              <div className="space-y-6">
+                <div className="bg-success-container/90 border border-success/40 rounded-2xl p-6 text-center space-y-3 shadow-soft">
+                  <div className="w-14 h-14 bg-success text-on-success rounded-full flex items-center justify-center mx-auto text-2xl font-bold shadow-soft">
+                    ✓
+                  </div>
+                  <div>
+                    <h1 className="type-headline-large font-extrabold text-on-success-container">
+                      Booking Confirmed &amp; Paid!
+                    </h1>
+                    <p className="type-body-small text-on-success-container/90 mt-1">
+                      Payment has been verified with Paystack test mode. Your booking is officially locked in.
+                    </p>
+                  </div>
+
+                  <div className="bg-surface/90 rounded-2xl border border-outline-variant p-4 max-w-sm mx-auto shadow-sm">
+                    <span className="text-[11px] uppercase tracking-wider font-bold text-on-surface-variant block">
+                      Confirmed Reference
+                    </span>
+                    <span className="text-3xl font-mono font-black text-primary tracking-wider block mt-0.5">
+                      {createdBooking?.reference}
+                    </span>
+                    <span className="inline-block mt-2 px-3 py-1 rounded-full text-xs font-bold bg-success text-on-success">
+                      Status: CONFIRMED
+                    </span>
+                  </div>
+                </div>
+
+                {/* Booking Receipt Details */}
+                <div className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4 shadow-soft">
+                  <div className="border-b border-outline-variant pb-3 flex items-center justify-between">
+                    <div>
+                      <h2 className="type-title-medium font-bold text-on-surface">
+                        Booking Summary
+                      </h2>
+                      <span className="text-xs text-on-surface-variant">
+                        Location: Good Pets, Victoria Island, Lagos
+                      </span>
+                    </div>
+                    <span className="px-3 py-1 bg-surface-container rounded-full text-xs font-bold text-on-surface">
+                      Verified Payment
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                    <div>
+                      <span className="text-on-surface-variant block font-medium">Service</span>
+                      <span className="type-body-medium font-bold text-on-surface capitalize">
+                        {createdBooking?.serviceType?.toLowerCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant block font-medium">Pet</span>
+                      <span className="type-body-medium font-bold text-on-surface">
+                        {createdBooking?.petNameSnapshot} ({createdBooking?.petSpeciesSnapshot?.toLowerCase()})
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant block font-medium">Dates / Slot</span>
+                      <span className="type-body-medium font-bold text-on-surface">
+                        {createdBooking?.serviceType === 'GROOMING'
+                          ? `${createdBooking?.startDate} (${createdBooking?.slotCode})`
+                          : `${createdBooking?.startDate} to ${createdBooking?.endDate}`}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant block font-medium">Quantity</span>
+                      <span className="type-body-medium font-bold text-on-surface">
+                        {createdBooking?.quantity}{' '}
+                        {createdBooking?.serviceType === 'GROOMING'
+                          ? 'session'
+                          : createdBooking?.serviceType === 'DAYCARE'
+                          ? 'days'
+                          : 'nights'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-outline-variant flex items-center justify-between">
+                    <div>
+                      <span className="type-label-large font-bold text-on-surface block">
+                        Total Amount Paid:
+                      </span>
+                      <span className="text-[11px] text-on-surface-variant">
+                        Paystack Test Mode • Currency: NGN
+                      </span>
+                    </div>
+                    <span className="type-headline-large font-extrabold text-success">
+                      {createdBooking?.formattedTotal}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <Link
+                    href="/"
+                    className="w-full sm:w-auto px-6 py-3 rounded-full border border-outline hover:border-primary text-xs font-bold text-on-surface hover:text-primary transition-colors text-center"
+                  >
+                    Return to Home
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCreatedBooking(null);
+                      setConfirmedBookingData(null);
+                      setReviewData(null);
+                      setBookingIdempotencyKey('');
+                      setStep(1);
+                      if (typeof window !== 'undefined') {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }
+                    }}
+                    className="w-full sm:w-auto px-6 py-3 rounded-full bg-primary text-on-primary hover:brightness-105 text-xs font-bold transition-all text-center"
+                  >
+                    Book Another Service
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
 
-            {/* Hold Expiry Notice Card */}
-            <div className="bg-surface rounded-2xl border border-outline-variant p-5 shadow-soft space-y-3">
-              <div className="flex items-start gap-3">
-                <span className="text-2xl shrink-0" aria-hidden="true">⏳</span>
-                <div className="space-y-1">
+            {/* 3. Needs Attention State (Late payment after hold expiry; unit full per PRD BR-018) */}
+            {!verifyingPayment && createdBooking?.status === 'NEEDS_ATTENTION' && (
+              <div className="space-y-6">
+                <div className="bg-warning-container/90 border border-warning/40 rounded-2xl p-6 text-center space-y-3 shadow-soft">
+                  <div className="w-14 h-14 bg-warning text-on-warning rounded-full flex items-center justify-center mx-auto text-2xl font-bold shadow-soft">
+                    !
+                  </div>
+                  <div>
+                    <h1 className="type-headline-large font-extrabold text-on-warning-container">
+                      Payment Received — Needs Attention
+                    </h1>
+                    <p className="type-body-small text-on-warning-container/90 mt-1">
+                      Your payment was received, but the 10-minute hold had lapsed and the capacity unit for your chosen date is currently full.
+                    </p>
+                  </div>
+
+                  <div className="bg-surface/90 rounded-2xl border border-outline-variant p-4 max-w-sm mx-auto shadow-sm">
+                    <span className="text-[11px] uppercase tracking-wider font-bold text-on-surface-variant block">
+                      Booking Reference
+                    </span>
+                    <span className="text-3xl font-mono font-black text-warning tracking-wider block mt-0.5">
+                      {createdBooking.reference}
+                    </span>
+                    <span className="inline-block mt-2 px-3 py-1 rounded-full text-xs font-bold bg-warning text-on-warning">
+                      Status: NEEDS_ATTENTION
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-3 shadow-soft">
                   <h3 className="type-title-medium font-bold text-on-surface">
-                    10-Minute Capacity Hold Active
+                    What happens next?
                   </h3>
-                  <p className="type-body-small text-on-surface-variant">
-                    Capacity for your chosen service is held until{' '}
-                    <strong className="text-on-surface">
-                      {createdBooking.holdExpiresAt
-                        ? new Date(createdBooking.holdExpiresAt).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })
-                        : '10 minutes from now'}{' '}
-                      (Africa/Lagos)
-                    </strong>
-                    . If payment is not completed before hold expiry, the reserved units will be safely released.
+                  <p className="type-body-small text-on-surface-variant leading-relaxed">
+                    Our front desk manager at Victoria Island has been alerted. We will contact you directly to reschedule your booking to the nearest available date or time without any extra charge.
                   </p>
                 </div>
-              </div>
-            </div>
 
-            {/* Persisted Booking Summary Card */}
-            <div className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4 shadow-soft">
-              <div className="border-b border-outline-variant pb-3">
-                <h2 className="type-title-medium font-bold text-on-surface">
-                  Persisted Booking Details
-                </h2>
-                <span className="text-xs text-on-surface-variant">
-                  Stored securely in the Good Pets database
-                </span>
-              </div>
-
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
-                <div>
-                  <span className="text-on-surface-variant block font-medium">Service</span>
-                  <span className="type-body-medium font-bold text-on-surface capitalize">
-                    {createdBooking.serviceType.toLowerCase()}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-on-surface-variant block font-medium">Pet</span>
-                  <span className="type-body-medium font-bold text-on-surface">
-                    {createdBooking.petNameSnapshot} ({createdBooking.petSpeciesSnapshot.toLowerCase()})
-                  </span>
-                </div>
-                <div>
-                  <span className="text-on-surface-variant block font-medium">Dates / Slot</span>
-                  <span className="type-body-medium font-bold text-on-surface">
-                    {createdBooking.serviceType === 'GROOMING'
-                      ? `${createdBooking.startDate} (${createdBooking.slotCode})`
-                      : `${createdBooking.startDate} to ${createdBooking.endDate}`}
-                  </span>
-                </div>
-                <div>
-                  <span className="text-on-surface-variant block font-medium">Quantity</span>
-                  <span className="type-body-medium font-bold text-on-surface">
-                    {createdBooking.quantity}{' '}
-                    {createdBooking.serviceType === 'GROOMING'
-                      ? 'session'
-                      : createdBooking.serviceType === 'DAYCARE'
-                      ? 'days'
-                      : 'nights'}
-                  </span>
+                <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
+                  <Link
+                    href="/"
+                    className="w-full sm:w-auto px-6 py-3 rounded-full bg-primary text-on-primary hover:brightness-105 text-xs font-bold transition-all text-center"
+                  >
+                    Return to Home
+                  </Link>
                 </div>
               </div>
+            )}
 
-              <div className="pt-3 border-t border-outline-variant flex items-center justify-between">
-                <div>
-                  <span className="type-label-large font-bold text-on-surface block">
-                    Total Amount Awaiting Payment:
-                  </span>
-                  <span className="text-[11px] text-on-surface-variant">
-                    {createdBooking.totalKobo.toLocaleString()} kobo
+            {/* 4. Active Awaiting Payment State (PENDING_PAYMENT) */}
+            {!verifyingPayment && createdBooking && createdBooking.status === 'PENDING_PAYMENT' && !confirmedBookingData && (
+              <div className="space-y-6">
+                {/* Hold Status & Timer */}
+                <div className="bg-surface rounded-2xl border border-outline-variant p-5 shadow-soft space-y-3">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-3">
+                      <span className="text-2xl shrink-0" aria-hidden="true">⏳</span>
+                      <div className="space-y-1">
+                        <h3 className="type-title-medium font-bold text-on-surface">
+                          10-Minute Capacity Hold Active
+                        </h3>
+                        <p className="type-body-small text-on-surface-variant">
+                          Capacity is temporarily reserved. Complete payment before the timer expires to confirm your reservation.
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="text-right shrink-0">
+                      <span className="text-[11px] uppercase tracking-wider font-bold text-on-surface-variant block">
+                        Time Remaining
+                      </span>
+                      <span
+                        className={`text-2xl font-mono font-black ${
+                          holdRemainingSeconds !== null && holdRemainingSeconds < 120
+                            ? 'text-error animate-pulse'
+                            : 'text-primary'
+                        }`}
+                      >
+                        {holdRemainingSeconds !== null
+                          ? `${Math.floor(holdRemainingSeconds / 60)
+                              .toString()
+                              .padStart(2, '0')}:${(holdRemainingSeconds % 60)
+                              .toString()
+                              .padStart(2, '0')}`
+                          : '10:00'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {holdRemainingSeconds === 0 && (
+                    <div className="bg-error-container text-on-error-container p-3 rounded-xl text-xs font-medium">
+                      Hold has expired. Capacity units have been released. Please return to step 5 to select new dates.
+                    </div>
+                  )}
+                </div>
+
+                {/* Booking Reference Banner */}
+                <div className="bg-surface rounded-2xl border border-outline-variant p-4 flex items-center justify-between shadow-sm">
+                  <div>
+                    <span className="text-[11px] uppercase tracking-wider font-bold text-on-surface-variant block">
+                      Booking Reference
+                    </span>
+                    <span className="text-xl font-mono font-black text-primary">
+                      {createdBooking.reference}
+                    </span>
+                  </div>
+                  <span className="px-3 py-1 rounded-full text-xs font-bold bg-warning-container text-on-warning-container">
+                    Pending Payment
                   </span>
                 </div>
-                <span className="type-headline-large font-extrabold text-primary">
-                  {createdBooking.formattedTotal}
-                </span>
-              </div>
-            </div>
 
-            {/* Payment Integration Boundary Card */}
-            <div className="bg-surface-container-low rounded-2xl border border-outline-variant p-5 shadow-soft space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xl" aria-hidden="true">💳</span>
-                <h3 className="type-title-medium font-bold text-on-surface">
-                  Payment Status: Not Yet Completed
-                </h3>
-              </div>
-              <p className="type-body-small text-on-surface-variant">
-                No payment has been charged and no money has moved. In Stage 5, you will be redirected to Paystack (test mode) to finalize payment by card or bank transfer. Once Paystack reports verified payment, your booking will transition to CONFIRMED.
-              </p>
-            </div>
+                {/* Persisted Booking Summary */}
+                <div className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4 shadow-soft">
+                  <div className="border-b border-outline-variant pb-3">
+                    <h2 className="type-title-medium font-bold text-on-surface">
+                      Booking Summary
+                    </h2>
+                  </div>
 
-            {/* Navigation Actions */}
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                href="/"
-                className="w-full sm:w-auto px-6 py-3 rounded-full border border-outline hover:border-primary text-xs font-bold text-on-surface hover:text-primary transition-colors text-center"
-              >
-                Return to Home
-              </Link>
-              <button
-                type="button"
-                onClick={() => {
-                  setCreatedBooking(null);
-                  setReviewData(null);
-                  setBookingIdempotencyKey('');
-                  setStep(1);
-                  if (typeof window !== 'undefined') {
-                    window.scrollTo({ top: 0, behavior: 'smooth' });
-                  }
-                }}
-                className="w-full sm:w-auto px-6 py-3 rounded-full bg-primary text-on-primary hover:brightness-105 text-xs font-bold transition-all text-center"
-              >
-                Book Another Service
-              </button>
-            </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-xs">
+                    <div>
+                      <span className="text-on-surface-variant block font-medium">Service</span>
+                      <span className="type-body-medium font-bold text-on-surface capitalize">
+                        {createdBooking.serviceType.toLowerCase()}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant block font-medium">Pet</span>
+                      <span className="type-body-medium font-bold text-on-surface">
+                        {createdBooking.petNameSnapshot} ({createdBooking.petSpeciesSnapshot.toLowerCase()})
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant block font-medium">Dates / Slot</span>
+                      <span className="type-body-medium font-bold text-on-surface">
+                        {createdBooking.serviceType === 'GROOMING'
+                          ? `${createdBooking.startDate} (${createdBooking.slotCode})`
+                          : `${createdBooking.startDate} to ${createdBooking.endDate}`}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-on-surface-variant block font-medium">Quantity</span>
+                      <span className="type-body-medium font-bold text-on-surface">
+                        {createdBooking.quantity}{' '}
+                        {createdBooking.serviceType === 'GROOMING'
+                          ? 'session'
+                          : createdBooking.serviceType === 'DAYCARE'
+                          ? 'days'
+                          : 'nights'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-outline-variant flex items-center justify-between">
+                    <div>
+                      <span className="type-label-large font-bold text-on-surface block">
+                        Payable Amount:
+                      </span>
+                      <span className="text-[11px] text-on-surface-variant">
+                        Currency: NGN (Nigerian Naira)
+                      </span>
+                    </div>
+                    <span className="type-headline-large font-extrabold text-primary">
+                      {createdBooking.formattedTotal}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Payment Channel Selection (PRD BR-017) */}
+                <div className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4 shadow-soft">
+                  <div>
+                    <h3 className="type-title-medium font-bold text-on-surface">
+                      Choose Payment Method
+                    </h3>
+                    <p className="type-body-small text-on-surface-variant mt-0.5">
+                      Payments are securely processed via Paystack test mode. No real money moves.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setPaymentChannel('card')}
+                      className={`p-4 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                        paymentChannel === 'card'
+                          ? 'border-primary bg-primary-container/20 ring-2 ring-primary/40'
+                          : 'border-outline-variant hover:border-outline'
+                      }`}
+                    >
+                      <span className="text-2xl" aria-hidden="true">💳</span>
+                      <div>
+                        <span className="type-label-large font-bold text-on-surface block">
+                          Debit / Credit Card
+                        </span>
+                        <span className="text-xs text-on-surface-variant block mt-0.5">
+                          Visa, Mastercard, Verve
+                        </span>
+                      </div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setPaymentChannel('bank_transfer')}
+                      className={`p-4 rounded-xl border text-left flex items-start gap-3 transition-all cursor-pointer ${
+                        paymentChannel === 'bank_transfer'
+                          ? 'border-primary bg-primary-container/20 ring-2 ring-primary/40'
+                          : 'border-outline-variant hover:border-outline'
+                      }`}
+                    >
+                      <span className="text-2xl" aria-hidden="true">🏦</span>
+                      <div>
+                        <span className="type-label-large font-bold text-on-surface block">
+                          Bank Transfer
+                        </span>
+                        <span className="text-xs text-on-surface-variant block mt-0.5">
+                          Simulated Nigerian bank transfer
+                        </span>
+                      </div>
+                    </button>
+                  </div>
+
+                  {paymentError && (
+                    <div className="p-3 bg-error-container text-on-error-container rounded-xl text-xs font-medium">
+                      {paymentError}
+                    </div>
+                  )}
+
+                  <button
+                    type="button"
+                    disabled={initializingPayment || holdRemainingSeconds === 0}
+                    onClick={handlePayWithPaystack}
+                    className="w-full type-label-large inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] py-4 rounded-full shadow-soft hover:shadow-medium transition-all cursor-pointer font-bold disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {initializingPayment ? (
+                      <span className="flex items-center gap-2">
+                        <svg className="animate-spin h-5 w-5 text-current" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                        </svg>
+                        Redirecting to Paystack...
+                      </span>
+                    ) : holdRemainingSeconds === 0 ? (
+                      'Hold Expired'
+                    ) : (
+                      <>
+                        <span>Pay {createdBooking.formattedTotal} via Paystack</span>
+                        <svg className="w-5 h-5 stroke-current stroke-2 fill-none" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                        </svg>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                {/* Back / Restart Action */}
+                <div className="text-center pt-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setStep(5);
+                    }}
+                    className="text-xs text-on-surface-variant hover:text-primary transition-colors underline cursor-pointer"
+                  >
+                    ← Choose different dates or slot
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </main>
