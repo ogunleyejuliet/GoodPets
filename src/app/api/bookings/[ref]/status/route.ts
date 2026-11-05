@@ -27,13 +27,11 @@ export async function GET(
       );
     }
 
-    // 1. Fetch booking with its payments
+    // 1. Fetch booking with its payment
     let booking = await prisma.booking.findUnique({
       where: { reference: ref },
       include: {
-        payments: {
-          orderBy: { initiatedAt: 'desc' },
-        },
+        payment: true,
       },
     });
 
@@ -56,7 +54,7 @@ export async function GET(
     // or if a specific verifyReference was provided, attempt verification with Paystack
     const searchParams = request.nextUrl.searchParams;
     const requestedVerifyRef = searchParams.get('verifyReference');
-    const latestPayment = booking.payments[0];
+    const latestPayment = booking.payment;
 
     const targetRef = requestedVerifyRef || (latestPayment?.status === 'INITIATED' ? latestPayment.reference : null);
 
@@ -67,9 +65,7 @@ export async function GET(
         const updatedBooking = await prisma.booking.findUnique({
           where: { id: booking.id },
           include: {
-            payments: {
-              orderBy: { initiatedAt: 'desc' },
-            },
+            payment: true,
           },
         });
         if (updatedBooking) {
@@ -81,7 +77,7 @@ export async function GET(
       }
     }
 
-    const activePayment = booking.payments[0] || null;
+    const activePayment = booking.payment || null;
 
     return NextResponse.json({
       success: true,

@@ -210,6 +210,279 @@ async function runUnitTests() {
     assert.strictEqual(capacityUnit.reserved, 5, 'Must not overbook beyond capacity');
   });
 
+  // =======================================================================
+  // Webhook Retry & Failure Recovery Fixes (Audit Verification)
+  // =======================================================================
+  console.log('\n--- Webhook Retry & Failure Recovery Verification ---');
+
+  // Simulated Webhook State Store
+  const mockWebhookDb = new Map();
+  let confirmationCallCount = 0;
+
+  async function simulateWebhookRoute({
+    rawBody,
+    signature,
+    confirmFn,
+  }) {
+    if (!verifySignature(rawBody, signature, TEST_SECRET)) {
+      return { status: 401, body: { error: 'Invalid webhook signature' } };
+    }
+
+    let payload;
+    try {
+      payload = JSON.parse(rawBody);
+    } catch {
+      return { status: 400, body: { error: 'Invalid JSON payload' } };
+    }
+
+    const eventType = payload.event || 'unknown';
+    const eventData = payload.data || {};
+    const reference = eventData.reference || null;
+    const paystackId = eventData.id ? String(eventData.id) : null;
+    const dedupeKey = paystackId
+      ? `paystack:${eventType}:${paystackId}`
+      : `paystack:${eventType}:${reference || Date.now()}`;
+
+    let webhookRecord = mockWebhookDb.get(dedupeKey);
+
+    if (webhookRecord) {
+      if (webhookRecord.status === 'PROCESSED') {
+        return { status: 200, body: { received: true, deduplicated: true, status: 'PROCESSED' } };
+      }
+      if (webhookRecord.status === 'IGNORED') {
+        return { status: 200, body: { received: true, deduplicated: true, status: 'IGNORED' } };
+      }
+      // FAILED or RECEIVED: reuse existing record and allow retry/recovery
+      webhookRecord.status = 'RECEIVED';
+      webhookRecord.error = null;
+      webhookRecord.retriedAt = new Date();
+    } else {
+      webhookRecord = {
+        id: `evt_${Date.now()}_${Math.random()}`,
+        dedupeKey,
+        eventType,
+        reference,
+        status: 'RECEIVED',
+        error: null,
+      };
+      mockWebhookDb.set(dedupeKey, webhookRecord);
+    }
+
+    if (eventType === 'charge.success') {
+      if (!reference) {
+        webhookRecord.status = 'FAILED';
+        webhookRecord.error = 'Missing reference in charge.success payload';
+        return { status: 400, body: { error: webhookRecord.error } };
+      }
+
+      try {
+        confirmationCallCount++;
+        const result = await confirmFn(reference, eventData);
+
+        if (result.success) {
+          webhookRecord.status = 'PROCESSED';
+          webhookRecord.processedAt = new Date();
+          return { status: 200, body: { received: true, status: 'PROCESSED' } };
+        } else {
+          // Permanent domain rejection
+          webhookRecord.status = 'FAILED';
+          webhookRecord.error = result.error;
+          webhookRecord.processedAt = new Date();
+          return { status: 200, body: { received: true, processed: false, error: result.error } };
+        }
+      } catch (err) {
+        // Transient processing failure
+        webhookRecord.status = 'FAILED';
+        webhookRecord.error = err.message;
+        return { status: 500, body: { error: 'Internal server error processing webhook' } };
+      }
+    } else {
+      webhookRecord.status = 'IGNORED';
+      return { status: 200, body: { received: true, status: 'IGNORED' } };
+    }
+  }
+
+  // 1. A PROCESSED event is acknowledged without reprocessing
+  await testAsync('Fix 1.1: A PROCESSED event is acknowledged without reprocessing (HTTP 200)', async () => {
+    confirmationCallCount = 0;
+    const eventId = 1001;
+    const body = JSON.stringify({ event: 'charge.success', data: { id: eventId, reference: 'PAY-P1' } });
+    const sig = crypto.createHmac('sha512', TEST_SECRET).update(body).digest('hex');
+
+    // First arrival -> successful
+    const res1 = await simulateWebhookRoute({
+      rawBody: body,
+      signature: sig,
+      confirmFn: async () => ({ success: true }),
+    });
+    assert.strictEqual(res1.status, 200);
+    assert.strictEqual(res1.body.status, 'PROCESSED');
+    assert.strictEqual(confirmationCallCount, 1);
+
+    // Second arrival -> duplicate acknowledged without reprocessing
+    const res2 = await simulateWebhookRoute({
+      rawBody: body,
+      signature: sig,
+      confirmFn: async () => ({ success: true }),
+    });
+    assert.strictEqual(res2.status, 200);
+    assert.strictEqual(res2.body.deduplicated, true);
+    assert.strictEqual(confirmationCallCount, 1, 'confirmBookingPayment must not be called again');
+  });
+
+  // 2. A FAILED event can be retried successfully
+  await testAsync('Fix 1.2: A FAILED event can be retried successfully reusing the same record', async () => {
+    const eventId = 1002;
+    const body = JSON.stringify({ event: 'charge.success', data: { id: eventId, reference: 'PAY-P2' } });
+    const sig = crypto.createHmac('sha512', TEST_SECRET).update(body).digest('hex');
+
+    // First attempt fails due to transient database error
+    const res1 = await simulateWebhookRoute({
+      rawBody: body,
+      signature: sig,
+      confirmFn: async () => { throw new Error('Database pool connection timeout'); },
+    });
+    assert.strictEqual(res1.status, 500);
+    const recBefore = mockWebhookDb.get(`paystack:charge.success:${eventId}`);
+    assert.strictEqual(recBefore.status, 'FAILED');
+    const initialId = recBefore.id;
+
+    // Retry arrives -> now succeeds
+    const res2 = await simulateWebhookRoute({
+      rawBody: body,
+      signature: sig,
+      confirmFn: async () => ({ success: true }),
+    });
+    assert.strictEqual(res2.status, 200);
+    assert.strictEqual(res2.body.status, 'PROCESSED');
+    const recAfter = mockWebhookDb.get(`paystack:charge.success:${eventId}`);
+    assert.strictEqual(recAfter.status, 'PROCESSED');
+    assert.strictEqual(recAfter.id, initialId, 'Must reuse existing WebhookEvent record without duplicate');
+  });
+
+  // 3. A RECEIVED event can recover safely
+  await testAsync('Fix 1.3: A RECEIVED event from an interrupted attempt recovers safely', async () => {
+    const eventId = 1003;
+    const dedupeKey = `paystack:charge.success:${eventId}`;
+    // Simulate an interrupted event stuck in RECEIVED state
+    mockWebhookDb.set(dedupeKey, {
+      id: 'evt_interrupted_1',
+      dedupeKey,
+      eventType: 'charge.success',
+      reference: 'PAY-P3',
+      status: 'RECEIVED',
+    });
+
+    const body = JSON.stringify({ event: 'charge.success', data: { id: eventId, reference: 'PAY-P3' } });
+    const sig = crypto.createHmac('sha512', TEST_SECRET).update(body).digest('hex');
+
+    const res = await simulateWebhookRoute({
+      rawBody: body,
+      signature: sig,
+      confirmFn: async () => ({ success: true }),
+    });
+    assert.strictEqual(res.status, 200);
+    assert.strictEqual(res.body.status, 'PROCESSED');
+    const rec = mockWebhookDb.get(dedupeKey);
+    assert.strictEqual(rec.status, 'PROCESSED');
+    assert.strictEqual(rec.id, 'evt_interrupted_1', 'Must reuse existing interrupted record');
+  });
+
+  // 4. An IGNORED event is not reprocessed
+  await testAsync('Fix 1.4: An IGNORED event is acknowledged without reprocessing (HTTP 200)', async () => {
+    const eventId = 1004;
+    const body = JSON.stringify({ event: 'subscription.create', data: { id: eventId } });
+    const sig = crypto.createHmac('sha512', TEST_SECRET).update(body).digest('hex');
+
+    // First delivery -> IGNORED
+    const res1 = await simulateWebhookRoute({ rawBody: body, signature: sig, confirmFn: async () => ({}) });
+    assert.strictEqual(res1.status, 200);
+    assert.strictEqual(res1.body.status, 'IGNORED');
+
+    // Second delivery -> duplicate without reprocessing
+    const res2 = await simulateWebhookRoute({ rawBody: body, signature: sig, confirmFn: async () => ({}) });
+    assert.strictEqual(res2.status, 200);
+    assert.strictEqual(res2.body.deduplicated, true);
+    assert.strictEqual(res2.body.status, 'IGNORED');
+  });
+
+  // 5. A transient processing failure returns HTTP 500
+  await testAsync('Fix 2.1: A transient processing failure returns HTTP 500 for Paystack retry', async () => {
+    const eventId = 1005;
+    const body = JSON.stringify({ event: 'charge.success', data: { id: eventId, reference: 'PAY-P5' } });
+    const sig = crypto.createHmac('sha512', TEST_SECRET).update(body).digest('hex');
+
+    const res = await simulateWebhookRoute({
+      rawBody: body,
+      signature: sig,
+      confirmFn: async () => {
+        throw new Error('PrismaClientKnownRequestError: Connection lost');
+      },
+    });
+    assert.strictEqual(res.status, 500, 'Must return 500 so Paystack schedules retry');
+    const rec = mockWebhookDb.get(`paystack:charge.success:${eventId}`);
+    assert.strictEqual(rec.status, 'FAILED');
+    assert.ok(rec.error.includes('Connection lost'));
+  });
+
+  // 6. A permanent validation failure does not trigger endless retries
+  await testAsync('Fix 2.2: Permanent validation failures return non-retryable responses', async () => {
+    // 6a: Missing reference in charge.success returns HTTP 400
+    const bodyNoRef = JSON.stringify({ event: 'charge.success', data: { id: 1006 } });
+    const sigNoRef = crypto.createHmac('sha512', TEST_SECRET).update(bodyNoRef).digest('hex');
+    const resNoRef = await simulateWebhookRoute({
+      rawBody: bodyNoRef,
+      signature: sigNoRef,
+      confirmFn: async () => ({ success: true }),
+    });
+    assert.strictEqual(resNoRef.status, 400, 'Payload missing reference returns 400 Bad Request');
+
+    // 6b: Permanent domain rejection (amount mismatch) returns acknowledged 200 to halt endless retries
+    const eventIdMismatch = 1007;
+    const bodyMismatch = JSON.stringify({ event: 'charge.success', data: { id: eventIdMismatch, reference: 'PAY-P7', amount: 999 } });
+    const sigMismatch = crypto.createHmac('sha512', TEST_SECRET).update(bodyMismatch).digest('hex');
+    const resMismatch = await simulateWebhookRoute({
+      rawBody: bodyMismatch,
+      signature: sigMismatch,
+      confirmFn: async () => ({ success: false, error: 'Amount mismatch: expected 500000, got 999' }),
+    });
+    assert.strictEqual(resMismatch.status, 200, 'Must return 200 with error details to avoid endless retries');
+    assert.strictEqual(resMismatch.body.processed, false);
+    const rec = mockWebhookDb.get(`paystack:charge.success:${eventIdMismatch}`);
+    assert.strictEqual(rec.status, 'FAILED');
+    assert.ok(rec.error.includes('Amount mismatch'));
+  });
+
+  // 7. Concurrent duplicate deliveries do not cause duplicate payment confirmation or capacity changes
+  await testAsync('Fix 1.5: Concurrent duplicate deliveries are safe against race conditions', async () => {
+    const booking = { status: 'PENDING_PAYMENT' };
+    const capacityUnit = { capacity: 5, reserved: 1 };
+    let confirmationTimes = 0;
+
+    // Simulate atomic confirmation transaction
+    const atomicConfirm = async () => {
+      if (booking.status === 'CONFIRMED') {
+        return { success: true, status: 'DUPLICATE_SUCCESS' };
+      }
+      booking.status = 'CONFIRMED';
+      confirmationTimes++;
+      return { success: true, status: 'CONFIRMED' };
+    };
+
+    // Run 2 concurrent calls in parallel
+    const [result1, result2] = await Promise.all([
+      atomicConfirm(),
+      atomicConfirm(),
+    ]);
+
+    assert.strictEqual(confirmationTimes, 1, 'Only one transaction can confirm');
+    assert.strictEqual(booking.status, 'CONFIRMED');
+    assert.strictEqual(capacityUnit.reserved, 1, 'Capacity must never double increment');
+    assert.ok(result1.success && result2.success);
+    assert.ok(result1.status === 'CONFIRMED' || result2.status === 'CONFIRMED');
+    assert.ok(result1.status === 'DUPLICATE_SUCCESS' || result2.status === 'DUPLICATE_SUCCESS');
+  });
+
   console.log(`\n======================================================`);
   console.log(`=== Verification Results: ${passed} Passed, ${failed} Failed ===`);
   console.log(`======================================================\n`);

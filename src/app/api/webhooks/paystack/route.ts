@@ -42,48 +42,114 @@ export async function POST(request: NextRequest) {
       ? `paystack:${eventType}:${paystackId}`
       : `paystack:${eventType}:${reference || Date.now()}`;
 
-    // 4. Check for duplicate webhook delivery
-    const existingEvent = await prisma.webhookEvent.findUnique({
+    // 4. Status-aware deduplication and record acquisition (Fix 1)
+    let webhookRecord = await prisma.webhookEvent.findUnique({
       where: { dedupeKey },
     });
 
-    if (existingEvent) {
-      // Idempotent: return 200 OK immediately
+    if (webhookRecord) {
+      // PROCESSED: return HTTP 200 as duplicate without reprocessing
+      if (webhookRecord.status === 'PROCESSED') {
+        return NextResponse.json(
+          { received: true, deduplicated: true, status: 'PROCESSED' },
+          { status: 200 }
+        );
+      }
+
+      // IGNORED: return HTTP 200 without reprocessing
+      if (webhookRecord.status === 'IGNORED') {
+        return NextResponse.json(
+          { received: true, deduplicated: true, status: 'IGNORED' },
+          { status: 200 }
+        );
+      }
+
+      // FAILED or RECEIVED: allow safe retry/recovery using existing record
+      // Atomically claim the retry using a conditional update
+      const claimResult = await prisma.webhookEvent.updateMany({
+        where: {
+          id: webhookRecord.id,
+          status: { in: ['FAILED', 'RECEIVED'] },
+        },
+        data: {
+          status: 'RECEIVED',
+          error: null,
+          receivedAt: new Date(),
+        },
+      });
+
+      if (claimResult.count === 0) {
+        // Another concurrent request claimed or completed this record
+        const latest = await prisma.webhookEvent.findUnique({
+          where: { id: webhookRecord.id },
+        });
+        if (latest && (latest.status === 'PROCESSED' || latest.status === 'IGNORED')) {
+          return NextResponse.json(
+            { received: true, deduplicated: true, status: latest.status },
+            { status: 200 }
+          );
+        }
+      }
+    } else {
+      // New incoming webhook event
+      try {
+        webhookRecord = await prisma.webhookEvent.create({
+          data: {
+            provider: 'paystack',
+            dedupeKey,
+            eventType,
+            reference,
+            payloadSummary: {
+              event: eventType,
+              id: paystackId,
+              reference,
+              amount: eventData.amount,
+              currency: eventData.currency,
+              status: eventData.status,
+              channel: eventData.channel,
+            },
+            status: 'RECEIVED',
+          },
+        });
+      } catch (createErr: any) {
+        // Handle concurrent insert race condition (P2002 Unique constraint on dedupeKey)
+        if (createErr.code === 'P2002') {
+          webhookRecord = await prisma.webhookEvent.findUnique({
+            where: { dedupeKey },
+          });
+          if (webhookRecord && (webhookRecord.status === 'PROCESSED' || webhookRecord.status === 'IGNORED')) {
+            return NextResponse.json(
+              { received: true, deduplicated: true, status: webhookRecord.status },
+              { status: 200 }
+            );
+          }
+        } else {
+          console.error('Failed to create webhookRecord:', createErr);
+          return NextResponse.json(
+            { error: 'Internal server error recording webhook' },
+            { status: 500 }
+          );
+        }
+      }
+    }
+
+    if (!webhookRecord) {
       return NextResponse.json(
-        { received: true, deduplicated: true },
-        { status: 200 }
+        { error: 'Unable to track webhook event' },
+        { status: 500 }
       );
     }
 
-    // 5. Record incoming webhook event
-    const webhookRecord = await prisma.webhookEvent.create({
-      data: {
-        provider: 'paystack',
-        dedupeKey,
-        eventType,
-        reference,
-        payloadSummary: {
-          event: eventType,
-          id: paystackId,
-          reference,
-          amount: eventData.amount,
-          currency: eventData.currency,
-          status: eventData.status,
-          channel: eventData.channel,
-        },
-        status: 'RECEIVED',
-      },
-    });
-
-    // 6. Handle event types
+    // 5. Handle event types
     if (eventType === 'charge.success') {
       if (!reference) {
+        // Permanent validation failure on payload
         await prisma.webhookEvent.update({
           where: { id: webhookRecord.id },
           data: { status: 'FAILED', error: 'Missing reference in charge.success' },
         });
         return NextResponse.json(
-          { error: 'Missing reference' },
+          { error: 'Missing reference in charge.success payload' },
           { status: 400 }
         );
       }
@@ -94,23 +160,52 @@ export async function POST(request: NextRequest) {
           verifiedData: eventData,
         });
 
-        await prisma.webhookEvent.update({
-          where: { id: webhookRecord.id },
-          data: {
-            status: result.success ? 'PROCESSED' : 'FAILED',
-            error: result.error || null,
-            processedAt: new Date(),
-          },
-        });
+        if (result.success) {
+          await prisma.webhookEvent.update({
+            where: { id: webhookRecord.id },
+            data: {
+              status: 'PROCESSED',
+              error: null,
+              processedAt: new Date(),
+            },
+          });
+          return NextResponse.json({ received: true, status: 'PROCESSED' }, { status: 200 });
+        } else {
+          // Permanent domain validation failure (amount/currency mismatch, or payment not found)
+          await prisma.webhookEvent.update({
+            where: { id: webhookRecord.id },
+            data: {
+              status: 'FAILED',
+              error: result.error || 'Payment confirmation rejected',
+              processedAt: new Date(),
+            },
+          });
+          // For permanent business validation failure, acknowledge so Paystack does not retry endlessly
+          return NextResponse.json(
+            { received: true, processed: false, error: result.error },
+            { status: 200 }
+          );
+        }
       } catch (err: any) {
-        console.error(`Error processing webhook charge.success for ref ${reference}:`, err);
-        await prisma.webhookEvent.update({
-          where: { id: webhookRecord.id },
-          data: {
-            status: 'FAILED',
-            error: err.message || 'Error executing confirmation',
-          },
-        });
+        // Transient processing failure (database timeout, network error, etc.) - Fix 2
+        console.error(`Transient error processing webhook charge.success for ref ${reference}:`, err);
+        try {
+          await prisma.webhookEvent.update({
+            where: { id: webhookRecord.id },
+            data: {
+              status: 'FAILED',
+              error: err.message || 'Transient error executing confirmation',
+            },
+          });
+        } catch (dbErr) {
+          console.error('Failed to update webhookRecord status during error handling:', dbErr);
+        }
+
+        // Return HTTP 500 so Paystack can retry transient failure
+        return NextResponse.json(
+          { error: 'Internal server error processing webhook' },
+          { status: 500 }
+        );
       }
     } else {
       // Other events are acknowledged and marked IGNORED
@@ -121,16 +216,13 @@ export async function POST(request: NextRequest) {
           processedAt: new Date(),
         },
       });
+      return NextResponse.json({ received: true, status: 'IGNORED' }, { status: 200 });
     }
-
-    // Prompt 200 OK acknowledgment
-    return NextResponse.json({ received: true }, { status: 200 });
   } catch (error: any) {
-    console.error('Unhandled error in Paystack webhook handler:', error);
+    console.error('Unhandled top-level error in Paystack webhook handler:', error);
     return NextResponse.json(
       { error: 'Internal server error processing webhook' },
       { status: 500 }
     );
   }
 }
-

@@ -201,7 +201,7 @@ model Booking {
   customer User          @relation(fields: [customerId], references: [id], onDelete: Restrict)
   pet      Pet           @relation(fields: [petId], references: [id], onDelete: Restrict)
   units    BookingUnit[]
-  payments Payment[]
+  payment  Payment?
 
   @@unique([customerId, idempotencyKey])
   @@index([customerId, startDate])
@@ -241,7 +241,7 @@ enum WebhookStatus {
 
 model Payment {
   id                    String        @id @default(cuid())
-  bookingId             String
+  bookingId             String        @unique
   reference             String        @unique
   amountKobo            Int
   currency              String        @default("NGN")
@@ -257,7 +257,6 @@ model Payment {
 
   booking Booking @relation(fields: [bookingId], references: [id], onDelete: Restrict)
 
-  @@index([bookingId])
   @@index([status, initiatedAt])
 }
 

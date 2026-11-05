@@ -62,9 +62,7 @@ export async function initializeBookingPayment(
   const booking = await prisma.booking.findUnique({
     where: { reference: bookingReference },
     include: {
-      payments: {
-        orderBy: { initiatedAt: 'desc' },
-      },
+      payment: true,
     },
   });
 
@@ -107,7 +105,7 @@ export async function initializeBookingPayment(
   }
 
   // 5. Handle open INITIATED payments & prevent duplicate initialization (PRD FR-014 & BR-044)
-  const openPayment = booking.payments.find((p) => p.status === 'INITIATED');
+  const openPayment = booking.payment?.status === 'INITIATED' ? booking.payment : null;
   if (openPayment) {
     // In one atomic transaction:
     // Verify if openPayment was already paid with Paystack
