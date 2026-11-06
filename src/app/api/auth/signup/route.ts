@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (!password || typeof password !== 'string' || password.length < 8) {
+    if (!password || typeof password !== 'string') {
       console.warn(`[${timestamp}] POST /api/auth/signup - Status: 400 - Validation failed: password too short`);
       return NextResponse.json(
         { success: false, error: 'Password must be at least 8 characters.' },
@@ -38,7 +38,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (password !== confirmPassword) {
+    const normalizedPassword = password.trim();
+    if (normalizedPassword.length < 8) {
+      console.warn(`[${timestamp}] POST /api/auth/signup - Status: 400 - Validation failed: password too short`);
+      return NextResponse.json(
+        { success: false, error: 'Password must be at least 8 characters.' },
+        { status: 400 }
+      );
+    }
+
+    if (!confirmPassword || typeof confirmPassword !== 'string' || normalizedPassword !== confirmPassword.trim()) {
       console.warn(`[${timestamp}] POST /api/auth/signup - Status: 400 - Validation failed: passwords do not match`);
       return NextResponse.json(
         { success: false, error: 'Passwords do not match.' },
@@ -64,7 +73,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 4. Secure Argon2id password hash (PRD FR-001 & BR-046)
-    const passwordHash = await hash(password, {
+    const passwordHash = await hash(normalizedPassword, {
       memoryCost: 19456,
       timeCost: 2,
       outputLen: 32,

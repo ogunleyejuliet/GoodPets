@@ -31,6 +31,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const normalizedPassword = password.trim();
+
     // Server-side Customer ID validation
     if (customerId !== undefined && customerId !== null) {
       if (!customerId || typeof customerId !== 'string' || !/^\d{4}$/.test(customerId.trim())) {
@@ -60,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     if (!user || !user.passwordHash) {
       // Run dummy verification to prevent timing attacks / user enumeration (PRD FR-003, BR-045)
-      await verify(DUMMY_ARGON2_HASH, password).catch(() => false);
+      await verify(DUMMY_ARGON2_HASH, normalizedPassword).catch(() => false);
       return NextResponse.json(
         { success: false, error: 'Invalid Customer ID or password.' },
         { status: 401 }
@@ -70,7 +72,7 @@ export async function POST(request: NextRequest) {
     // Verify Customer ID match if supplied by customer
     if (customerId !== undefined && customerId !== null && user.role === 'CUSTOMER') {
       if (user.customerId && user.customerId !== customerId.trim()) {
-        await verify(DUMMY_ARGON2_HASH, password).catch(() => false);
+        await verify(DUMMY_ARGON2_HASH, normalizedPassword).catch(() => false);
         return NextResponse.json(
           { success: false, error: 'Invalid Customer ID or password.' },
           { status: 401 }
@@ -79,7 +81,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 3. Verify Argon2id password hash
-    const isValid = await verify(user.passwordHash, password);
+    const isValid = await verify(user.passwordHash, normalizedPassword);
     if (!isValid) {
       return NextResponse.json(
         { success: false, error: 'Invalid Customer ID or password.' },
