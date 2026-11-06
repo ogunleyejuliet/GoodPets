@@ -1,0 +1,26 @@
+
+## Command executed
+
+```cmd
+node -e "const {hash,verify}=require('@node-rs/argon2');(async()=>{const p='GoodPets-Test-Password-2026!';const o={memoryCost:19456,timeCost:2,parallelism:1,outputLen:32};const h1=await hash(p,o);const h2=await hash(p,o);console.log('Hash 1:',h1);console.log('Hash 2:',h2);console.log('Hashes are different:',h1!==h2);console.log('Hash 1 verifies:',await verify(h1,p));console.log('Hash 2 verifies:',await verify(h2,p));})().catch(console.error)"
+```
+
+## Actual output
+
+```text
+Hash 1: $argon2id$v=19$m=19456,t=2,p=1$lxVh9dVsh9ZGtuArDvEJdw$f1Cgj88Y1PpXEa8hV+RZr0i/4C90BO8ARXnLQVx5Y2U
+Hash 2: $argon2id$v=19$m=19456,t=2,p=1$arNxSyt7Y5BrRkXB6+nXVA$4EuCo8n46ZGItDDDCv2Ej5323OgQjAGV+TLAFNzhkQI
+Hashes are different: true
+Hash 1 verifies: true
+Hash 2 verifies: true
+```
+
+## Result
+
+- Both hashes are different, despite using the same password.
+- Both hashes successfully verify against the original password.
+- The encoded hashes contain different salt values.
+- Argon2id stores the salt and algorithm parameters in the encoded hash, allowing verification without separately storing the salt.
+
+This demonstrates why password hashing is not equivalent to simply encrypting or hashing a password with a fixed deterministic digest.
+
