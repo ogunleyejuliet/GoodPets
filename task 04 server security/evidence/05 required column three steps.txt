@@ -1,0 +1,102 @@
+# Evidence 05 — Required Column: Three-Step Migration
+
+## Objective
+
+Demonstrate the safe approach to adding a required column to a populated PostgreSQL table without losing existing records.
+
+## Environment
+
+- Project: GoodPets
+- Database: `task4_migrations_lab`
+- Host: `localhost:5432`
+- Database engine: PostgreSQL 18.6
+- Test table: `task4_migration_demo`
+
+## Step 1 — Add the column as optional
+
+**Command executed:**
+
+```cmd
+"C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -d task4_migrations_lab -c "ALTER TABLE task4_migration_demo ADD COLUMN vaccination_status VARCHAR(30);"
+```
+
+**Output:**
+
+```text
+ALTER TABLE
+```
+
+The column was added without a `NOT NULL` constraint, allowing existing records to remain valid temporarily.
+
+## Step 2 — Backfill existing records
+
+**Command executed:**
+
+```cmd
+"C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -d task4_migrations_lab -c "UPDATE task4_migration_demo SET vaccination_status = 'NOT_RECORDED' WHERE vaccination_status IS NULL; SELECT id, pet_name, vaccination_status FROM task4_migration_demo ORDER BY id;"
+```
+
+**Output:**
+
+```text
+UPDATE 3
+ id | pet_name | vaccination_status
+----+----------+--------------------
+  1 | Max      | NOT_RECORDED
+  2 | Bella    | NOT_RECORDED
+  3 | Charlie  | NOT_RECORDED
+(3 rows)
+```
+
+All three existing records were updated with a value.
+
+## Step 3 — Enforce the NOT NULL constraint
+
+**Command executed:**
+
+```cmd
+"C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -d task4_migrations_lab -c "ALTER TABLE task4_migration_demo ALTER COLUMN vaccination_status SET NOT NULL;"
+```
+
+**Output:**
+
+```text
+ALTER TABLE
+```
+
+## Final verification
+
+**Command executed:**
+
+```cmd
+"C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -d task4_migrations_lab -c "SELECT column_name, is_nullable, data_type FROM information_schema.columns WHERE table_name = 'task4_migration_demo' AND column_name = 'vaccination_status'; SELECT id, pet_name, vaccination_status FROM task4_migration_demo ORDER BY id;"
+```
+
+**Output:**
+
+```text
+    column_name     | is_nullable |     data_type
+--------------------+-------------+-------------------
+ vaccination_status | NO          | character varying
+(1 row)
+
+
+ id | pet_name | vaccination_status
+----+----------+--------------------
+  1 | Max      | NOT_RECORDED
+  2 | Bella    | NOT_RECORDED
+  3 | Charlie  | NOT_RECORDED
+(3 rows)
+```
+
+## Result
+
+The three-step migration succeeded:
+
+1. Added the new column as nullable.
+2. Backfilled all existing records.
+3. Enforced the `NOT NULL` constraint.
+
+Final verification confirmed that the column is required and all three existing records retain their values.
+
+**Safety note:** This exercise was performed on the disposable local `task4_migrations_lab` database and its demonstration table. No live Supabase application data was modified.

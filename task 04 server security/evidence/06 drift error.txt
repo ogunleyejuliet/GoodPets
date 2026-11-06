@@ -1,0 +1,78 @@
+## Environment
+
+- Project: GoodPets
+- Prisma CLI: 6.4.1
+- Database: `task4_migrations_lab`
+- Shadow database: `task4_migrations_shadow`
+- Database host: `localhost`
+- Database engine: PostgreSQL 18.6
+
+## 1. Prepare the shadow database
+
+A separate shadow database was created for Prisma's migration comparison.
+
+```cmd
+"C:\Program Files\PostgreSQL\18\bin\createdb.exe" -U postgres task4_migrations_shadow
+```
+
+The command completed and returned to the prompt without an error.
+
+## 2. Detect schema drift
+
+**Command executed:**
+
+```cmd
+npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datasource prisma/schema.prisma --shadow-database-url "postgresql://postgres:[REDACTED]@localhost:5432/task4_migrations_shadow?schema=public"
+```
+
+**Output:**
+
+```text
+[+] Added tables
+  - task4_migration_demo
+```
+
+Prisma detected the manually created `task4_migration_demo` table as a difference between the migration history and the actual database schema.
+
+## 3. Correct the drift
+
+The temporary demonstration table was removed from the local test database.
+
+**Command executed:**
+
+```cmd
+"C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -d task4_migrations_lab -c "DROP TABLE task4_migration_demo;"
+```
+
+**Output:**
+
+```text
+DROP TABLE
+```
+
+## 4. Verify the correction
+
+The same Prisma comparison was executed again.
+
+**Command executed:**
+
+```cmd
+npx prisma migrate diff --from-migrations prisma/migrations --to-schema-datasource prisma/schema.prisma --shadow-database-url "postgresql://postgres:[REDACTED]@localhost:5432/task4_migrations_shadow?schema=public"
+```
+
+**Output:**
+
+```text
+No difference detected.
+```
+
+## Result
+
+Schema drift was successfully demonstrated and corrected:
+
+1. A manually created table introduced a difference.
+2. Prisma detected the difference using `migrate diff`.
+3. The temporary table was removed.
+4. A second comparison confirmed that no differences remained.
+
+

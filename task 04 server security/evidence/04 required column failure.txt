@@ -1,0 +1,31 @@
+1. Create and populate the test table
+
+Command executed:
+
+"C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -d task4_migrations_lab -c "DROP TABLE IF EXISTS task4_migration_demo; CREATE TABLE task4_migration_demo (id SERIAL PRIMARY KEY, pet_name VARCHAR(100) NOT NULL); INSERT INTO task4_migration_demo (pet_name) VALUES ('Max'), ('Bella'), ('Charlie'); SELECT * FROM task4_migration_demo;"
+
+Output:
+
+NOTICE: table "task4_migration_demo" does not exist, skipping
+DROP TABLE
+CREATE TABLE
+INSERT 0 3
+
+ id | pet_name
+----+----------
+  1 | Max
+  2 | Bella
+  3 | Charlie
+(3 rows)
+
+Three existing records were inserted into the test table.
+
+2. Attempt to add a required column
+
+Command executed:
+
+"C:\Program Files\PostgreSQL\18\bin\psql.exe" -U postgres -d task4_migrations_lab -c "ALTER TABLE task4_migration_demo ADD COLUMN vaccination_status VARCHAR(30) NOT NULL;"
+
+Output:
+
+ERROR: column "vaccination_status" of relation "task4_migration_demo" contains null value
