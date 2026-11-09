@@ -1,0 +1,84 @@
+STEP 7 — DIRECT REQUEST VALIDATION
+FINDING 1.3 — CUSTOMER ID BYPASS ON SIGN-IN
+
+## BEFORE FIX
+
+Endpoint:
+POST /api/auth/signin
+
+Test:
+A direct API request was sent with the temporary test account's email and password, deliberately omitting customerId.
+
+Result:
+HTTP STATUS: 200
+
+Response:
+{
+  "success": true,
+  "user": {
+    "id": "[REDACTED]",
+    "customerId": "6231",
+    "name": "Evidence 09 Test",
+    "email": "evidence09@example.com",
+    "role": "CUSTOMER"
+  }
+}
+
+Conclusion:
+The server authenticated the customer without requiring customerId.
+This confirms that the frontend requirement was not enforced by the sign-in API.
+
+## AFTER FIX:
+
+### Test 1 — Customer ID omitted
+
+Request:
+POST /api/auth/signin
+
+Supplied:
+- Email: evidence09@example.com
+- Password: TestPassword2026!
+- Customer ID: Omitted
+
+Actual result:
+HTTP STATUS: 401
+
+Response:
+{
+  "success": false,
+  "error": "Invalid Customer ID or password."
+}
+
+Conclusion:
+The server now rejects customer sign-in when Customer ID is missing.
+
+### Test 2 — Correct Customer ID supplied
+
+Request:
+POST /api/auth/signin
+
+Supplied:
+- Email: evidence09@example.com
+- Customer ID: 6231
+- Password: TestPassword2026!
+
+Actual result:
+HTTP STATUS: 200
+
+Response:
+{
+  "success": true,
+  "user": {
+    "id": "[REDACTED]",
+    "customerId": "6231",
+    "name": "Evidence 09 Test",
+    "email": "evidence09@example.com",
+    "role": "CUSTOMER"
+  }
+}
+
+Conclusion:
+The server accepts legitimate customer sign-in when the correct Customer ID and password are supplied.
+
+FINAL RESULT:
+The Customer ID bypass was reproduced before the fix and successfully closed. Both negative and positive direct API tests passed.

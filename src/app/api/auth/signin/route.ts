@@ -32,17 +32,6 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedPassword = password.trim();
-
-    // Server-side Customer ID validation
-    if (customerId !== undefined && customerId !== null) {
-      if (!customerId || typeof customerId !== 'string' || !/^\d{4}$/.test(customerId.trim())) {
-        return NextResponse.json(
-          { success: false, error: 'Invalid Customer ID or password.' },
-          { status: 401 }
-        );
-      }
-    }
-
     const normalizedEmail = email.trim().toLowerCase();
 
     // 2. Query user from database
@@ -69,9 +58,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify Customer ID match if supplied by customer
-    if (customerId !== undefined && customerId !== null && user.role === 'CUSTOMER') {
-      if (user.customerId && user.customerId !== customerId.trim()) {
+    // 3. For customers, require a valid 4-digit Customer ID matching the account
+    if (user.role === 'CUSTOMER') {
+      const isFormatValid =
+        typeof customerId === 'string' && /^\d{4}$/.test(customerId.trim());
+      const isMatch =
+        isFormatValid &&
+        Boolean(user.customerId) &&
+        user.customerId === customerId.trim();
+
+      if (!isMatch) {
+        // Run dummy verification to prevent timing attacks / user enumeration
         await verify(DUMMY_ARGON2_HASH, normalizedPassword).catch(() => false);
         return NextResponse.json(
           { success: false, error: 'Invalid Customer ID or password.' },
@@ -80,7 +77,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 3. Verify Argon2id password hash
+    // 4. Verify Argon2id password hash
     const isValid = await verify(user.passwordHash, normalizedPassword);
     if (!isValid) {
       return NextResponse.json(
@@ -89,7 +86,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 4. Verify account active state
+    // 5. Verify account active state
     if (!user.isActive) {
       return NextResponse.json(
         { success: false, error: 'Account is deactivated. Please contact support.' },
@@ -97,7 +94,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Issue session cookie
+    // 6. Issue session cookie
     const token = signSessionToken({
       userId: user.id,
       customerId: user.customerId,
