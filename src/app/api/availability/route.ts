@@ -9,31 +9,41 @@ import {
   countBoardingNights,
 } from '@/lib/dates';
 import { ServiceType } from '@prisma/client';
-
-// Rate limit helper: BR-039 specifies 60 requests per minute per IP for availability
-const ipRequestCounts = new Map<string, { count: number; resetAt: number }>();
-
-function checkRateLimit(ip: string): boolean {
-  const now = Date.now();
-  const entry = ipRequestCounts.get(ip);
-  if (!entry || now > entry.resetAt) {
-    ipRequestCounts.set(ip, { count: 1, resetAt: now + 60000 });
-    return true;
-  }
-  if (entry.count >= 60) {
-    return false;
-  }
-  entry.count += 1;
-  return true;
-}
+import {
+  getClientIp,
+  deriveRateLimitKey,
+  reserveRateLimits,
+  RateLimitClientIpError,
+  RateLimitExceededError,
+  RateLimitConfigError,
+  RateLimitUnavailableError,
+} from '@/lib/rate-limit';
 
 export async function GET(request: NextRequest) {
-  const ip = request.headers.get('x-forwarded-for')?.split(',')[0] || '127.0.0.1';
-  if (!checkRateLimit(ip)) {
-    return NextResponse.json(
-      { error: 'Rate limit exceeded. Please try again shortly.' },
-      { status: 429, headers: { 'Retry-After': '60' } }
-    );
+  try {
+    const clientIp = getClientIp(request);
+    const ipKey = deriveRateLimitKey('availability:ip', clientIp);
+    await reserveRateLimits([{ key: ipKey, limit: 60, windowSeconds: 60 }]);
+  } catch (rlError) {
+    if (rlError instanceof RateLimitClientIpError) {
+      return NextResponse.json(
+        { error: rlError.message },
+        { status: 400 }
+      );
+    }
+    if (rlError instanceof RateLimitExceededError) {
+      return NextResponse.json(
+        { error: 'Rate limit exceeded. Please try again shortly.' },
+        { status: 429, headers: { 'Retry-After': String(rlError.retryAfterSeconds) } }
+      );
+    }
+    if (rlError instanceof RateLimitConfigError || rlError instanceof RateLimitUnavailableError) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable. Please try again shortly.' },
+        { status: 503 }
+      );
+    }
+    throw rlError;
   }
 
   const { searchParams } = new URL(request.url);

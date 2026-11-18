@@ -2,6 +2,18 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireUser } from '@/lib/auth';
 import { createBookingWithCapacityHold } from '@/lib/capacity';
 import { formatNaira } from '@/lib/pricing';
+import {
+  getClientIp,
+  deriveRateLimitKey,
+  reserveRateLimits,
+  decrementRateLimits,
+  redactKeyForLog,
+  ReservedRateLimit,
+  RateLimitClientIpError,
+  RateLimitExceededError,
+  RateLimitConfigError,
+  RateLimitUnavailableError,
+} from '@/lib/rate-limit';
 
 export const dynamic = 'force-dynamic';
 
@@ -38,21 +50,74 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 1b. Transactional rate-limit reservation (BR-039: 10/hr per user, 20/hr per IP)
+    let reservations: ReservedRateLimit[] = [];
+    try {
+      const clientIp = getClientIp(request);
+      const userKey = deriveRateLimitKey('booking:user', user.id);
+      const ipKey = deriveRateLimitKey('booking:ip', clientIp);
+
+      reservations = await reserveRateLimits([
+        { key: userKey, limit: 10, windowSeconds: 3600 },
+        { key: ipKey, limit: 20, windowSeconds: 3600 },
+      ]);
+    } catch (rlError) {
+      if (rlError instanceof RateLimitClientIpError) {
+        return NextResponse.json(
+          { error: rlError.message },
+          { status: 400 }
+        );
+      }
+      if (rlError instanceof RateLimitExceededError) {
+        return NextResponse.json(
+          {
+            error: 'Too many booking requests. Please wait before creating another booking.',
+            code: 'RATE_LIMIT_EXCEEDED',
+          },
+          {
+            status: 429,
+            headers: { 'Retry-After': String(rlError.retryAfterSeconds) },
+          }
+        );
+      }
+      if (rlError instanceof RateLimitConfigError || rlError instanceof RateLimitUnavailableError) {
+        return NextResponse.json(
+          { error: 'Service temporarily unavailable. Please try again shortly.' },
+          { status: 503 }
+        );
+      }
+      throw rlError;
+    }
+
     // 2. Execute Atomic Capacity Hold & Booking Creation inside transaction
-    const result = await createBookingWithCapacityHold({
-      customerId: user.id,
-      idempotencyKey,
-      petId,
-      serviceType,
-      groomingPackage,
-      groomingDate,
-      groomingSlot,
-      daycareMode,
-      daycareStartDate,
-      daycareEndDate,
-      boardingCheckIn,
-      boardingCheckOut,
-    });
+    let result;
+    try {
+      result = await createBookingWithCapacityHold({
+        customerId: user.id,
+        idempotencyKey,
+        petId,
+        serviceType,
+        groomingPackage,
+        groomingDate,
+        groomingSlot,
+        daycareMode,
+        daycareStartDate,
+        daycareEndDate,
+        boardingCheckIn,
+        boardingCheckOut,
+      });
+    } catch (bookingError) {
+      try {
+        await decrementRateLimits(reservations);
+      } catch (cleanupError) {
+        const cleanupMsg =
+          cleanupError instanceof Error ? cleanupError.message : 'Unknown cleanup error';
+        console.error(
+          `POST /api/bookings - RateLimit rollback failed after booking error - UserID: ${user.id} - Keys: [${reservations.map((r) => redactKeyForLog(r.key)).join(', ')}] - Error: ${cleanupMsg}`
+        );
+      }
+      throw bookingError;
+    }
 
     const booking = result.booking;
 

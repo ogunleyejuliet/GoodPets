@@ -4,8 +4,23 @@ import { verify } from '@node-rs/argon2';
 import {
   signSessionToken,
   getSessionCookieOptions,
-  DUMMY_ARGON2_HASH,
 } from '@/lib/auth';
+import {
+  getClientIp,
+  deriveRateLimitKey,
+  reserveRateLimits,
+  decrementRateLimits,
+  redactKeyForLog,
+  ReservedRateLimit,
+  RateLimitClientIpError,
+  RateLimitExceededError,
+  RateLimitConfigError,
+  RateLimitUnavailableError,
+} from '@/lib/rate-limit';
+
+// Valid pre-computed Argon2id dummy hash using application parameters (m=19456, t=2, p=1)
+const VALID_DUMMY_ARGON2_HASH =
+  '$argon2id$v=19$m=19456,t=2,p=1$XtMpH3NFCda15Hxxh1NdDQ$+vzJvzMP9Bj1hvbJnd2w1dcBNP5Dr+Y8NQb63nQJqps';
 
 // POST /api/auth/signin
 // Authenticates a customer against PostgreSQL with Argon2id and sets a secure HTTP-only session cookie
@@ -34,6 +49,50 @@ export async function POST(request: NextRequest) {
     const normalizedPassword = password.trim();
     const normalizedEmail = email.trim().toLowerCase();
 
+    // 1b. Transactional rate-limit reservation (BR-049: 5 failed/15m/email, 20 failed/15m/IP)
+    let reservations: ReservedRateLimit[] = [];
+    try {
+      const clientIp = getClientIp(request);
+      const emailKey = deriveRateLimitKey('signin:email', normalizedEmail);
+      const ipKey = deriveRateLimitKey('signin:ip', clientIp);
+
+      reservations = await reserveRateLimits([
+        { key: emailKey, limit: 5, windowSeconds: 900 },
+        { key: ipKey, limit: 20, windowSeconds: 900 },
+      ]);
+    } catch (rlError) {
+      if (rlError instanceof RateLimitClientIpError) {
+        return NextResponse.json(
+          { success: false, error: rlError.message },
+          { status: 400 }
+        );
+      }
+      if (rlError instanceof RateLimitExceededError) {
+        await verify(VALID_DUMMY_ARGON2_HASH, normalizedPassword).catch(() => false);
+        console.warn(`[${timestamp}] POST /api/auth/signin - Status: 429 - Rate limit exceeded`);
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Too many failed sign-in attempts. Please try again later.',
+          },
+          {
+            status: 429,
+            headers: { 'Retry-After': String(rlError.retryAfterSeconds) },
+          }
+        );
+      }
+      if (rlError instanceof RateLimitConfigError || rlError instanceof RateLimitUnavailableError) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Service temporarily unavailable. Please try again shortly.',
+          },
+          { status: 503 }
+        );
+      }
+      throw rlError;
+    }
+
     // 2. Query user from database
     const user = await prisma.user.findUnique({
       where: { email: normalizedEmail },
@@ -51,7 +110,7 @@ export async function POST(request: NextRequest) {
 
     if (!user || !user.passwordHash) {
       // Run dummy verification to prevent timing attacks / user enumeration (PRD FR-003, BR-045)
-      await verify(DUMMY_ARGON2_HASH, normalizedPassword).catch(() => false);
+      await verify(VALID_DUMMY_ARGON2_HASH, normalizedPassword).catch(() => false);
       return NextResponse.json(
         { success: false, error: 'Invalid Customer ID or password.' },
         { status: 401 }
@@ -69,7 +128,7 @@ export async function POST(request: NextRequest) {
 
       if (!isMatch) {
         // Run dummy verification to prevent timing attacks / user enumeration
-        await verify(DUMMY_ARGON2_HASH, normalizedPassword).catch(() => false);
+        await verify(VALID_DUMMY_ARGON2_HASH, normalizedPassword).catch(() => false);
         return NextResponse.json(
           { success: false, error: 'Invalid Customer ID or password.' },
           { status: 401 }
@@ -94,6 +153,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 5b. Authentication succeeded: roll back speculative failed-attempt reservations
+    try {
+      await decrementRateLimits(reservations);
+    } catch (cleanupError) {
+      const cleanupMsg =
+        cleanupError instanceof Error ? cleanupError.message : 'Unknown cleanup error';
+      console.error(
+        `[${timestamp}] POST /api/auth/signin - RateLimit cleanup failed after authentication - UserID: ${user.id} - Keys: [${reservations.map((r) => redactKeyForLog(r.key)).join(', ')}] - Error: ${cleanupMsg}`
+      );
+    }
+
     // 6. Issue session cookie
     const token = signSessionToken({
       userId: user.id,
@@ -104,7 +174,7 @@ export async function POST(request: NextRequest) {
     });
 
     console.log(
-      `[${timestamp}] POST /api/auth/signin - Status: 200 - User signed in successfully - ID: ${user.id} - Customer ID: ${user.customerId} - Email: ${user.email} - Role: ${user.role}`
+      `[${timestamp}] POST /api/auth/signin - Status: 200 - User signed in successfully - ID: ${user.id} - Role: ${user.role}`
     );
 
     const cookieOpts = getSessionCookieOptions();

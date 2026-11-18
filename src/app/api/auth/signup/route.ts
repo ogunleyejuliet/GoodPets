@@ -3,6 +3,15 @@ import prisma from '@/lib/prisma';
 import { hash } from '@node-rs/argon2';
 import { signSessionToken, getSessionCookieOptions, generateRandomCustomerId } from '@/lib/auth';
 import { signupSchema } from '@/lib/validations/auth';
+import {
+  getClientIp,
+  deriveRateLimitKey,
+  reserveRateLimits,
+  RateLimitClientIpError,
+  RateLimitExceededError,
+  RateLimitConfigError,
+  RateLimitUnavailableError,
+} from '@/lib/rate-limit';
 
 // POST /api/auth/signup
 // Handles customer registration with Argon2id password hashing and PostgreSQL persistence
@@ -10,6 +19,43 @@ export async function POST(request: NextRequest) {
   const timestamp = new Date().toISOString();
 
   try {
+    // 0. Rate limiting (BR-039: 5 requests per hour per IP; all attempts count)
+    try {
+      const clientIp = getClientIp(request);
+      const ipKey = deriveRateLimitKey('signup:ip', clientIp);
+      await reserveRateLimits([{ key: ipKey, limit: 5, windowSeconds: 3600 }]);
+    } catch (rlError) {
+      if (rlError instanceof RateLimitClientIpError) {
+        return NextResponse.json(
+          { success: false, error: rlError.message },
+          { status: 400 }
+        );
+      }
+      if (rlError instanceof RateLimitExceededError) {
+        console.warn(`[${timestamp}] POST /api/auth/signup - Status: 429 - Rate limit exceeded`);
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Too many registration attempts. Please try again later.',
+          },
+          {
+            status: 429,
+            headers: { 'Retry-After': String(rlError.retryAfterSeconds) },
+          }
+        );
+      }
+      if (rlError instanceof RateLimitConfigError || rlError instanceof RateLimitUnavailableError) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Service temporarily unavailable. Please try again shortly.',
+          },
+          { status: 503 }
+        );
+      }
+      throw rlError;
+    }
+
     const body = await request.json();
 
     // 1. Zod schema validation & normalization

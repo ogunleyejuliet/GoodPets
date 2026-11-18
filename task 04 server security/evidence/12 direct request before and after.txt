@@ -80,5 +80,142 @@ Response:
 Conclusion:
 The server accepts legitimate customer sign-in when the correct Customer ID and password are supplied.
 
-FINAL RESULT:
-The Customer ID bypass was reproduced before the fix and successfully closed. Both negative and positive direct API tests passed.
+
+
+**Finding:** 1.1 — Single-word name bypass
+
+**Endpoint:** POST /api/auth/signup
+
+### Test request
+
+A direct API request was sent with the name `Madonna`, bypassing frontend validation.
+
+```cmd
+curl.exe -i -X POST http://localhost:3000/api/auth/signup -H "Content-Type: application/json" -d "{\"name\":\"Madonna\",\"email\":\"evidence11@example.com\",\"password\":\"TestPassword2026!\",\"confirmPassword\":\"TestPassword2026!\"}"
+```
+
+### Actual result
+
+HTTP status: `400 Bad Request`
+
+Response:
+
+```json
+{
+  "success": false,
+  "error": "Please enter your full name (at least two names).",
+  "errors": {
+    "name": [
+      "Please enter your full name (at least two names)."
+    ]
+  }
+}
+```
+
+### Conclusion
+
+The server-side Zod validation now enforces the minimum two-word full-name requirement. A direct API request containing a single-word name is rejected before account creation.
+
+Live endpoint verification passed.
+
+## Finding 1.2 — Terms and Conditions Agreement Bypass
+
+**Endpoint:** POST /api/auth/signup
+
+### Test 1 — Agreement omitted
+
+Request supplied:
+- Valid two-word name
+- Valid email
+- Valid password
+- Matching password confirmation
+- `agreeToTerms` omitted
+
+Actual result: HTTP 400 Bad Request
+
+Error:
+`You must agree to the Terms and Conditions to create an account.`
+
+Conclusion: The server rejects registration when agreement is omitted.
+
+### Test 2 — Agreement explicitly false
+
+Request supplied:
+- Valid registration details
+- `agreeToTerms: false`
+
+Actual result: HTTP 400 Bad Request
+
+Error:
+`You must agree to the Terms and Conditions to create an account.`
+
+Conclusion: The server rejects registration when the user has not agreed.
+
+### Test 3 — Agreement explicitly true
+
+Request supplied:
+- Name: Evidence Terms
+- Email: evidenceterms@example.com
+- `agreeToTerms: true`
+
+Actual result: HTTP 201 Created
+
+Response confirmed:
+- `success: true`
+- Account created successfully
+- Customer ID: 1542
+- Role: CUSTOMER
+
+Conclusion: The server accepts valid registration when explicit agreement is supplied.
+
+**Final result:** All three live API tests passed. The server now enforces explicit Terms and Conditions agreement.
+
+Note: The HTTP response included a session cookie. Its value has been intentionally excluded from this evidence file.
+
+Task: Task 4, Step 8 — Rate Limiting
+Test command: node scratch/test-rate-limits.js --db
+Database: Local PostgreSQL (task4_migrations_lab)
+
+Test Results
+
+=== GoodPets Task 4 Step 8: Live PostgreSQL RateLimit Tests (--db) ===
+
+[PASS] Live DB single-counter limit, Retry-After (PostgreSQL NOW()), and rollback
+
+[PASS] Live DB parallel Promise.all concurrency & atomic cross-counter rollback
+
+[PASS] Live DB scoped decrement
+
+[PASS] Zero-PII HMAC keys verified
+
+Measured PostgreSQL Latency:
+
+Single-counter upsert: avg=110.39ms, max=324.34ms (n=3)
+
+Multi-counter concurrent tx: avg=87.95ms, max=177.20ms (n=8)
+
+(The scoped decrement correctly reduced the live PostgreSQL counter from 5 to 4).
+
+Verification Summary
+
+All four live PostgreSQL rate-limiting checks passed.
+
+Single-counter limits, Retry-After calculation and rollback were verified.
+
+Parallel requests correctly enforced concurrency limits and atomic cross-counter rollback.
+
+Scoped decrement successfully reduced the counter from 5 to 4.
+
+Rate-limit storage was verified to contain no raw personal information in HMAC keys.
+
+Defect Resolution
+
+The scoped-decrement failure was caused by a timestamp type and timezone mismatch between the PostgreSQL TIMESTAMP(3) column and the JavaScript Date parameter.
+
+The correction was implemented in src/lib/rate-limit.ts by explicitly converting the parameter to a UTC timestamp without timezone:
+
+AND "windowStart" = (${item.windowStart}::timestamptz AT TIME ZONE 'UTC');
+
+The live PostgreSQL test passed after this correction.
+
+Final result: 4 passed, 0 failed.

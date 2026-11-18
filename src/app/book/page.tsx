@@ -1008,6 +1008,7 @@ export default function BookingPage() {
           email: signUpEmail.trim().toLowerCase(),
           password: signUpPassword,
           confirmPassword: signUpConfirmPassword,
+          agreeToTerms: signUpAgreeToTerms,
         }),
       });
 

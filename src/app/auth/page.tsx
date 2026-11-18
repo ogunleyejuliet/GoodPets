@@ -451,6 +451,7 @@ function AuthContent() {
           email: signUpEmail.trim().toLowerCase(),
           password: signUpPassword,
           confirmPassword: signUpConfirmPassword,
+          agreeToTerms: signUpAgreeToTerms,
         }),
       });
 
