@@ -166,8 +166,59 @@ GoodPets uses **Nodemailer** over authenticated SMTP.
 
 ---
 
-## 9. Current Limitations & Deferred Work
+## 9. Resend Verification Code Architecture (Stage 6)
 
-The following features belong to later stages and are intentionally deferred:
-1. **Stage 6 (Resend Flow):** Resend verification code endpoint (`POST /api/auth/resend-verification`) with rate limiting (3/hr per email) and anti-enumeration protections.
-2. **Stage 7 (Inngest Worker):** Inngest background job processing (`inngest/send-verification-email`) with exponential backoff retries, dead-letter handling, and nightly purging of unverified customer records older than 7 days.
+### Endpoint Specification
+- **Route:** `POST /api/auth/resend-verification`
+- **Payload:** `{ "email": "customer@example.com" }`
+- **Email Normalization:** Trims leading/trailing whitespace and converts to lowercase before rate limiting and database queries.
+
+### Database-Backed Rate Limiting (BR-039)
+- **Constraint:** Maximum **3 resend requests per hour per normalized email address** (`resend:email`).
+- **Mechanism:** Implemented via PostgreSQL transactional reservation (`reserveRateLimits` using `deriveRateLimitKey('resend:email', normalizedEmail)`).
+- **Nonexistent Account Protection:** Rate limiting executes before database account lookup, preventing attackers from abusing the endpoint or probing random addresses.
+- **Throttling Response:** When the limit is exceeded, returns HTTP 429:
+  ```json
+  {
+    "success": false,
+    "error": "Too many verification code requests. Please try again later."
+  }
+  ```
+  with standard `Retry-After: <seconds>` response header.
+
+### Anti-Enumeration & Timing Protection
+- The endpoint returns the **exact same generic HTTP 200 response** regardless of whether:
+  1. The email belongs to an unverified customer account.
+  2. The email does not exist in the database.
+  3. The email belongs to an already-verified customer or staff account.
+- **Generic Message:**
+  ```json
+  {
+    "success": true,
+    "message": "If an unverified account exists for this email address, a new 6-digit verification code has been sent."
+  }
+  ```
+- **Side-Channel Mitigation:** When an account is nonexistent, verified, or inactive, the server executes a dummy HMAC-SHA256 calculation to match the execution time of code generation, neutralizing response timing discrepancies.
+
+### Transactional Token Invalidation & Outbox Persistence
+- For eligible unverified customer accounts:
+  1. Invalidates any prior unconsumed active codes:
+     `UPDATE "AuthToken" SET "expiresAt" = NOW() - INTERVAL '1 second' WHERE "userId" = :userId AND "purpose" = 'EMAIL_VERIFICATION' AND "usedAt" IS NULL`
+  2. Generates a fresh cryptographically secure 6-digit code via `crypto.randomInt(100000, 1000000)`.
+  3. Computes HMAC-SHA256 bound to `userId` with dedicated secret `VERIFICATION_CODE_SECRET`.
+  4. Upserts `AuthToken` with fresh 10-minute expiry (`ON CONFLICT (tokenHash) DO UPDATE`).
+  5. Creates `EmailOutbox` record storing AES-256-GCM encrypted payload transactionally.
+  6. Dispatches non-blocking SMTP email asynchronously.
+  7. Strictly **no session cookie or auto-login** is performed.
+
+### Verification UI Integration
+- Accessible "Resend code" button integrated into `/auth/verify`.
+- Neutral status notification banner displaying the anti-enumeration confirmation.
+- 60-second client-side cooldown countdown prevents rapid accidental re-submissions.
+
+---
+
+## 10. Current Limitations & Deferred Work
+
+The following features belong strictly to Stage 7 and remain deferred:
+1. **Stage 7 (Inngest Background Worker):** Asynchronous background worker processing via Inngest (`inngest/send-verification-email`) with exponential backoff retries, dead-letter outbox status transitions, outbox payload purge upon successful delivery, and nightly cleanup of unverified customer records older than 7 days.

@@ -23,10 +23,72 @@ function VerifyEmailContent() {
   const [email, setEmail] = useState<string>(emailParam);
   const [code, setCode] = useState<string>(codeParam.replace(/\D/g, '').slice(0, 6));
   const [loading, setLoading] = useState<boolean>(false);
+  const [resending, setResending] = useState<boolean>(false);
+  const [resendNotice, setResendNotice] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState<number>(0);
   const [verified, setVerified] = useState<boolean>(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [errorCode, setErrorCode] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Countdown timer for resend action cooldown
+  React.useEffect(() => {
+    if (resendCooldown <= 0) return;
+    const timer = setInterval(() => {
+      setResendCooldown((prev) => Math.max(0, prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [resendCooldown]);
+
+  const handleResendCode = async () => {
+    setErrorMsg(null);
+    setErrorCode(null);
+    setResendNotice(null);
+
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+      setErrorMsg('Please enter your email address to request a new code.');
+      setErrorCode('INVALID_EMAIL');
+      return;
+    }
+
+    setResending(true);
+
+    try {
+      const response = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (response.status === 200) {
+        setResendNotice(
+          data.message ||
+            'If an unverified account exists for this email address, a new 6-digit verification code has been sent.'
+        );
+        setResendCooldown(60);
+        setResending(false);
+        return;
+      }
+
+      if (response.status === 429) {
+        setErrorMsg(data.error || 'Too many verification code requests. Please try again later.');
+        setErrorCode('RATE_LIMITED');
+        setResendCooldown(60);
+        setResending(false);
+        return;
+      }
+
+      setErrorMsg(data.error || 'Unable to resend verification code at this time. Please try again.');
+      setResending(false);
+    } catch {
+      setResending(false);
+      setErrorMsg('Unable to connect to the Good Pets server. Please check your connection and try again.');
+      setErrorCode('NETWORK_ERROR');
+    }
+  };
 
   const handleCodeChange = (val: string) => {
     // Only accept numeric digits up to 6 characters
@@ -192,6 +254,17 @@ function VerifyEmailContent() {
               </p>
             </div>
 
+            {resendNotice && (
+              <div
+                role="status"
+                aria-live="polite"
+                className="bg-primary-container text-on-primary-container p-3.5 rounded-xl text-xs font-semibold flex items-start gap-2.5 border border-primary/20"
+              >
+                <span aria-hidden="true" className="shrink-0 mt-0.5">ℹ️</span>
+                <div>{resendNotice}</div>
+              </div>
+            )}
+
             {errorMsg && (
               <div
                 role="alert"
@@ -203,7 +276,7 @@ function VerifyEmailContent() {
                   <div>{errorMsg}</div>
                   {errorCode === 'CODE_EXPIRED' && (
                     <p className="font-normal text-on-error-container/90">
-                      Codes are valid for 10 minutes. If expired, please sign up again or request a new code.
+                      Codes are valid for 10 minutes. Click &ldquo;Resend code&rdquo; below to receive a new code.
                     </p>
                   )}
                 </div>
@@ -281,6 +354,23 @@ function VerifyEmailContent() {
                   <span>Verify Code</span>
                 )}
               </button>
+
+              {/* Resend Verification Code Action */}
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-2 pt-1 text-xs">
+                <span className="text-on-surface-variant">Didn&apos;t receive code or expired?</span>
+                <button
+                  type="button"
+                  onClick={handleResendCode}
+                  disabled={resending || resendCooldown > 0 || !email.trim()}
+                  className="font-bold text-primary hover:underline cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {resending
+                    ? 'Sending code...'
+                    : resendCooldown > 0
+                    ? `Resend in ${resendCooldown}s`
+                    : 'Resend code'}
+                </button>
+              </div>
             </form>
 
             <div className="pt-2 text-center">

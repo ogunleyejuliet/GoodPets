@@ -9,7 +9,8 @@ export type RateLimitPurpose =
   | 'signin:ip'
   | 'availability:ip'
   | 'booking:user'
-  | 'booking:ip';
+  | 'booking:ip'
+  | 'resend:email';
 
 export interface RateLimitRule {
   key: string;
