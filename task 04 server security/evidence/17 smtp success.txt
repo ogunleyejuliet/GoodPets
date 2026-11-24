@@ -1,0 +1,13 @@
+
+Testing SMTP connection with:
+Host: smtp.gmail.com
+Port: 465
+User: ogunleyejuliet15@gmail.com
+Verifying connection...
+✓ SMTP Connection verified successfully!
+
+Sending real test verification email to: ogunleyejuliet15@gmail.com
+✓ Email sent successfully!
+Message ID: <17130eb2-95e9-3504-c3df-53eb328737ac@gmail.com>
+Response: 250 2.0.0 OK  1795167657 ffacd0b85a97d-4ab65cb41f4sm4399680f8f.7 - gsmtp
+

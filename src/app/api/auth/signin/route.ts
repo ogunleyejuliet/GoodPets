@@ -105,6 +105,7 @@ export async function POST(request: NextRequest) {
         role: true,
         isActive: true,
         sessionVersion: true,
+        emailVerified: true,
       },
     });
 
@@ -145,7 +146,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Verify account active state
+    // 5. Check customer email verification status (FR-003, BR-047)
+    // Staff roles (FRONT_DESK, MANAGER) are exempt from customer email verification
+    if (user.role === 'CUSTOMER' && !user.emailVerified) {
+      console.warn(
+        `[${timestamp}] POST /api/auth/signin - Status: 403 - Unverified customer sign-in rejected - UserID: ${user.id}`
+      );
+      return NextResponse.json(
+        {
+          success: false,
+          error: 'Verify your email first.',
+          code: 'EMAIL_NOT_VERIFIED',
+          verificationUrl: '/auth/verify',
+        },
+        { status: 403 }
+      );
+    }
+
+    // 6. Verify account active state
     if (!user.isActive) {
       return NextResponse.json(
         { success: false, error: 'Account is deactivated. Please contact support.' },
@@ -153,7 +171,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5b. Authentication succeeded: roll back speculative failed-attempt reservations
+    // 6b. Authentication succeeded: roll back speculative failed-attempt reservations
     try {
       await decrementRateLimits(reservations);
     } catch (cleanupError) {

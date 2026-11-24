@@ -145,6 +145,8 @@ export default function BookingPage() {
   const [authLoading, setAuthLoading] = useState<boolean>(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authSuccessMsg, setAuthSuccessMsg] = useState<string | null>(null);
+  const [bookSignUpVerificationPending, setBookSignUpVerificationPending] = useState(false);
+  const [bookSignUpRegisteredEmail, setBookSignUpRegisteredEmail] = useState('');
 
   // Sign In Form fields
   const [signInEmail, setSignInEmail] = useState('');
@@ -481,6 +483,7 @@ export default function BookingPage() {
             };
             setUser(authUser);
             sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(authUser));
+            setStep((currentStep) => (currentStep === 3 ? 4 : currentStep));
           } else {
             setUser(null);
             sessionStorage.removeItem(AUTH_STORAGE_KEY);
@@ -505,7 +508,11 @@ export default function BookingPage() {
             setDogSize(parsed.dogSize || 'small');
             setGroomingPackage(parsed.groomingPackage || 'basic');
             if (parsed.step && typeof parsed.step === 'number') {
-              setStep(parsed.step);
+              if (parsed.step === 3 && savedAuth) {
+                setStep(4);
+              } else {
+                setStep(parsed.step);
+              }
             } else {
               setStep(2);
             }
@@ -519,6 +526,13 @@ export default function BookingPage() {
       }
     }
   }, []);
+
+  // If user becomes authenticated and wizard is on Step 3 (auth gate), advance to Step 4
+  useEffect(() => {
+    if (user && step === 3) {
+      setStep(4);
+    }
+  }, [user, step]);
 
   // Calculate pricing based on service rules
   const getPrice = useCallback((): number => {
@@ -813,7 +827,11 @@ export default function BookingPage() {
       const data = await res.json();
       if (!res.ok || !data.success) {
         setAuthLoading(false);
-        setAuthError(data.error || 'Invalid Customer ID or password.');
+        if (res.status === 403 || data.code === 'EMAIL_NOT_VERIFIED') {
+          setAuthError(data.error || 'Verify your email first. Please check your inbox and verify your email before continuing.');
+        } else {
+          setAuthError(data.error || 'Invalid Customer ID or password.');
+        }
         return;
       }
 
@@ -1021,21 +1039,10 @@ export default function BookingPage() {
       }
 
       setAuthLoading(false);
-      const newUser: UserProfile = {
-        id: data.user.id,
-        customerId: data.user.customerId,
-        name: data.user.name || signUpName.trim(),
-        email: data.user.email,
-        role: data.user.role,
-      };
-      setUser(newUser);
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(newUser));
-      }
-      setAuthSuccessMsg('Account created successfully! Returning to your booking...');
-      setTimeout(() => {
-        setStep(4);
-      }, 700);
+      setBookSignUpVerificationPending(true);
+      setBookSignUpRegisteredEmail(signUpEmail.trim().toLowerCase());
+      setAuthError(null);
+      setAuthSuccessMsg(null);
     } catch {
       setAuthLoading(false);
       setAuthError('Unable to connect to the server. Please check your connection and try again.');
@@ -1843,6 +1850,7 @@ export default function BookingPage() {
                 type="button"
                 onClick={() => {
                   setAuthMode('signin');
+                  setBookSignUpVerificationPending(false);
                   setAuthError(null);
                   setAuthSuccessMsg(null);
                 }}
@@ -1895,8 +1903,90 @@ export default function BookingPage() {
               </div>
             )}
 
-            {/* Sign In Form */}
-            {authMode === 'signin' ? (
+            {/* Sign In or Sign Up View */}
+            {authMode === 'signup' && bookSignUpVerificationPending ? (
+              <div className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-6 shadow-soft text-center animate-fadeIn">
+                <div className="w-14 h-14 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center mx-auto">
+                  <svg
+                    className="w-8 h-8 text-secondary"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                    <polyline points="22,6 12,13 2,6" />
+                  </svg>
+                </div>
+
+                <div className="space-y-2">
+                  <h2 className="type-title-large font-bold text-on-surface">
+                    Check your email for your verification code
+                  </h2>
+                  <p className="type-body-medium text-on-surface-variant leading-relaxed">
+                    We&apos;ve sent a six-digit verification code to{' '}
+                    <span className="font-bold text-on-surface">{bookSignUpRegisteredEmail}</span>.
+                  </p>
+                  <p className="type-body-medium text-on-surface-variant text-xs leading-relaxed">
+                    Please enter the code to verify your account. Once verified, sign in below to continue your booking.
+                  </p>
+                </div>
+
+                <div className="bg-surface-container rounded-xl p-4 text-xs text-on-surface-variant text-left space-y-2 border border-outline-variant/60">
+                  <div className="font-bold text-on-surface flex items-center gap-1.5">
+                    <span className="text-primary text-sm leading-none" aria-hidden="true">🔒</span>
+                    <span>Your booking progress</span>
+                  </div>
+                  <ul className="list-disc list-inside space-y-1 text-on-surface-variant pl-1">
+                    <li>Your selected service details are saved in this browser window.</li>
+                    <li>
+                      <span className="font-semibold text-on-surface">Capacity is not yet reserved</span> — your place is held once you complete the checkout step.
+                    </li>
+                    <li>Verification codes are valid for <strong>10 minutes</strong> and single-use.</li>
+                  </ul>
+                </div>
+
+                <div className="space-y-3 pt-2">
+                  <a
+                    href={`/auth/verify?email=${encodeURIComponent(bookSignUpRegisteredEmail)}&returnUrl=/book`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-6 py-3 rounded-full shadow-soft hover:shadow-medium transition-all text-center cursor-pointer"
+                  >
+                    Enter Verification Code
+                    <span className="sr-only"> (opens verification in new tab)</span>
+                  </a>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAuthMode('signin');
+                      setBookSignUpVerificationPending(false);
+                      setSignInEmail(bookSignUpRegisteredEmail);
+                      setAuthError(null);
+                      setAuthSuccessMsg(null);
+                    }}
+                    className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-surface-container-high text-on-surface hover:bg-surface-container-highest px-6 py-3 rounded-full border border-outline-variant transition-all text-center cursor-pointer"
+                  >
+                    Already verified? Sign in here
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setBookSignUpVerificationPending(false);
+                      setAuthError(null);
+                    }}
+                    className="type-label-medium w-full inline-flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors py-1 text-center text-xs"
+                  >
+                    Use a different email address
+                  </button>
+                </div>
+              </div>
+            ) : authMode === 'signin' ? (
               <form noValidate onSubmit={handleSignIn} className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-4 shadow-soft">
                 <div>
                   <label className="block type-label-medium font-bold text-on-surface mb-1" htmlFor="signin-email">
@@ -2280,7 +2370,10 @@ export default function BookingPage() {
                   Already have an account?{' '}
                   <button
                     type="button"
-                    onClick={() => setAuthMode('signin')}
+                    onClick={() => {
+                      setAuthMode('signin');
+                      setBookSignUpVerificationPending(false);
+                    }}
                     className="font-bold text-primary hover:underline"
                   >
                     Sign in here

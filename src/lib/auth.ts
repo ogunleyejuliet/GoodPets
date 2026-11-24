@@ -105,6 +105,7 @@ export async function requireUser(allowedRoles?: string[]) {
       role: true,
       isActive: true,
       sessionVersion: true,
+      emailVerified: true,
       createdAt: true,
     },
   });
@@ -115,6 +116,11 @@ export async function requireUser(allowedRoles?: string[]) {
 
   // Reject session if sessionVersion was incremented (e.g., password reset, BR-048)
   if (user.sessionVersion !== payload.sessionVersion) {
+    return null;
+  }
+
+  // Reject session if CUSTOMER has not verified their email (PRD 11.1, BR-047)
+  if (user.role === 'CUSTOMER' && !user.emailVerified) {
     return null;
   }
 

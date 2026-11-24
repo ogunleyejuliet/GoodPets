@@ -294,6 +294,7 @@ async function runUnitTests() {
     role: 'CUSTOMER',
     isActive: true,
     sessionVersion: 1,
+    emailVerified: new Date(),
   });
 
   const commonMocks = {

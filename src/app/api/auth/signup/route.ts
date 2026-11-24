@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { hash } from '@node-rs/argon2';
-import { signSessionToken, getSessionCookieOptions, generateRandomCustomerId } from '@/lib/auth';
+import { generateRandomCustomerId } from '@/lib/auth';
 import { signupSchema } from '@/lib/validations/auth';
+import { isPasswordBreached, BreachedPasswordServiceError } from '@/lib/breached-password';
+import { generateRawVerificationCode, createVerificationCodeRecord } from '@/lib/tokens';
+import { createEmailOutboxRecord } from '@/lib/outbox';
+import { sendVerificationEmailDirect } from '@/lib/email';
 import {
   getClientIp,
   deriveRateLimitKey,
@@ -89,6 +93,35 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // 2.5 Privacy-preserving breached password screening (k-anonymity via Pwned Passwords)
+    try {
+      const isBreached = await isPasswordBreached(password);
+      if (isBreached) {
+        console.warn(`[${timestamp}] POST /api/auth/signup - Status: 400 - Breached password rejected`);
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'This password has appeared in a known data breach. For your security, please choose a different password.',
+          },
+          { status: 400 }
+        );
+      }
+    } catch (breachError) {
+      if (breachError instanceof BreachedPasswordServiceError) {
+        console.error(
+          `[${timestamp}] POST /api/auth/signup - Status: 503 - Breach screening unavailable: ${breachError.message}`
+        );
+        return NextResponse.json(
+          {
+            success: false,
+            error: 'Password security screening is temporarily unavailable. Please try again shortly.',
+          },
+          { status: 503 }
+        );
+      }
+      throw breachError;
+    }
+
     // 3. Secure Argon2id password hash (PRD FR-001 & BR-046)
     const passwordHash = await hash(password, {
       memoryCost: 19456,
@@ -97,35 +130,63 @@ export async function POST(request: NextRequest) {
       parallelism: 1,
     });
 
-    // 4. Database write with unique 4-digit customer ID generation & collision retry
-    // Client-supplied customer IDs are ignored; server always assigns a random 4-digit ID (1000-9999)
-    let user = null;
+    // 4. Database write in a single atomic transaction:
+    // Creates User (with candidate customerId), EMAIL_VERIFICATION AuthToken (SHA-256 hash),
+    // and EmailOutbox record (AES-256-GCM encrypted payload).
+    // Client-supplied customer IDs are ignored; server always assigns a random 4-digit ID (1000-9999).
+    let signupResult = null;
     const MAX_RETRIES = 5;
     let attempts = 0;
 
-    while (!user && attempts < MAX_RETRIES) {
+    while (!signupResult && attempts < MAX_RETRIES) {
       attempts++;
       const candidateCustomerId = generateRandomCustomerId();
 
       try {
-        user = await prisma.user.create({
-          data: {
-            customerId: candidateCustomerId,
-            name,
-            email,
-            passwordHash,
-            role: 'CUSTOMER',
-            emailVerified: null,
-          },
-          select: {
-            id: true,
-            customerId: true,
-            name: true,
-            email: true,
-            role: true,
-            sessionVersion: true,
-            createdAt: true,
-          },
+        signupResult = await prisma.$transaction(async (tx) => {
+          // 4a. Create User
+          const createdUser = await tx.user.create({
+            data: {
+              customerId: candidateCustomerId,
+              name,
+              email,
+              passwordHash,
+              role: 'CUSTOMER',
+              emailVerified: null,
+            },
+            select: {
+              id: true,
+              customerId: true,
+              name: true,
+              email: true,
+              role: true,
+              sessionVersion: true,
+              createdAt: true,
+            },
+          });
+
+          // 4b. Generate cryptographically secure 6-digit numeric verification code (100000 - 999999)
+          const rawVerificationCode = generateRawVerificationCode();
+
+          // 4c. Persist AuthToken record storing ONLY the HMAC hash (no plaintext in DB)
+          const authToken = await createVerificationCodeRecord(
+            createdUser.id,
+            rawVerificationCode,
+            tx
+          );
+
+          // 4d. Persist EmailOutbox record storing AES-256-GCM encrypted payload for transactional consistency
+          const outboxRecord = await createEmailOutboxRecord(
+            {
+              userId: createdUser.id,
+              tokenId: authToken.id,
+              toEmail: createdUser.email,
+              rawCode: rawVerificationCode,
+            },
+            tx
+          );
+
+          return { user: createdUser, authToken, outboxRecord, rawVerificationCode };
         });
       } catch (err: any) {
         // Handle unique constraint collision on customerId by generating another ID and retrying
@@ -138,11 +199,24 @@ export async function POST(request: NextRequest) {
           );
           continue;
         }
+
+        // Handle concurrent duplicate email registration gracefully
+        if (
+          err?.code === 'P2002' &&
+          (Array.isArray(err?.meta?.target) ? err.meta.target.includes('email') : err?.meta?.target === 'email')
+        ) {
+          console.warn(`[${timestamp}] POST /api/auth/signup - Status: 409 - Email already registered: ${email}`);
+          return NextResponse.json(
+            { success: false, error: 'An account with this email address already exists. Please sign in instead.' },
+            { status: 409 }
+          );
+        }
+
         throw err;
       }
     }
 
-    if (!user) {
+    if (!signupResult) {
       console.error(`[${timestamp}] Failed to assign a unique customer ID after ${MAX_RETRIES} attempts.`);
       return NextResponse.json(
         { success: false, error: 'Unable to assign a unique customer ID. Please try again.' },
@@ -150,24 +224,40 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // 5. Issue secure server-side session cookie
-    const token = signSessionToken({
-      userId: user.id,
-      customerId: user.customerId,
-      role: user.role,
-      sessionVersion: user.sessionVersion,
-      exp: Date.now() + 7 * 24 * 60 * 60 * 1000,
-    });
+    const { user, rawVerificationCode } = signupResult;
 
-    // 6. Structured server logging (strictly omitting passwords, hashes, salts, and secrets)
+    // 5. Structured server logging (strictly omitting passwords, hashes, tokens, and secrets)
     console.log(
-      `[${timestamp}] POST /api/auth/signup - Status: 201 - User created successfully - ID: ${user.id} - Customer ID: ${user.customerId} - Email: ${user.email} - Role: ${user.role}`
+      `[${timestamp}] POST /api/auth/signup - Status: 201 - User created successfully - ID: ${user.id} - Customer ID: ${user.customerId} - Email: ${user.email} - Role: ${user.role} - Outbox: PENDING`
     );
 
-    const cookieOpts = getSessionCookieOptions();
-    const response = NextResponse.json(
+    // Asynchronous non-blocking initial SMTP delivery attempt (does not delay registration response)
+    sendVerificationEmailDirect({
+      toEmail: user.email,
+      code: rawVerificationCode,
+      name: user.name || 'there',
+    })
+      .then((mailRes) => {
+        if (!mailRes.success) {
+          console.warn(
+            `[${timestamp}] POST /api/auth/signup - SMTP Delivery Note: ${mailRes.error || 'Dispatch deferred'}`
+          );
+        } else {
+          console.log(
+            `[${timestamp}] POST /api/auth/signup - SMTP Email Sent Successfully - Message ID: ${mailRes.messageId}`
+          );
+        }
+      })
+      .catch((mailErr) => {
+        console.warn(`[${timestamp}] Non-blocking SMTP dispatch note: ${mailErr?.message || 'deferred to outbox'}`);
+      });
+
+    // 6. Return registration response informing customer to verify email (NO session cookie issued)
+    return NextResponse.json(
       {
         success: true,
+        message: 'Registration successful. Please check your email for your 6-digit verification code.',
+        email: user.email,
         user: {
           id: user.id,
           customerId: user.customerId,
@@ -176,13 +266,10 @@ export async function POST(request: NextRequest) {
           role: user.role,
           createdAt: user.createdAt.toISOString(),
         },
+        customerId: user.customerId,
       },
       { status: 201 }
     );
-
-    response.cookies.set(cookieOpts.name, token, cookieOpts);
-
-    return response;
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown database error';
     console.error(`[${timestamp}] POST /api/auth/signup - Status: 500 - Database write failed: ${errorMessage}`);

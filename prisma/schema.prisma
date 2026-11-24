@@ -25,6 +25,13 @@ enum AuthTokenPurpose {
   PASSWORD_RESET
 }
 
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  SENT
+  FAILED
+}
+
 enum Species {
   DOG
   CAT
@@ -75,6 +82,7 @@ model User {
   updatedAt      DateTime  @updatedAt
 
   authTokens      AuthToken[]
+  emailOutbox     EmailOutbox[]
   pets            Pet[]
   bookings        Booking[]
   closuresCreated Closure[]
@@ -91,10 +99,32 @@ model AuthToken {
   usedAt    DateTime?
   createdAt DateTime         @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emailOutbox EmailOutbox[]
 
   @@index([userId, purpose])
   @@index([expiresAt])
+}
+
+model EmailOutbox {
+  id               String       @id @default(cuid())
+  userId           String
+  tokenId          String?
+  toEmail          String
+  encryptedPayload String?      // AES-256-GCM encrypted payload; cleared upon successful delivery
+  status           OutboxStatus @default(PENDING)
+  attempts         Int          @default(0)
+  lastError        String?
+  scheduledAt      DateTime     @default(now())
+  sentAt           DateTime?
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  authToken AuthToken? @relation(fields: [tokenId], references: [id], onDelete: SetNull)
+
+  @@index([status, scheduledAt])
+  @@index([userId])
 }
 
 // ---------- Pets ----------

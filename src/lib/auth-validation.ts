@@ -136,3 +136,27 @@ export function isCustomerIdValid(value: string): boolean {
   return /^\d{4}$/.test(value.trim());
 }
 
+/**
+ * Validates and cleanses returnUrl to prevent open redirect vulnerabilities.
+ * Only permits safe internal paths within this application.
+ * Defaults to defaultUrl (default '/book') if rawUrl is null, empty, external, or malformed.
+ */
+export function getSafeReturnUrl(rawUrl: string | null | undefined, defaultUrl: string = '/book'): string {
+  if (!rawUrl) return defaultUrl;
+  const trimmed = rawUrl.trim();
+
+  // Must start with a single '/' and not with '//' or '/\'
+  if (trimmed.startsWith('/') && !trimmed.startsWith('//') && !trimmed.startsWith('/\\')) {
+    try {
+      const parsed = new URL(trimmed, 'http://localhost');
+      if (parsed.origin === 'http://localhost') {
+        return parsed.pathname + parsed.search + parsed.hash;
+      }
+    } catch {
+      return defaultUrl;
+    }
+  }
+  return defaultUrl;
+}
+
+

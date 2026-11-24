@@ -12,6 +12,7 @@ import {
   validateConfirmPassword,
   validateCustomerId,
   isCustomerIdValid,
+  getSafeReturnUrl,
   EMAIL_REGEX,
 } from '@/lib/auth-validation';
 
@@ -26,29 +27,6 @@ interface UserProfile {
 }
 
 const AUTH_STORAGE_KEY = 'goodpets_customer_session';
-
-/**
- * Validates and cleanses returnUrl to prevent open redirect vulnerabilities.
- * Only permits safe internal paths within this application.
- */
-function getSafeReturnUrl(rawUrl: string | null): string {
-  if (!rawUrl) return '/book';
-  const trimmed = rawUrl.trim();
-
-  // Must start with a single '/' and not with '//' or '/\'
-  if (trimmed.startsWith('/') && !trimmed.startsWith('//') && !trimmed.startsWith('/\\')) {
-    try {
-      const parsed = new URL(trimmed, 'http://localhost');
-      if (parsed.origin === 'http://localhost') {
-        return parsed.pathname + parsed.search + parsed.hash;
-      }
-    } catch {
-      return '/book';
-    }
-  }
-  return '/book';
-}
-
 
 function CautionIcon({ className = 'w-4 h-4 text-error shrink-0' }: { className?: string }) {
   return (
@@ -246,7 +224,13 @@ function AuthContent() {
 
       if (!res.ok || !data.success) {
         setLoginLoading(false);
-        setLoginServerError(data.error || 'Invalid Customer ID or password.');
+        if (res.status === 403 || data.code === 'EMAIL_NOT_VERIFIED') {
+          setLoginServerError(
+            data.error || 'Verify your email first. Please check your inbox and verify your email before signing in.'
+          );
+        } else {
+          setLoginServerError(data.error || 'Invalid Customer ID or password.');
+        }
         return;
       }
 
@@ -294,6 +278,8 @@ function AuthContent() {
   const [signUpLoading, setSignUpLoading] = useState(false);
   const [signUpServerError, setSignUpServerError] = useState<string | null>(null);
   const [signUpSuccessMsg, setSignUpSuccessMsg] = useState<string | null>(null);
+  const [signUpVerificationPending, setSignUpVerificationPending] = useState(false);
+  const [signUpRegisteredEmail, setSignUpRegisteredEmail] = useState('');
 
   const handleSignUpNameChange = (val: string) => {
     setSignUpName(val);
@@ -464,22 +450,10 @@ function AuthContent() {
       }
 
       setSignUpLoading(false);
-      const newUser: UserProfile = {
-        id: data.user.id,
-        customerId: data.user.customerId,
-        name: data.user.name || signUpName.trim(),
-        email: data.user.email,
-        role: data.user.role,
-      };
-
-      if (typeof window !== 'undefined') {
-        sessionStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(newUser));
-      }
-
-      setSignUpSuccessMsg('Account created successfully! Redirecting...');
-      setTimeout(() => {
-        router.push(returnUrl);
-      }, 600);
+      setSignUpVerificationPending(true);
+      setSignUpRegisteredEmail(signUpEmail.trim().toLowerCase());
+      setSignUpServerError(null);
+      setSignUpSuccessMsg(null);
     } catch {
       setSignUpLoading(false);
       setSignUpServerError('Unable to connect to the server. Please check your connection and try again.');
@@ -595,10 +569,17 @@ function AuthContent() {
               <div
                 role="alert"
                 aria-live="assertive"
-                className="bg-error-container text-on-error-container p-3.5 rounded-xl text-xs font-semibold flex items-center gap-2"
+                className="bg-error-container text-on-error-container p-3.5 rounded-xl text-xs font-semibold flex items-start gap-2.5"
               >
-                <span aria-hidden="true">⚠️</span>
-                <span>{loginServerError}</span>
+                <span aria-hidden="true" className="shrink-0 mt-0.5">⚠️</span>
+                <div className="space-y-1">
+                  <div>{loginServerError}</div>
+                  {loginServerError.includes('Verify your email') && (
+                    <p className="font-normal text-on-error-container/90">
+                      Check your inbox for your verification link. (Resending verification emails will be available in Stage 6.)
+                    </p>
+                  )}
+                </div>
               </div>
             )}
 
@@ -776,6 +757,77 @@ function AuthContent() {
             MODE 2: SIGN UP FORM
             ========================================================================= */}
         {activeMode === 'signup' && (
+          signUpVerificationPending ? (
+            <div className="bg-surface rounded-2xl border border-outline-variant p-6 space-y-6 shadow-soft text-center animate-fadeIn">
+              <div className="w-14 h-14 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center mx-auto">
+                <svg
+                  className="w-8 h-8 text-secondary"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                >
+                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
+                  <polyline points="22,6 12,13 2,6" />
+                </svg>
+              </div>
+
+              <div className="space-y-2">
+                <h2 className="type-title-large font-bold text-on-surface">
+                  Check your email for your verification code
+                </h2>
+                <p className="type-body-medium text-on-surface-variant leading-relaxed">
+                  We&apos;ve sent a six-digit verification code to{' '}
+                  <span className="font-bold text-on-surface">{signUpRegisteredEmail}</span>.
+                </p>
+                <p className="type-body-medium text-on-surface-variant text-xs leading-relaxed">
+                  Please enter this code on the verification screen to activate your account. Once verified, you will be able to sign in using your Customer ID and password.
+                </p>
+              </div>
+
+              <div className="bg-surface-container rounded-xl p-4 text-xs text-on-surface-variant text-left space-y-1.5 border border-outline-variant/60">
+                <div className="font-bold text-on-surface flex items-center gap-1.5">
+                  <span className="text-primary text-sm leading-none" aria-hidden="true">🔒</span>
+                  <span>Verification details</span>
+                </div>
+                <ul className="list-disc list-inside space-y-1 text-on-surface-variant pl-1">
+                  <li>Verification codes are valid for <strong>10 minutes</strong>.</li>
+                  <li>Each code is single-use and invalidates immediately after verification.</li>
+                  <li>Never share your verification code with anyone.</li>
+                </ul>
+              </div>
+
+              <div className="space-y-3 pt-2">
+                <Link
+                  href={`/auth/verify?email=${encodeURIComponent(signUpRegisteredEmail)}&returnUrl=${encodeURIComponent(returnUrl)}`}
+                  className="type-label-large w-full inline-flex items-center justify-center gap-2 bg-primary text-on-primary hover:brightness-105 active:scale-[0.98] px-6 py-3 rounded-full shadow-soft hover:shadow-medium transition-all text-center cursor-pointer"
+                >
+                  Enter Verification Code
+                </Link>
+
+                <Link
+                  href={getModeHref('login')}
+                  className="type-label-medium w-full inline-flex items-center justify-center text-on-surface-variant hover:text-primary transition-colors py-2 text-center"
+                >
+                  Return to Sign In
+                </Link>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSignUpVerificationPending(false);
+                    setSignUpServerError(null);
+                  }}
+                  className="type-label-medium w-full inline-flex items-center justify-center text-on-surface-variant/80 hover:text-primary transition-colors py-1 text-center text-xs"
+                >
+                  Use a different email address
+                </button>
+              </div>
+            </div>
+          ) : (
           <div className="space-y-4">
             {signUpSuccessMsg && (
               <div
@@ -1076,6 +1128,7 @@ function AuthContent() {
               </p>
             </div>
           </div>
+          )
         )}
 
         {/* =========================================================================

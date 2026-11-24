@@ -1,0 +1,21 @@
+=== GoodPets: Controlled SMTP Failure Test (Evidence 16) ===
+Timestamp: 2026-11-20T09:26:17.878Z
+Target Server: smtp.gmail.com:465
+Mailbox User: ogunleyejuliet15@gmail.com
+Credentials: [CONTROLLED_INVALID_PASSWORD_OVERRIDE]
+------------------------------------------------------------
+Attempting authentication against real SMTP server...
+
+>> REAL SMTP SERVER REJECTION RECEIVED <<
+Status: FAILED (Expected controlled rejection)
+Error Name: Error
+Error Message: Invalid login: 535-5.7.8 Username and Password not accepted. For more information, go to
+535 5.7.8  https://support.google.com/mail/?p=BadCredentials ffacd0b85a97d-4ab6bb989e3sm4618499f8f.52 - gsmtp
+Error Code: EAUTH
+SMTP Response Code: 535
+Failing SMTP Command: AUTH PLAIN
+Server Raw Response:
+535-5.7.8 Username and Password not accepted. For more information, go to
+535 5.7.8  https://support.google.com/mail/?p=BadCredentials ffacd0b85a97d-4ab6bb989e3sm4618499f8f.52 - gsmtp
+------------------------------------------------------------
+Test completed: Real SMTP server rejected the connection as expected.
