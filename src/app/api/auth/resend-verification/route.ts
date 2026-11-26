@@ -6,7 +6,8 @@ import {
   hashVerificationCode,
 } from '@/lib/tokens';
 import { createEmailOutboxRecord } from '@/lib/outbox';
-import { sendVerificationEmailDirect } from '@/lib/email';
+import { inngest } from '@/inngest/client';
+import { processOutboxVerificationEmail } from '@/inngest/functions/send-verification-email';
 import {
   deriveRateLimitKey,
   reserveRateLimits,
@@ -126,14 +127,14 @@ export async function POST(request: NextRequest) {
 
     // 4. Eligible unverified customer account processing:
     // Transactionally invalidate previous code, create new HMAC AuthToken, and create encrypted EmailOutbox record
-    const { rawCode } = await prisma.$transaction(async (tx) => {
+    const { outboxRecord } = await prisma.$transaction(async (tx) => {
       const generatedCode = generateRawVerificationCode();
 
       // createVerificationCodeRecord invalidates prior active codes and upserts new token with 10-minute expiry
       const authToken = await createVerificationCodeRecord(user.id, generatedCode, tx);
 
       // Persist AES-256-GCM encrypted payload in EmailOutbox
-      const outboxRecord = await createEmailOutboxRecord(
+      const record = await createEmailOutboxRecord(
         {
           userId: user.id,
           tokenId: authToken.id,
@@ -143,35 +144,53 @@ export async function POST(request: NextRequest) {
         tx
       );
 
-      return { rawCode: generatedCode, authToken, outboxRecord };
+      return { outboxRecord: record };
     });
 
     console.log(
       `[${timestamp}] POST /api/auth/resend-verification - Status: 200 - Verification code reissued for user ID: ${user.id} - Outbox: PENDING`
     );
 
-    // 5. Asynchronous non-blocking initial SMTP delivery
-    sendVerificationEmailDirect({
-      toEmail: user.email,
-      code: rawCode,
-      name: user.name || 'there',
-    })
-      .then((mailRes) => {
-        if (!mailRes.success) {
+    // 5. Dispatch Inngest background event for durable verification email delivery
+    try {
+      await inngest.send({
+        name: 'auth/verification.email.requested',
+        data: {
+          outboxId: outboxRecord.id,
+          email: user.email,
+          name: user.name || 'there',
+        },
+      });
+      console.log(
+        `[${timestamp}] POST /api/auth/resend-verification - Inngest event dispatched for outbox ID: ${outboxRecord.id}`
+      );
+    } catch (inngestErr: any) {
+      console.warn(
+        `[${timestamp}] POST /api/auth/resend-verification - Inngest dispatch failed for outbox ID ${outboxRecord.id}, falling back to direct outbox processing:`,
+        inngestErr?.message
+      );
+      // Fallback recovery: await immediate direct outbox processing so email delivery is durable in serverless runtimes
+      try {
+        const fallbackResult = await processOutboxVerificationEmail(outboxRecord.id, {
+          name: user.name || 'there',
+        });
+        if (!fallbackResult.success) {
           console.warn(
-            `[${timestamp}] POST /api/auth/resend-verification - SMTP Delivery Note: ${mailRes.error || 'Dispatch deferred'}`
+            `[${timestamp}] POST /api/auth/resend-verification - Direct outbox fallback delivery deferred or failed for ID ${outboxRecord.id}:`,
+            fallbackResult.error
           );
         } else {
           console.log(
-            `[${timestamp}] POST /api/auth/resend-verification - SMTP Email Sent Successfully - Message ID: ${mailRes.messageId}`
+            `[${timestamp}] POST /api/auth/resend-verification - Direct outbox fallback delivered successfully for ID ${outboxRecord.id}`
           );
         }
-      })
-      .catch((mailErr) => {
-        console.warn(
-          `[${timestamp}] Non-blocking SMTP resend dispatch note: ${mailErr?.message || 'deferred to outbox'}`
+      } catch (fallbackErr: any) {
+        console.error(
+          `[${timestamp}] POST /api/auth/resend-verification - Direct outbox fallback encountered error for ID ${outboxRecord.id}:`,
+          fallbackErr?.message
         );
-      });
+      }
+    }
 
     // 6. Return identical generic HTTP 200 response (NO session cookie issued)
     return NextResponse.json(

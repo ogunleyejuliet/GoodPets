@@ -488,3 +488,163 @@ export async function sendVerificationEmailFromPayload(params: {
     transporter: params.transporter,
   });
 }
+
+export interface WelcomeEmailContent {
+  subject: string;
+  html: string;
+  text: string;
+}
+
+/**
+ * Builds the branded welcome email content sent after email verification.
+ */
+export function buildWelcomeEmailContent(params: {
+  recipientEmail: string;
+  name?: string;
+}): WelcomeEmailContent {
+  const greetingName = params.name ? params.name.trim() : 'Pet Parent';
+  const subject = 'Welcome to Good Pets — Your Account is Ready';
+  const theme = resolveEmailThemeTokens();
+
+  const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Welcome to Good Pets</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: ${theme.background}; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: ${theme.onSurface}; -webkit-font-smoothing: antialiased;">
+  <div style="width: 100%; background-color: ${theme.background}; padding: 32px 16px;">
+    <div style="max-width: 580px; margin: 0 auto; background-color: ${theme.surface}; border-radius: 12px; border: 1px solid ${theme.outlineVariant}; overflow: hidden;">
+      <div style="background-color: ${theme.primary}; padding: 28px 32px; text-align: center;">
+        <h1 style="color: ${theme.onPrimary}; font-size: 24px; font-weight: 700; margin: 0;">Good Pets</h1>
+        <div style="color: ${theme.primaryContainer}; font-size: 13px; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em;">Victoria Island &bull; Lagos</div>
+      </div>
+      <div style="padding: 32px;">
+        <h2 style="font-size: 20px; font-weight: 700; color: ${theme.onSurface}; margin-top: 0; margin-bottom: 16px;">Welcome to Good Pets!</h2>
+        <p style="font-size: 15px; line-height: 1.6; color: ${theme.onSurface}; margin-bottom: 16px;">
+          Hello ${greetingName},
+        </p>
+        <p style="font-size: 15px; line-height: 1.6; color: ${theme.onSurface}; margin-bottom: 20px;">
+          Your email address has been successfully verified. We are delighted to welcome you to Good Pets in Victoria Island, Lagos!
+        </p>
+        <p style="font-size: 15px; line-height: 1.6; color: ${theme.onSurface}; margin-bottom: 16px;">
+          Your account is fully activated. You can now sign in to view availability and book any of our pet-care services:
+        </p>
+
+        <div style="background-color: ${theme.background}; border: 1px solid ${theme.outlineVariant}; border-radius: 8px; padding: 16px 20px; margin: 20px 0;">
+          <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: ${theme.onSurface}; line-height: 1.8;">
+            <li><strong>Grooming:</strong> Full styling, baths, and specialized coat care for dogs and cats.</li>
+            <li><strong>Daycare:</strong> Supervised socialization, exercise, and rest in our purpose-built suites.</li>
+            <li><strong>Boarding:</strong> Comfortable, overnight accommodations with dedicated staff supervision.</li>
+          </ul>
+        </div>
+
+        <p style="font-size: 14px; line-height: 1.6; color: ${theme.onSurface}; margin-top: 24px; margin-bottom: 8px;">
+          To get started, visit our platform to add your pets and schedule your first booking.
+        </p>
+
+        <p style="font-size: 13px; line-height: 1.5; color: ${theme.onSurfaceVariant}; margin-top: 24px;">
+          If you have any questions or require assistance, our front desk team in Victoria Island is here to help.
+        </p>
+      </div>
+      <div style="background-color: ${theme.surface}; border-top: 1px solid ${theme.outlineVariant}; padding: 24px 32px; text-align: center; font-size: 12px; color: ${theme.onSurfaceVariant}; line-height: 1.5;">
+        Good Pets Pet Care &bull; Victoria Island, Lagos, Nigeria<br>
+        Automated account notification. Please do not reply directly to this email.
+      </div>
+    </div>
+  </div>
+</body>
+</html>`.trim();
+
+  const text = `Good Pets — Victoria Island, Lagos
+========================================
+
+Hello ${greetingName},
+
+Welcome to Good Pets! Your email address has been successfully verified.
+
+Your account is now fully activated. You can sign in to book any of our services:
+- Grooming: Full styling, baths, and specialized coat care for dogs and cats.
+- Daycare: Supervised socialization, exercise, and rest.
+- Boarding: Comfortable overnight accommodations with dedicated supervision.
+
+To get started, visit our platform to add your pets and schedule your first booking.
+
+--
+Good Pets Pet Care
+Victoria Island, Lagos, Nigeria
+Automated account notification. Please do not reply to this email.
+`.trim();
+
+  return { subject, html, text };
+}
+
+/**
+ * Sends a welcome email directly via SMTP.
+ * Enforces EMAIL_ALLOWLIST outside production.
+ */
+export async function sendWelcomeEmailDirect(params: {
+  toEmail: string;
+  name?: string;
+  transporter?: Transporter;
+}): Promise<SendEmailResult> {
+  // 1. Allowlist enforcement in non-production environments
+  if (!isEmailAllowlisted(params.toEmail)) {
+    return {
+      success: false,
+      allowlistBlocked: true,
+      error: 'Recipient address is not on EMAIL_ALLOWLIST in non-production mode.',
+      retryable: false,
+      permanent: true,
+    };
+  }
+
+  // 2. Build email content
+  const content = buildWelcomeEmailContent({
+    recipientEmail: params.toEmail,
+    name: params.name,
+  });
+
+  // 3. Dispatch via SMTP
+  return sendEmail({
+    to: params.toEmail,
+    subject: content.subject,
+    html: content.html,
+    text: content.text,
+    transporter: params.transporter,
+  });
+}
+
+/**
+ * Decrypts optional metadata from an EmailOutbox encrypted payload and delivers welcome email via SMTP.
+ */
+export async function sendWelcomeEmailFromPayload(params: {
+  toEmail: string;
+  encryptedPayload?: string | null;
+  name?: string;
+  transporter?: Transporter;
+  keyBuffer?: Buffer;
+}): Promise<SendEmailResult> {
+  let resolvedName = params.name;
+
+  if (params.encryptedPayload) {
+    try {
+      const decrypted = decryptTokenPayload(params.encryptedPayload, params.keyBuffer);
+      if (decrypted.startsWith('{')) {
+        const parsed = JSON.parse(decrypted);
+        if (parsed.name && !resolvedName) resolvedName = parsed.name;
+      } else if (decrypted && decrypted !== 'WELCOME' && !resolvedName) {
+        resolvedName = decrypted;
+      }
+    } catch {
+      // Proceed with provided name if payload decryption fails
+    }
+  }
+
+  return sendWelcomeEmailDirect({
+    toEmail: params.toEmail,
+    name: resolvedName,
+    transporter: params.transporter,
+  });
+}

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import prisma from '@/lib/prisma';
+import { inngest } from '@/inngest/client';
 import {
   consumeVerificationCode,
   consumeVerificationToken,
@@ -96,9 +98,26 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      await consumeVerificationCode(email, code);
+      const result = await consumeVerificationCode(email, code, prisma);
 
       console.log(`[${timestamp}] POST /api/auth/verify-email - Status: 200 - Email verified successfully via 6-digit code`);
+
+      // Dispatch welcome email background job if outbox record was created
+      if (result.welcomeOutboxId) {
+        try {
+          await inngest.send({
+            name: 'auth/welcome.email.requested',
+            data: {
+              outboxId: result.welcomeOutboxId,
+              email: result.email,
+              name: result.name || undefined,
+            },
+          });
+          console.log(`[${timestamp}] POST /api/auth/verify-email - Inngest event dispatched for welcome outbox ID: ${result.welcomeOutboxId}`);
+        } catch (inngestErr: any) {
+          console.warn(`[${timestamp}] POST /api/auth/verify-email - Inngest dispatch failed for welcome outbox ID ${result.welcomeOutboxId}: ${inngestErr?.message || inngestErr}. Record remains PENDING for scheduled recovery.`);
+        }
+      }
 
       return NextResponse.json(
         {
@@ -112,8 +131,25 @@ export async function POST(request: NextRequest) {
 
     // Branch B: Legacy 64-char token fallback (if supplied)
     if (rawToken && /^[0-9a-fA-F]{64}$/.test(rawToken)) {
-      await consumeVerificationToken(rawToken);
+      const result = await consumeVerificationToken(rawToken, prisma);
       console.log(`[${timestamp}] POST /api/auth/verify-email - Status: 200 - Email verified successfully via token`);
+
+      if (result.welcomeOutboxId) {
+        try {
+          await inngest.send({
+            name: 'auth/welcome.email.requested',
+            data: {
+              outboxId: result.welcomeOutboxId,
+              email: result.email,
+              name: result.name || undefined,
+            },
+          });
+          console.log(`[${timestamp}] POST /api/auth/verify-email - Inngest event dispatched for welcome outbox ID: ${result.welcomeOutboxId}`);
+        } catch (inngestErr: any) {
+          console.warn(`[${timestamp}] POST /api/auth/verify-email - Inngest dispatch failed for welcome outbox ID ${result.welcomeOutboxId}: ${inngestErr?.message || inngestErr}. Record remains PENDING for scheduled recovery.`);
+        }
+      }
+
       return NextResponse.json(
         {
           success: true,

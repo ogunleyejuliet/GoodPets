@@ -114,6 +114,38 @@ export async function createEmailOutboxRecord(
 }
 
 /**
+ * Creates an EmailOutbox record for a welcome email.
+ * - tokenId is null because welcome emails do not involve an AuthToken.
+ * - encryptedPayload stores metadata (e.g. customer name) encrypted via AES-256-GCM.
+ */
+export async function createWelcomeEmailOutboxRecord(
+  params: {
+    userId: string;
+    toEmail: string;
+    name?: string | null;
+  },
+  tx: Prisma.TransactionClient = prisma
+): Promise<EmailOutbox> {
+  const payloadString = JSON.stringify({
+    type: 'WELCOME',
+    name: params.name || null,
+  });
+  const encryptedPayload = encryptTokenPayload(payloadString);
+
+  return await tx.emailOutbox.create({
+    data: {
+      userId: params.userId,
+      tokenId: null, // Explicitly null to distinguish from verification emails
+      toEmail: params.toEmail.trim().toLowerCase(),
+      encryptedPayload,
+      status: 'PENDING',
+      attempts: 0,
+      scheduledAt: new Date(),
+    },
+  });
+}
+
+/**
  * Claims a pending or stale outbox record for processing using an atomic conditional update.
  * Prevents duplicate processing across multiple concurrent workers.
  */
@@ -121,15 +153,17 @@ export async function claimOutboxRecordForProcessing(
   outboxId: string,
   tx: Prisma.TransactionClient = prisma
 ): Promise<EmailOutbox | null> {
-  const staleThreshold = new Date(Date.now() - 5 * 60 * 1000); // 5 minutes stale threshold
+  const now = new Date();
+  const staleThreshold = new Date(now.getTime() - 5 * 60 * 1000); // 5 minutes stale threshold
 
-  // Atomically claim if PENDING or abandoned PROCESSING
+  // Atomically claim if PENDING, abandoned PROCESSING, or retryable FAILED with attempts < 3 and scheduledAt <= now
   const result = await tx.emailOutbox.updateMany({
     where: {
       id: outboxId,
       OR: [
         { status: 'PENDING' },
         { status: 'PROCESSING', updatedAt: { lt: staleThreshold } },
+        { status: 'FAILED', attempts: { lt: 3 }, scheduledAt: { lte: now } },
       ],
     },
     data: {
@@ -139,7 +173,7 @@ export async function claimOutboxRecordForProcessing(
   });
 
   if (result.count === 0) {
-    return null; // Already claimed or in a terminal state
+    return null; // Already claimed, not yet scheduled for retry, or in a terminal state
   }
 
   return await tx.emailOutbox.findUnique({ where: { id: outboxId } });
@@ -185,24 +219,90 @@ export async function markOutboxRecordFailed(
 
 /**
  * Recovers abandoned processing records older than staleMinutes.
- * Resets status to PENDING so scheduled Inngest workers can re-attempt delivery.
+ * Resets status to PENDING so scheduled Inngest workers can re-attempt delivery,
+ * or marks FAILED if max retries (3) have been exhausted.
  */
 export async function recoverAbandonedOutboxRecords(
   staleMinutes: number = 5,
   db: typeof prisma = prisma
 ): Promise<number> {
-  const cutoff = new Date(Date.now() - staleMinutes * 60 * 1000);
+  const now = new Date();
+  const cutoff = new Date(now.getTime() - staleMinutes * 60 * 1000);
 
+  // 1. Recover abandoned records under 3 attempts back to PENDING for re-dispatch
   const result = await db.emailOutbox.updateMany({
     where: {
       status: 'PROCESSING',
       updatedAt: { lt: cutoff },
+      attempts: { lt: 3 },
     },
     data: {
       status: 'PENDING',
+      scheduledAt: now,
+    },
+  });
+
+  // 2. Mark records that exhausted all 3 attempts as FAILED to prevent indefinite processing
+  await db.emailOutbox.updateMany({
+    where: {
+      status: 'PROCESSING',
+      updatedAt: { lt: cutoff },
+      attempts: { gte: 3 },
+    },
+    data: {
+      status: 'FAILED',
+      lastError: 'Abandoned in PROCESSING and exceeded maximum delivery attempts (3).',
     },
   });
 
   return result.count;
 }
+
+/**
+ * Finds pending outbox records that are stranded and eligible for re-dispatch:
+ * 1. Newly created stranded records (attempts = 0, createdAt < cutoff)
+ * 2. Recovered abandoned records reset from PROCESSING back to PENDING (attempts > 0, attempts < 3, scheduledAt <= now)
+ */
+export async function findStrandedPendingOutboxRecords(
+  strandedMinutes: number = 2,
+  limit: number = 50,
+  db: typeof prisma = prisma
+): Promise<Array<{ id: string; toEmail: string; userId: string; tokenId?: string | null; createdAt: Date; user?: { name: string | null } | null }>> {
+  const now = new Date();
+  const cutoff = new Date(now.getTime() - strandedMinutes * 60 * 1000);
+
+  return await db.emailOutbox.findMany({
+    where: {
+      status: 'PENDING',
+      attempts: { lt: 3 },
+      scheduledAt: { lte: now },
+      OR: [
+        // Case 1: Brand new stranded records (never claimed, older than cutoff)
+        {
+          attempts: 0,
+          createdAt: { lt: cutoff },
+        },
+        // Case 2: Recovered abandoned records (reset from PROCESSING to PENDING)
+        {
+          attempts: { gt: 0 },
+        },
+      ],
+    },
+    select: {
+      id: true,
+      toEmail: true,
+      userId: true,
+      tokenId: true,
+      createdAt: true,
+      user: {
+        select: {
+          name: true,
+        },
+      },
+    },
+    orderBy: { createdAt: 'asc' },
+    take: limit,
+  });
+}
+
 

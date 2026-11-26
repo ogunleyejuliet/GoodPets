@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import prisma from '@/lib/prisma';
 import type { Prisma, AuthToken } from '@prisma/client';
+import { createWelcomeEmailOutboxRecord } from '@/lib/outbox';
 
 export class TokenNotFoundError extends Error {
   constructor(message: string = 'Verification code or account not found.') {
@@ -211,7 +212,7 @@ export async function consumeVerificationCode(
   rawCode: string,
   db: typeof prisma = prisma,
   secret?: string
-): Promise<{ userId: string; email: string; customerId: string | null }> {
+): Promise<{ userId: string; email: string; customerId: string | null; name: string | null; welcomeOutboxId?: string }> {
   const normalizedEmail = email?.trim().toLowerCase();
   const trimmedCode = rawCode?.trim();
 
@@ -229,6 +230,7 @@ export async function consumeVerificationCode(
     select: {
       id: true,
       email: true,
+      name: true,
       customerId: true,
       emailVerified: true,
     },
@@ -287,10 +289,35 @@ export async function consumeVerificationCode(
       data: { emailVerified: now },
     });
 
+    // 5. Create welcome email outbox record if not already verified and no welcome email exists
+    let welcomeOutboxId: string | undefined;
+    if (!user.emailVerified) {
+      const existingWelcome = await tx.emailOutbox.findFirst({
+        where: {
+          userId: user.id,
+          tokenId: null,
+        },
+      });
+
+      if (!existingWelcome) {
+        const welcomeRecord = await createWelcomeEmailOutboxRecord(
+          {
+            userId: user.id,
+            toEmail: user.email,
+            name: user.name,
+          },
+          tx
+        );
+        welcomeOutboxId = welcomeRecord.id;
+      }
+    }
+
     return {
       userId: user.id,
       email: user.email,
       customerId: user.customerId,
+      name: user.name,
+      welcomeOutboxId,
     };
   });
 }
@@ -322,7 +349,7 @@ export async function createVerificationTokenRecord(
 export async function consumeVerificationToken(
   rawToken: string,
   db: typeof prisma = prisma
-): Promise<{ userId: string; email: string; customerId: string | null }> {
+): Promise<{ userId: string; email: string; customerId: string | null; name: string | null; welcomeOutboxId?: string }> {
   const trimmed = rawToken?.trim();
   const tokenHash = hashVerificationToken(trimmed);
 
@@ -360,10 +387,34 @@ export async function consumeVerificationToken(
       data: { emailVerified: now },
     });
 
+    let welcomeOutboxId: string | undefined;
+    if (!token.user.emailVerified) {
+      const existingWelcome = await tx.emailOutbox.findFirst({
+        where: {
+          userId: token.userId,
+          tokenId: null,
+        },
+      });
+
+      if (!existingWelcome) {
+        const welcomeRecord = await createWelcomeEmailOutboxRecord(
+          {
+            userId: token.userId,
+            toEmail: token.user.email,
+            name: token.user.name,
+          },
+          tx
+        );
+        welcomeOutboxId = welcomeRecord.id;
+      }
+    }
+
     return {
       userId: token.userId,
       email: token.user.email,
       customerId: token.user.customerId,
+      name: token.user.name,
+      welcomeOutboxId,
     };
   });
 }

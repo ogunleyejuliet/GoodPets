@@ -6,7 +6,8 @@ import { signupSchema } from '@/lib/validations/auth';
 import { isPasswordBreached, BreachedPasswordServiceError } from '@/lib/breached-password';
 import { generateRawVerificationCode, createVerificationCodeRecord } from '@/lib/tokens';
 import { createEmailOutboxRecord } from '@/lib/outbox';
-import { sendVerificationEmailDirect } from '@/lib/email';
+import { inngest } from '@/inngest/client';
+import { processOutboxVerificationEmail } from '@/inngest/functions/send-verification-email';
 import {
   getClientIp,
   deriveRateLimitKey,
@@ -224,33 +225,51 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { user, rawVerificationCode } = signupResult;
+    const { user, outboxRecord } = signupResult;
 
     // 5. Structured server logging (strictly omitting passwords, hashes, tokens, and secrets)
     console.log(
       `[${timestamp}] POST /api/auth/signup - Status: 201 - User created successfully - ID: ${user.id} - Customer ID: ${user.customerId} - Email: ${user.email} - Role: ${user.role} - Outbox: PENDING`
     );
 
-    // Asynchronous non-blocking initial SMTP delivery attempt (does not delay registration response)
-    sendVerificationEmailDirect({
-      toEmail: user.email,
-      code: rawVerificationCode,
-      name: user.name || 'there',
-    })
-      .then((mailRes) => {
-        if (!mailRes.success) {
+    // 5b. Dispatch Inngest background event for durable verification email delivery
+    try {
+      await inngest.send({
+        name: 'auth/verification.email.requested',
+        data: {
+          outboxId: outboxRecord.id,
+          email: user.email,
+          name: user.name || 'there',
+        },
+      });
+      console.log(`[${timestamp}] POST /api/auth/signup - Inngest event dispatched for outbox ID: ${outboxRecord.id}`);
+    } catch (inngestErr: any) {
+      console.warn(
+        `[${timestamp}] POST /api/auth/signup - Inngest dispatch failed for outbox ID ${outboxRecord.id}, falling back to direct outbox processing:`,
+        inngestErr?.message
+      );
+      // Fallback recovery: await immediate direct outbox processing so email delivery is durable in serverless runtimes
+      try {
+        const fallbackResult = await processOutboxVerificationEmail(outboxRecord.id, {
+          name: user.name || 'there',
+        });
+        if (!fallbackResult.success) {
           console.warn(
-            `[${timestamp}] POST /api/auth/signup - SMTP Delivery Note: ${mailRes.error || 'Dispatch deferred'}`
+            `[${timestamp}] POST /api/auth/signup - Direct outbox fallback delivery deferred or failed for ID ${outboxRecord.id}:`,
+            fallbackResult.error
           );
         } else {
           console.log(
-            `[${timestamp}] POST /api/auth/signup - SMTP Email Sent Successfully - Message ID: ${mailRes.messageId}`
+            `[${timestamp}] POST /api/auth/signup - Direct outbox fallback delivered successfully for ID ${outboxRecord.id}`
           );
         }
-      })
-      .catch((mailErr) => {
-        console.warn(`[${timestamp}] Non-blocking SMTP dispatch note: ${mailErr?.message || 'deferred to outbox'}`);
-      });
+      } catch (fallbackErr: any) {
+        console.error(
+          `[${timestamp}] POST /api/auth/signup - Direct outbox fallback encountered error for ID ${outboxRecord.id}:`,
+          fallbackErr?.message
+        );
+      }
+    }
 
     // 6. Return registration response informing customer to verify email (NO session cookie issued)
     return NextResponse.json(
