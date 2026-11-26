@@ -495,16 +495,40 @@ export interface WelcomeEmailContent {
   text: string;
 }
 
+export interface WelcomeEmailContentParams {
+  recipientEmail: string;
+  name?: string;
+  customerId?: string | null;
+}
+
 /**
  * Builds the branded welcome email content sent after email verification.
  */
-export function buildWelcomeEmailContent(params: {
-  recipientEmail: string;
-  name?: string;
-}): WelcomeEmailContent {
+export function buildWelcomeEmailContent(params: WelcomeEmailContentParams): WelcomeEmailContent {
   const greetingName = params.name ? params.name.trim() : 'Pet Parent';
+  const customerId = params.customerId ? params.customerId.trim() : null;
   const subject = 'Welcome to Good Pets — Your Account is Ready';
   const theme = resolveEmailThemeTokens();
+
+  const customerIdHtml = customerId
+    ? `
+        <div style="text-align: center; margin: 28px 0; background-color: ${theme.background}; border: 2px solid ${theme.primary}; border-radius: 12px; padding: 20px 24px;">
+          <div style="font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: ${theme.primary}; margin-bottom: 8px;">Your Customer ID</div>
+          <div style="font-size: 32px; font-weight: 800; letter-spacing: 6px; color: ${theme.primary}; font-family: monospace; line-height: 1.2;">
+            ${customerId}
+          </div>
+          <p style="font-size: 14px; line-height: 1.5; color: ${theme.onSurface}; margin-top: 12px; margin-bottom: 0;">
+            Your Customer ID is required when signing in to your GoodPets account. Keep it somewhere safe.
+          </p>
+        </div>`
+    : '';
+
+  const customerIdText = customerId
+    ? `
+CUSTOMER ID: ${customerId}
+Your Customer ID is required when signing in to your GoodPets account. Keep it somewhere safe.
+`
+    : '';
 
   const html = `<!DOCTYPE html>
 <html lang="en">
@@ -528,6 +552,7 @@ export function buildWelcomeEmailContent(params: {
         <p style="font-size: 15px; line-height: 1.6; color: ${theme.onSurface}; margin-bottom: 20px;">
           Your email address has been successfully verified. We are delighted to welcome you to Good Pets in Victoria Island, Lagos!
         </p>
+        ${customerIdHtml}
         <p style="font-size: 15px; line-height: 1.6; color: ${theme.onSurface}; margin-bottom: 16px;">
           Your account is fully activated. You can now sign in to view availability and book any of our pet-care services:
         </p>
@@ -563,7 +588,7 @@ export function buildWelcomeEmailContent(params: {
 Hello ${greetingName},
 
 Welcome to Good Pets! Your email address has been successfully verified.
-
+${customerIdText}
 Your account is now fully activated. You can sign in to book any of our services:
 - Grooming: Full styling, baths, and specialized coat care for dogs and cats.
 - Daycare: Supervised socialization, exercise, and rest.
@@ -587,6 +612,7 @@ Automated account notification. Please do not reply to this email.
 export async function sendWelcomeEmailDirect(params: {
   toEmail: string;
   name?: string;
+  customerId?: string | null;
   transporter?: Transporter;
 }): Promise<SendEmailResult> {
   // 1. Allowlist enforcement in non-production environments
@@ -604,6 +630,7 @@ export async function sendWelcomeEmailDirect(params: {
   const content = buildWelcomeEmailContent({
     recipientEmail: params.toEmail,
     name: params.name,
+    customerId: params.customerId,
   });
 
   // 3. Dispatch via SMTP
@@ -623,10 +650,12 @@ export async function sendWelcomeEmailFromPayload(params: {
   toEmail: string;
   encryptedPayload?: string | null;
   name?: string;
+  customerId?: string | null;
   transporter?: Transporter;
   keyBuffer?: Buffer;
 }): Promise<SendEmailResult> {
   let resolvedName = params.name;
+  let resolvedCustomerId = params.customerId;
 
   if (params.encryptedPayload) {
     try {
@@ -634,6 +663,7 @@ export async function sendWelcomeEmailFromPayload(params: {
       if (decrypted.startsWith('{')) {
         const parsed = JSON.parse(decrypted);
         if (parsed.name && !resolvedName) resolvedName = parsed.name;
+        if (parsed.customerId && !resolvedCustomerId) resolvedCustomerId = parsed.customerId;
       } else if (decrypted && decrypted !== 'WELCOME' && !resolvedName) {
         resolvedName = decrypted;
       }
@@ -645,6 +675,7 @@ export async function sendWelcomeEmailFromPayload(params: {
   return sendWelcomeEmailDirect({
     toEmail: params.toEmail,
     name: resolvedName,
+    customerId: resolvedCustomerId,
     transporter: params.transporter,
   });
 }

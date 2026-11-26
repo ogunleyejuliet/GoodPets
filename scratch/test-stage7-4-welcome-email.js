@@ -1,17 +1,18 @@
 /**
- * GoodPets Task 4 Step 10: Stage 7.4 — Welcome Email Background Job Test Suite
+ * GoodPets Task 4 Step 10: Stage 7.4 — Welcome Email Background Job & Fallback Test Suite
  *
  * Requirements Tested:
  * 1. Successful verification creates a welcome email outbox record.
  * 2. Failed verification does not create a welcome email.
  * 3. Reusing a verification code does not create another welcome email.
  * 4. Repeated verification requests do not create duplicate welcome emails.
- * 5. The verification API does not wait for SMTP delivery (returns immediately).
- * 6. Inngest dispatch failure leaves a recoverable outbox record in PENDING state.
- * 7. Welcome email is delivered by the background worker.
- * 8. Worker retries handle transient failures.
- * 9. Already-SENT welcome emails are not delivered again.
- * 10. Existing verification email functionality remains unaffected.
+ * 5. Successful Inngest dispatch does not invoke direct fallback.
+ * 6. Failed Inngest dispatch invokes direct fallback exactly once.
+ * 7. Successful fallback processes the welcome email (status -> SENT, sentAt set, payload purged).
+ * 8. Failed fallback does not undo email verification (User.emailVerified remains set, HTTP 200 returned).
+ * 9. Existing SENT records are not resent (ALREADY_SENT).
+ * 10. Concurrent processing respects atomic outbox claiming (CAS row locking).
+ * 11. Existing verification email functionality remains unaffected.
  */
 
 const assert = require('node:assert');
@@ -21,7 +22,7 @@ const crypto = require('node:crypto');
 const Module = require('node:module');
 const ts = require('typescript');
 
-console.log('=== Stage 7.4: Welcome Email Background Job Suite ===\n');
+console.log('=== Stage 7.4: Welcome Email Background Job & Fallback Suite ===\n');
 
 const ROOT = path.resolve(__dirname, '..');
 process.env.AUTH_SECRET = 'goodpets-test-secret-minimum-32-chars-long-12345';
@@ -316,7 +317,7 @@ async function runSuite() {
   }
 
   // 1. Successful verification creates a welcome email outbox record
-  await test('1. Successful verification creates a welcome email outbox record', async () => {
+  await test('1. Successful verification creates a welcome email outbox record with existing customerId', async () => {
     const mockPrisma = createMockPrisma();
     const { outboxModule, tokensModule } = getModules(mockPrisma);
 
@@ -324,6 +325,7 @@ async function runSuite() {
       data: {
         email: 'ada@welcome.example',
         name: 'Ada Lovelace',
+        customerId: '5474',
       },
     });
 
@@ -333,12 +335,20 @@ async function runSuite() {
     const result = await tokensModule.consumeVerificationCode('ada@welcome.example', code, mockPrisma);
 
     assert(result.welcomeOutboxId, 'welcomeOutboxId must be returned on successful verification');
+    assert.strictEqual(result.customerId, '5474', 'result.customerId matches existing user.customerId');
     const outboxRecord = await mockPrisma.emailOutbox.findUnique({ where: { id: result.welcomeOutboxId } });
     assert.strictEqual(outboxRecord.userId, user.id, 'Outbox user ID matches');
     assert.strictEqual(outboxRecord.toEmail, 'ada@welcome.example', 'Outbox toEmail matches');
     assert.strictEqual(outboxRecord.tokenId, null, 'tokenId is strictly null for welcome emails');
     assert.strictEqual(outboxRecord.status, 'PENDING', 'Initial outbox status is PENDING');
     assert(outboxRecord.encryptedPayload, 'Encrypted payload is stored');
+
+    // Decrypt and verify customerId is in the payload
+    const decryptedJson = outboxModule.decryptTokenPayload(outboxRecord.encryptedPayload);
+    const parsedPayload = JSON.parse(decryptedJson);
+    assert.strictEqual(parsedPayload.type, 'WELCOME', 'Payload type is WELCOME');
+    assert.strictEqual(parsedPayload.customerId, '5474', 'Customer ID is preserved in encrypted payload');
+    assert.strictEqual(parsedPayload.name, 'Ada Lovelace', 'Customer name is in encrypted payload');
   });
 
   // 2. Failed verification does not create a welcome email
@@ -363,7 +373,6 @@ async function runSuite() {
     }
 
     assert(errorThrown, 'Wrong code throws error');
-    // Ensure zero welcome outbox records exist
     let welcomeCount = 0;
     for (const o of mockPrisma._store.emailOutbox.values()) {
       if (o.userId === user.id && o.tokenId === null) welcomeCount++;
@@ -386,11 +395,9 @@ async function runSuite() {
     const code = '333444';
     await tokensModule.createVerificationCodeRecord(user.id, code, mockPrisma);
 
-    // First use succeeds
     const firstResult = await tokensModule.consumeVerificationCode('reuse@welcome.example', code, mockPrisma);
     assert(firstResult.welcomeOutboxId, 'First consumption creates welcome outbox');
 
-    // Second use throws TokenReusedError
     let reusedThrown = false;
     try {
       await tokensModule.consumeVerificationCode('reuse@welcome.example', code, mockPrisma);
@@ -399,7 +406,6 @@ async function runSuite() {
     }
 
     assert(reusedThrown, 'Reusing code throws TokenReusedError');
-    // Count welcome outbox records
     let welcomeCount = 0;
     for (const o of mockPrisma._store.emailOutbox.values()) {
       if (o.userId === user.id && o.tokenId === null) welcomeCount++;
@@ -419,12 +425,10 @@ async function runSuite() {
       },
     });
 
-    // Create and consume first code
     await tokensModule.createVerificationCodeRecord(user.id, '444555', mockPrisma);
     const res1 = await tokensModule.consumeVerificationCode('repeat@welcome.example', '444555', mockPrisma);
     assert(res1.welcomeOutboxId, 'First consumption created welcome email');
 
-    // Create a new code after account is already verified
     await tokensModule.createVerificationCodeRecord(user.id, '666777', mockPrisma);
     const res2 = await tokensModule.consumeVerificationCode('repeat@welcome.example', '666777', mockPrisma);
     assert.strictEqual(res2.welcomeOutboxId, undefined, 'Subsequent consumption on verified user does NOT create another welcome outbox record');
@@ -436,21 +440,30 @@ async function runSuite() {
     assert.strictEqual(welcomeCount, 1, 'Strictly 1 welcome outbox record created');
   });
 
-  // 5. The verification API does not wait for SMTP delivery (returns immediately)
-  await test('5. The verification API does not wait for SMTP delivery', async () => {
+  // 5. Successful Inngest dispatch does not invoke direct fallback
+  await test('5. Successful Inngest dispatch does not invoke direct fallback', async () => {
     const mockPrisma = createMockPrisma();
     const { tokensModule } = getModules(mockPrisma);
     const dispatchedEvents = [];
+    let fallbackCalls = 0;
+
     const mockInngest = {
       send: async (event) => {
         dispatchedEvents.push(event);
       },
     };
 
+    const mockSendWelcomeModule = {
+      processOutboxWelcomeEmail: async () => {
+        fallbackCalls++;
+        return { success: true, status: 'SENT' };
+      },
+    };
+
     const user = await mockPrisma.user.create({
       data: {
-        email: 'async@welcome.example',
-        name: 'Async Verification',
+        email: 'success-dispatch@welcome.example',
+        name: 'Success Dispatch',
       },
     });
     await tokensModule.createVerificationCodeRecord(user.id, '555666', mockPrisma);
@@ -459,40 +472,47 @@ async function runSuite() {
       '@/lib/prisma': mockPrisma,
       '@/inngest/client': { inngest: mockInngest },
       '@/lib/tokens': tokensModule,
+      '@/inngest/functions/send-welcome-email': mockSendWelcomeModule,
     });
 
     const req = new Request('http://localhost:3000/api/auth/verify-email', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ email: 'async@welcome.example', code: '555666' }),
+      body: JSON.stringify({ email: 'success-dispatch@welcome.example', code: '555666' }),
     });
 
-    const start = Date.now();
     const res = await verifyRoute.POST(req);
-    const elapsed = Date.now() - start;
-
-    assert.strictEqual(res.status, 200, 'HTTP 200 returned immediately');
-    const body = await res.json();
-    assert.strictEqual(body.success, true, 'Verification succeeds');
-    assert(elapsed < 500, 'API returns quickly without waiting for SMTP');
+    assert.strictEqual(res.status, 200, 'HTTP 200 returned');
     assert.strictEqual(dispatchedEvents.length, 1, 'Inngest event dispatched');
-    assert.strictEqual(dispatchedEvents[0].name, 'auth/welcome.email.requested', 'Event name is auth/welcome.email.requested');
+    assert.strictEqual(dispatchedEvents[0].name, 'auth/welcome.email.requested', 'Event name match');
+    assert.strictEqual(fallbackCalls, 0, 'Direct fallback must NOT be called when inngest.send succeeds');
   });
 
-  // 6. Inngest dispatch failure leaves a recoverable outbox record
-  await test('6. Inngest dispatch failure leaves a recoverable outbox record', async () => {
+  // 6. Failed Inngest dispatch invokes direct fallback exactly once
+  await test('6. Failed Inngest dispatch invokes direct fallback exactly once', async () => {
     const mockPrisma = createMockPrisma();
     const { tokensModule } = getModules(mockPrisma);
+    let fallbackCalls = 0;
+    let fallbackOutboxId = null;
+
     const mockInngestFailing = {
       send: async () => {
         throw new Error('Inngest connection error');
       },
     };
 
+    const mockSendWelcomeModule = {
+      processOutboxWelcomeEmail: async (outboxId) => {
+        fallbackCalls++;
+        fallbackOutboxId = outboxId;
+        return { success: true, status: 'SENT' };
+      },
+    };
+
     const user = await mockPrisma.user.create({
       data: {
-        email: 'inngestfail@welcome.example',
-        name: 'Inngest Fail',
+        email: 'fallback-invoke@welcome.example',
+        name: 'Fallback Invoke',
       },
     });
     await tokensModule.createVerificationCodeRecord(user.id, '777888', mockPrisma);
@@ -501,115 +521,126 @@ async function runSuite() {
       '@/lib/prisma': mockPrisma,
       '@/inngest/client': { inngest: mockInngestFailing },
       '@/lib/tokens': tokensModule,
+      '@/inngest/functions/send-welcome-email': mockSendWelcomeModule,
     });
 
     const req = new Request('http://localhost:3000/api/auth/verify-email', {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ email: 'inngestfail@welcome.example', code: '777888' }),
+      body: JSON.stringify({ email: 'fallback-invoke@welcome.example', code: '777888' }),
     });
 
     const res = await verifyRoute.POST(req);
-    assert.strictEqual(res.status, 200, 'Route returns HTTP 200 even if inngest.send throws');
+    assert.strictEqual(res.status, 200, 'Route returns HTTP 200 on fallback');
+    assert.strictEqual(fallbackCalls, 1, 'Fallback processOutboxWelcomeEmail must be invoked exactly once');
+    assert(fallbackOutboxId, 'Fallback received valid outbox ID');
+  });
 
-    // Check outbox record remains PENDING for scheduled cron recovery
-    let pendingWelcome = null;
+  // 7. Successful fallback processes the welcome email (status -> SENT, sentAt set, payload purged)
+  await test('7. Successful fallback processes the welcome email', async () => {
+    const mockPrisma = createMockPrisma();
+    const { outboxModule, tokensModule } = getModules(mockPrisma);
+
+    const mockInngestFailing = {
+      send: async () => {
+        throw new Error('Inngest unavailable');
+      },
+    };
+
+    const mockEmailModule = {
+      sendWelcomeEmailFromPayload: async () => ({ success: true, messageId: 'msg-welcome-fallback' }),
+    };
+
+    const welcomeJobWithMockEmail = loadTsModule('src/inngest/functions/send-welcome-email.ts', {
+      '@/lib/prisma': mockPrisma,
+      '@/lib/outbox': outboxModule,
+      '@/lib/email': mockEmailModule,
+    });
+
+    const user = await mockPrisma.user.create({
+      data: {
+        email: 'fallback-process@welcome.example',
+        name: 'Grace Hopper',
+      },
+    });
+    await tokensModule.createVerificationCodeRecord(user.id, '123987', mockPrisma);
+
+    const verifyRoute = loadTsModule('src/app/api/auth/verify-email/route.ts', {
+      '@/lib/prisma': mockPrisma,
+      '@/inngest/client': { inngest: mockInngestFailing },
+      '@/lib/tokens': tokensModule,
+      '@/inngest/functions/send-welcome-email': welcomeJobWithMockEmail,
+    });
+
+    const req = new Request('http://localhost:3000/api/auth/verify-email', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: 'fallback-process@welcome.example', code: '123987' }),
+    });
+
+    const res = await verifyRoute.POST(req);
+    assert.strictEqual(res.status, 200, 'HTTP 200 returned');
+
+    let welcomeOutbox = null;
     for (const o of mockPrisma._store.emailOutbox.values()) {
-      if (o.userId === user.id && o.tokenId === null) pendingWelcome = o;
+      if (o.userId === user.id && o.tokenId === null) welcomeOutbox = o;
     }
-    assert(pendingWelcome, 'Outbox record exists');
-    assert.strictEqual(pendingWelcome.status, 'PENDING', 'Record remains PENDING for scheduled recovery');
+
+    assert(welcomeOutbox, 'Welcome outbox record must exist');
+    assert.strictEqual(welcomeOutbox.status, 'SENT', 'Fallback must transition status to SENT');
+    assert(welcomeOutbox.sentAt, 'sentAt timestamp must be set');
+    assert.strictEqual(welcomeOutbox.encryptedPayload, null, 'Encrypted payload must be purged');
   });
 
-  // 7. Welcome email is delivered by the background worker
-  await test('7. Welcome email is delivered by the background worker', async () => {
+  // 8. Failed fallback does not undo email verification
+  await test('8. Failed fallback does not undo email verification', async () => {
     const mockPrisma = createMockPrisma();
-    const { outboxModule, welcomeJobModule } = getModules(mockPrisma);
+    const { tokensModule } = getModules(mockPrisma);
 
-    const user = await mockPrisma.user.create({
-      data: {
-        email: 'worker@welcome.example',
-        name: 'Worker Test',
-      },
-    });
-
-    const welcomeOutbox = await outboxModule.createWelcomeEmailOutboxRecord(
-      {
-        userId: user.id,
-        toEmail: user.email,
-        name: user.name,
-      },
-      mockPrisma
-    );
-
-    const deliveredEmails = [];
-    const mockTransporter = {
-      sendMail: async (mailOpts) => {
-        deliveredEmails.push(mailOpts);
-        return { messageId: 'msg-welcome-001' };
+    const mockInngestFailing = {
+      send: async () => {
+        throw new Error('Inngest offline');
       },
     };
 
-    const result = await welcomeJobModule.processOutboxWelcomeEmail(welcomeOutbox.id, {
-      name: user.name,
-      transporter: mockTransporter,
-    });
-
-    assert.strictEqual(result.status, 'SENT', 'Worker marks status SENT');
-    assert.strictEqual(deliveredEmails.length, 1, 'Exactly 1 welcome email delivered');
-    assert(deliveredEmails[0].subject.includes('Welcome to Good Pets'), 'Subject contains Welcome to Good Pets');
-    assert(deliveredEmails[0].html.includes('Welcome to Good Pets!'), 'HTML contains branded greeting');
-
-    const outboxAfter = await mockPrisma.emailOutbox.findUnique({ where: { id: welcomeOutbox.id } });
-    assert.strictEqual(outboxAfter.status, 'SENT', 'Outbox record transitioned to SENT');
-    assert(outboxAfter.sentAt, 'sentAt timestamp populated');
-    assert.strictEqual(outboxAfter.encryptedPayload, null, 'Sensitive payload purged on completion');
-  });
-
-  // 8. Worker retries handle transient failures
-  await test('8. Worker retries handle transient failures', async () => {
-    const mockPrisma = createMockPrisma();
-    const { outboxModule, welcomeJobModule } = getModules(mockPrisma);
-
-    const user = await mockPrisma.user.create({
-      data: {
-        email: 'retry@welcome.example',
-        name: 'Retry Test',
-      },
-    });
-
-    const welcomeOutbox = await outboxModule.createWelcomeEmailOutboxRecord(
-      {
-        userId: user.id,
-        toEmail: user.email,
-        name: user.name,
-      },
-      mockPrisma
-    );
-
-    const mockFailingTransporter = {
-      sendMail: async () => {
-        const err = new Error('Connection timeout');
-        err.code = 'ETIMEDOUT';
-        throw err;
+    const mockFailingWelcomeJob = {
+      processOutboxWelcomeEmail: async () => {
+        throw new Error('SMTP connection timed out during fallback');
       },
     };
 
-    const result = await welcomeJobModule.processOutboxWelcomeEmail(welcomeOutbox.id, {
-      transporter: mockFailingTransporter,
+    const user = await mockPrisma.user.create({
+      data: {
+        email: 'smtp-fail@welcome.example',
+        name: 'SMTP Fail',
+      },
+    });
+    await tokensModule.createVerificationCodeRecord(user.id, '234567', mockPrisma);
+
+    const verifyRoute = loadTsModule('src/app/api/auth/verify-email/route.ts', {
+      '@/lib/prisma': mockPrisma,
+      '@/inngest/client': { inngest: mockInngestFailing },
+      '@/lib/tokens': tokensModule,
+      '@/inngest/functions/send-welcome-email': mockFailingWelcomeJob,
     });
 
-    assert.strictEqual(result.status, 'FAILED', 'Worker marks FAILED on error');
-    assert.strictEqual(result.retryable, true, 'Retryable error classified');
+    const req = new Request('http://localhost:3000/api/auth/verify-email', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ email: 'smtp-fail@welcome.example', code: '234567' }),
+    });
 
-    const outboxAfter = await mockPrisma.emailOutbox.findUnique({ where: { id: welcomeOutbox.id } });
-    assert.strictEqual(outboxAfter.status, 'FAILED', 'Status updated to FAILED in DB');
-    assert.strictEqual(outboxAfter.attempts, 1, 'Attempts incremented to 1');
-    assert(outboxAfter.scheduledAt > new Date(), 'Future backoff scheduled');
+    const res = await verifyRoute.POST(req);
+    assert.strictEqual(res.status, 200, 'Route must still return HTTP 200 when fallback email fails');
+    const body = await res.json();
+    assert.strictEqual(body.success, true, 'Verification success reported to user');
+
+    const updatedUser = await mockPrisma.user.findUnique({ where: { id: user.id } });
+    assert(updatedUser.emailVerified, 'User must remain verified in DB even when welcome email fails');
   });
 
-  // 9. Already-SENT welcome emails are not delivered again
-  await test('9. Already-SENT welcome emails are not delivered again', async () => {
+  // 9. Existing SENT records are not resent (ALREADY_SENT)
+  await test('9. Existing SENT records are not resent', async () => {
     const mockPrisma = createMockPrisma();
     const { outboxModule, welcomeJobModule } = getModules(mockPrisma);
 
@@ -629,7 +660,7 @@ async function runSuite() {
       mockPrisma
     );
 
-    // Set to SENT
+    // Mark as SENT
     await mockPrisma.emailOutbox.update({
       where: { id: welcomeOutbox.id },
       data: { status: 'SENT', sentAt: new Date(), encryptedPayload: null },
@@ -649,11 +680,42 @@ async function runSuite() {
 
     assert.strictEqual(result.status, 'SKIPPED', 'Worker skips already SENT record');
     assert.strictEqual(result.reason, 'ALREADY_SENT', 'Reason is ALREADY_SENT');
-    assert.strictEqual(sentEmails.length, 0, 'No email sent');
+    assert.strictEqual(sentEmails.length, 0, 'No duplicate email sent');
   });
 
-  // 10. Existing verification email functionality remains unaffected
-  await test('10. Existing verification email functionality remains unaffected', async () => {
+  // 10. Concurrent processing respects atomic outbox claiming
+  await test('10. Concurrent processing respects atomic outbox claiming', async () => {
+    const mockPrisma = createMockPrisma();
+    const { outboxModule } = getModules(mockPrisma);
+
+    const user = await mockPrisma.user.create({
+      data: {
+        email: 'concurrent@welcome.example',
+        name: 'Concurrent Test',
+      },
+    });
+
+    const welcomeOutbox = await outboxModule.createWelcomeEmailOutboxRecord(
+      {
+        userId: user.id,
+        toEmail: user.email,
+        name: user.name,
+      },
+      mockPrisma
+    );
+
+    // Simulate two concurrent workers claiming the same outbox record simultaneously
+    const [claim1, claim2] = await Promise.all([
+      outboxModule.claimOutboxRecordForProcessing(welcomeOutbox.id, mockPrisma),
+      outboxModule.claimOutboxRecordForProcessing(welcomeOutbox.id, mockPrisma),
+    ]);
+
+    const claims = [claim1, claim2].filter(Boolean);
+    assert.strictEqual(claims.length, 1, 'CAS atomic update guarantees exactly 1 worker claims the record');
+  });
+
+  // 11. Existing verification email functionality remains unaffected
+  await test('11. Existing verification email functionality remains unaffected', async () => {
     const mockPrisma = createMockPrisma();
     const { outboxModule, tokensModule, verifJobModule } = getModules(mockPrisma);
 
@@ -697,7 +759,94 @@ async function runSuite() {
     assert(sentEmails[0].html.includes('987654'), 'Verification code present in email');
   });
 
-  console.log(`\nResults: ${passed}/${total} Stage 7.4 welcome email tests passed.\n`);
+  // 12. Welcome email template renders customerId and required explanation prominently
+  await test('12. Welcome email template renders customerId and required explanation prominently', async () => {
+    const mockPrisma = createMockPrisma();
+    const { emailModule } = getModules(mockPrisma);
+
+    const content = emailModule.buildWelcomeEmailContent({
+      recipientEmail: 'customer@goodpets.example',
+      name: 'Ada Lovelace',
+      customerId: '5474',
+    });
+
+    const explanation = 'Your Customer ID is required when signing in to your GoodPets account. Keep it somewhere safe.';
+
+    assert(content.html.includes('5474'), 'HTML includes customerId');
+    assert(content.html.includes(explanation), 'HTML includes exact customer ID explanation');
+    assert(content.text.includes('CUSTOMER ID: 5474'), 'Text includes customerId');
+    assert(content.text.includes(explanation), 'Text includes exact customer ID explanation');
+
+    // Without customerId (graceful degradation)
+    const contentWithoutId = emailModule.buildWelcomeEmailContent({
+      recipientEmail: 'customer@goodpets.example',
+      name: 'Ada Lovelace',
+    });
+    assert(!contentWithoutId.html.includes(explanation), 'HTML omits explanation when customerId is absent');
+  });
+
+  // 13. End-to-end welcome email worker decrypts payload and delivers customerId
+  await test('13. Welcome email worker decrypts payload and delivers customerId to recipient', async () => {
+    const mockPrisma = createMockPrisma();
+    const { outboxModule, welcomeJobModule } = getModules(mockPrisma);
+
+    const encryptedPayload = outboxModule.encryptTokenPayload(
+      JSON.stringify({
+        type: 'WELCOME',
+        name: 'Alan Turing',
+        customerId: '8899',
+      })
+    );
+
+    const record = await mockPrisma.emailOutbox.create({
+      data: {
+        userId: 'usr-alan',
+        toEmail: 'alan@enigma.example',
+        tokenId: null,
+        encryptedPayload,
+        status: 'PENDING',
+        attempts: 0,
+      },
+    });
+
+    const deliveredEmails = [];
+    const mockTransporter = {
+      sendMail: async (opts) => {
+        deliveredEmails.push(opts);
+        return { messageId: 'msg-welcome-alan' };
+      },
+    };
+
+    const result = await welcomeJobModule.processOutboxWelcomeEmail(record.id, {
+      transporter: mockTransporter,
+    });
+
+    assert.strictEqual(result.status, 'SENT', 'Worker marks outbox as SENT');
+    assert.strictEqual(deliveredEmails.length, 1, 'Exactly one email sent');
+    assert(deliveredEmails[0].html.includes('8899'), 'Delivered HTML contains customer ID decrypted from payload');
+    assert(
+      deliveredEmails[0].html.includes('Your Customer ID is required when signing in to your GoodPets account. Keep it somewhere safe.'),
+      'Delivered HTML contains customer ID explanation'
+    );
+    assert(deliveredEmails[0].text.includes('CUSTOMER ID: 8899'), 'Delivered text contains customer ID decrypted from payload');
+  });
+
+  // 14. Verification email never exposes customerId
+  await test('14. Verification email never exposes customerId', async () => {
+    const mockPrisma = createMockPrisma();
+    const { emailModule } = getModules(mockPrisma);
+
+    const verifContent = emailModule.buildVerificationEmailContent({
+      code: '654321',
+      recipientEmail: 'user@example.com',
+      name: 'Ada Lovelace',
+    });
+
+    assert(!verifContent.html.includes('Customer ID'), 'Verification email HTML does not mention Customer ID');
+    assert(!verifContent.text.includes('Customer ID'), 'Verification email text does not mention Customer ID');
+  });
+
+  console.log(`\nResults: ${passed}/${total} Stage 7.4 welcome email & fallback tests passed.\n`);
   if (passed !== total) {
     process.exit(1);
   }

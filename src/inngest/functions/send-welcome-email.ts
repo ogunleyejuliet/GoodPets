@@ -11,6 +11,7 @@ import type { Transporter } from 'nodemailer';
 
 export interface ProcessWelcomeEmailOptions {
   name?: string;
+  customerId?: string;
   transporter?: Transporter;
 }
 
@@ -108,6 +109,7 @@ export async function processOutboxWelcomeEmail(
       toEmail: claimedRecord.toEmail,
       encryptedPayload: claimedRecord.encryptedPayload,
       name: options?.name,
+      customerId: options?.customerId,
       transporter: options?.transporter,
     });
   } catch (err: any) {
@@ -184,14 +186,18 @@ export const sendWelcomeEmailFunction = inngest.createFunction(
     triggers: [{ event: 'auth/welcome.email.requested' }],
   },
   async ({ event, step }: { event: any; step: any }) => {
-    const { outboxId, name } = (event.data || {}) as { outboxId?: string; name?: string };
+    const { outboxId, name, customerId } = (event.data || {}) as {
+      outboxId?: string;
+      name?: string;
+      customerId?: string;
+    };
 
     if (!outboxId || typeof outboxId !== 'string') {
       throw new NonRetriableError('Missing or invalid outboxId in event payload.');
     }
 
     const result = await step.run('deliver-welcome-email', async () => {
-      return await processOutboxWelcomeEmail(outboxId, { name });
+      return await processOutboxWelcomeEmail(outboxId, { name, customerId });
     });
 
     if (result.success) {

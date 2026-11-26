@@ -123,12 +123,14 @@ export async function createWelcomeEmailOutboxRecord(
     userId: string;
     toEmail: string;
     name?: string | null;
+    customerId?: string | null;
   },
   tx: Prisma.TransactionClient = prisma
 ): Promise<EmailOutbox> {
   const payloadString = JSON.stringify({
     type: 'WELCOME',
     name: params.name || null,
+    customerId: params.customerId || null,
   });
   const encryptedPayload = encryptTokenPayload(payloadString);
 

@@ -305,6 +305,7 @@ export async function consumeVerificationCode(
             userId: user.id,
             toEmail: user.email,
             name: user.name,
+            customerId: user.customerId,
           },
           tx
         );
@@ -402,6 +403,7 @@ export async function consumeVerificationToken(
             userId: token.userId,
             toEmail: token.user.email,
             name: token.user.name,
+            customerId: token.user.customerId,
           },
           tx
         );

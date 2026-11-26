@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import prisma from '@/lib/prisma';
 import { inngest } from '@/inngest/client';
+import { processOutboxWelcomeEmail } from '@/inngest/functions/send-welcome-email';
 import {
   consumeVerificationCode,
   consumeVerificationToken,
@@ -111,11 +112,36 @@ export async function POST(request: NextRequest) {
               outboxId: result.welcomeOutboxId,
               email: result.email,
               name: result.name || undefined,
+              customerId: result.customerId || undefined,
             },
           });
           console.log(`[${timestamp}] POST /api/auth/verify-email - Inngest event dispatched for welcome outbox ID: ${result.welcomeOutboxId}`);
         } catch (inngestErr: any) {
-          console.warn(`[${timestamp}] POST /api/auth/verify-email - Inngest dispatch failed for welcome outbox ID ${result.welcomeOutboxId}: ${inngestErr?.message || inngestErr}. Record remains PENDING for scheduled recovery.`);
+          console.warn(
+            `[${timestamp}] POST /api/auth/verify-email - Inngest dispatch failed for welcome outbox ID ${result.welcomeOutboxId}, falling back to direct outbox processing:`,
+            inngestErr?.message
+          );
+          try {
+            const fallbackResult = await processOutboxWelcomeEmail(result.welcomeOutboxId, {
+              name: result.name || undefined,
+              customerId: result.customerId || undefined,
+            });
+            if (!fallbackResult.success) {
+              console.warn(
+                `[${timestamp}] POST /api/auth/verify-email - Direct welcome outbox fallback delivery deferred or failed for ID ${result.welcomeOutboxId}:`,
+                fallbackResult.error
+              );
+            } else {
+              console.log(
+                `[${timestamp}] POST /api/auth/verify-email - Direct welcome outbox fallback delivered successfully for ID ${result.welcomeOutboxId}`
+              );
+            }
+          } catch (fallbackErr: any) {
+            console.error(
+              `[${timestamp}] POST /api/auth/verify-email - Direct welcome outbox fallback encountered error for ID ${result.welcomeOutboxId}:`,
+              fallbackErr?.message
+            );
+          }
         }
       }
 
@@ -142,11 +168,36 @@ export async function POST(request: NextRequest) {
               outboxId: result.welcomeOutboxId,
               email: result.email,
               name: result.name || undefined,
+              customerId: result.customerId || undefined,
             },
           });
           console.log(`[${timestamp}] POST /api/auth/verify-email - Inngest event dispatched for welcome outbox ID: ${result.welcomeOutboxId}`);
         } catch (inngestErr: any) {
-          console.warn(`[${timestamp}] POST /api/auth/verify-email - Inngest dispatch failed for welcome outbox ID ${result.welcomeOutboxId}: ${inngestErr?.message || inngestErr}. Record remains PENDING for scheduled recovery.`);
+          console.warn(
+            `[${timestamp}] POST /api/auth/verify-email - Inngest dispatch failed for welcome outbox ID ${result.welcomeOutboxId}, falling back to direct outbox processing:`,
+            inngestErr?.message
+          );
+          try {
+            const fallbackResult = await processOutboxWelcomeEmail(result.welcomeOutboxId, {
+              name: result.name || undefined,
+              customerId: result.customerId || undefined,
+            });
+            if (!fallbackResult.success) {
+              console.warn(
+                `[${timestamp}] POST /api/auth/verify-email - Direct welcome outbox fallback delivery deferred or failed for ID ${result.welcomeOutboxId}:`,
+                fallbackResult.error
+              );
+            } else {
+              console.log(
+                `[${timestamp}] POST /api/auth/verify-email - Direct welcome outbox fallback delivered successfully for ID ${result.welcomeOutboxId}`
+              );
+            }
+          } catch (fallbackErr: any) {
+            console.error(
+              `[${timestamp}] POST /api/auth/verify-email - Direct welcome outbox fallback encountered error for ID ${result.welcomeOutboxId}:`,
+              fallbackErr?.message
+            );
+          }
         }
       }
 
